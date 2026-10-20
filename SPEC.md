@@ -1,0 +1,165 @@
+# Mandarin: Household App Spec
+
+Oct 20, 2026 · Sam Primrose
+
+## Overview and goals
+
+One self-hosted app for the household: shared shopping lists that keep working with no signal, a recipe database with reliable web import, and full task management with private and shared lists.
+
+- **Shopping:** fast to use in the shop, works offline, syncs when the signal returns, covers groceries and other family shopping (kids' shoes, Kmart runs).
+- **Recipes:** import from recipe blogs with the exact ingredients, numbered steps and photos; add ingredients to the shopping list.
+- **Tasks:** Vikunja-level task management with due dates, reminders, saved filters and multiple views.
+- **Everywhere:** looks good and works well on phone, tablet and laptop; both an iPhone and an Android phone.
+- **Self-hosted:** runs in Docker on the home ZimaOS server.
+
+Inspiration: [Vikunja](https://vikunja.io) (look, task features), [KitchenOwl](https://kitchenowl.org) (recipes, single shared grocery list), ShopShop (list feel), [Specifically Clementines](https://github.com/davideshay/groceries) (shop groups, sync visibility).
+
+## Approach
+
+Decision: build an all-in-one app as a **soft fork of Vikunja**, adding shopping, recipes and household mode as new modules.
+
+- **Why Vikunja:** its task features (views, filters, reminders, CalDAV, API, shortcuts, settings) would take months to rebuild; the shopping and recipe features are smaller additions.
+- **Stack:** Go backend, Vue 3 + TypeScript frontend, one repo, one container. A small Python container handles recipe scraping.
+- **Soft fork rules:** new code lives in its own folders; edits to Vikunja's own files stay small and clearly marked; upstream Vikunja is merged in every few weeks for features and security fixes. Going to a hard fork later stays possible.
+- **Rebrand:** own app name and logo, own theme defaults. Credit Vikunja in the README.
+- **Licence:** the fork stays AGPL-3.0; source is public on GitHub. Ideas and code may be borrowed from Specifically Clementines (MIT).
+- **Learning:** Sam learns Go and Vue 3 + TypeScript through the code as features are built.
+
+## Users and household
+
+The server has exactly one household; every user belongs to it automatically. There is no household picker anywhere in the app.
+
+- Each person has their own login.
+- **Shopping lists and recipes** always belong to the household and are shared with everyone.
+- **Task projects** are private to their owner by default and can be shared with the household or individual users, using Vikunja's existing sharing.
+- Tasks can be assigned to another household member.
+- After the household's accounts exist, open registration is turned off.
+
+## Tasks
+
+Keep Vikunja's task management as it is; these are the parts Sam specifically values.
+
+- **Views per project:** list, table and kanban. Other views (Gantt etc.) can stay but aren't priorities.
+- **Navigation:** Overview, Upcoming and Projects.
+- **Saved filters:** dynamic lists defined by a query, e.g. `done = false && assignees in sam`.
+- Due dates, reminders, recurring tasks, labels, priorities, sub-tasks.
+- API, bots, notification services and calendar (CalDAV) integration.
+- The full settings panel and keyboard-shortcut workflow.
+
+## Shopping lists
+
+A new shopping module with a ShopShop-style list: one line per item, a big tick target, no tiles.
+
+### The list
+
+- Each item has a name and an optional **quantity + unit** (2, 500 g, 1 L, 3 packs) and an optional note.
+- Tap to tick; ticked items grey out and drop to the bottom, with a button to clear them.
+- Items are grouped by **category** (Produce, Dairy, Frozen…), each group collapsible. One category order is used for every shop.
+- Not just groceries: shoes, school supplies and other family shopping go on lists too.
+
+### Shops and shop groups
+
+- Each shop has its own list; lists are grouped, e.g. **Groceries = Aldi + Supabarn**, another group for Kmart or Target.
+- Adding an item to a group puts it on every shop list in that group.
+- Ticking an item at one shop ticks it off the others in the group ("bought it already").
+- An item can be marked **not stocked** at a shop, so it is never added to that shop's list.
+
+### Adding items
+
+- A **pre-loaded item catalogue** with default categories, so common items sort themselves from day one.
+- Every new item the household types is saved to the catalogue.
+- Typing **autocompletes** from the catalogue, frequently and recently bought items first; an item re-added keeps its last quantity, unit and category.
+
+### Item photos
+
+- Optional photo per item (e.g. the right brand). Stored only for items that have one; no space used otherwise.
+
+## Offline sync
+
+Shopping lists are offline-first: every action happens on the phone instantly and syncs when there is signal. We write our own sync on Vikunja's database, borrowing Clementines' ideas, rather than adding CouchDB.
+
+```
+Tick / add / edit → Phone database (IndexedDB) → Outbox queue → [Signal?]
+                         │                            ▲           │ yes → Home server → other phone updates live
+                         ▼                            └── no: keeps waiting
+                 Screen updates instantly
+```
+
+1. The phone keeps a copy of the household's shopping data in its local database (IndexedDB).
+2. Every tick, add or edit is written locally first, so the screen responds instantly, and is added to an outbox queue.
+3. When online, the outbox is sent to the server; the phone then pulls changes made since its last sync.
+4. While both phones are online, changes appear live on the other phone.
+5. Conflicts resolve per field, the latest change winning, so two different edits to one item both survive.
+
+- **Sync badge:** a small indicator shows online, offline with *n* changes waiting, or syncing.
+- **Conflict log:** a rare conflict shows a warning on the badge; the log shows which change won and which lost.
+- **Tasks:** online-only at first. Later, task lists become readable offline (no offline editing).
+
+## Recipes
+
+A household recipe database whose web import gets the exact recipe: ingredients parsed properly, numbered steps intact, one or two images.
+
+- **Recipe record:** title, source link, servings, times, ingredients (quantity, unit, name, note), numbered steps, 1–2 images, tags.
+- **Add to shopping list:** a recipe's ingredients go on the shopping list with their quantities.
+- **Readable on the laptop or tablet while cooking.**
+
+### Scraper (separate Python container)
+
+1. Read the recipe data the page already publishes in machine-readable form (schema.org Recipe), which carries exact ingredients and steps.
+2. Fall back to the recipe-scrapers library for sites needing site-specific handling.
+3. Last resort: an AI model extracts the recipe; it also splits each ingredient into quantity, unit and name. Can run locally on sampc's GPU.
+
+Proposed: the import shows a preview to correct before saving.
+
+## Platforms and look
+
+A web app installed to the home screen on both phones (no app stores), plus the full website on laptop and tablet.
+
+- **Phone:** iPhone and Android, added to the home screen so it opens full screen like an app.
+- **Tablet and laptop:** the full desktop layout, including recipes while cooking.
+- **Look:** modelled on Vikunja's design and colour scheme; the shopping list follows ShopShop's simplicity.
+- **Theming:** light, dark and system modes, plus theme options.
+- **Store apps:** possible later by wrapping the same code (Capacitor) if the home-screen app falls short.
+
+## Hosting and workflow
+
+The app runs on the ZimaOS server (192.168.1.52) behind the existing Nginx Proxy Manager, with HTTPS on its own subdomain.
+
+- **Containers:** the app (Go backend + Vue frontend in one image) and the recipe scraper (Python). SQLite to start.
+- **Proxy:** Nginx Proxy Manager with Let's Encrypt and websockets on; the app's public URL setting must match the subdomain exactly.
+- **Repo:** a GitHub fork of `go-vikunja/vikunja`, public. `main` mirrors upstream; work happens on a separate branch; upstream is merged in every few weeks.
+- **Builds:** GitHub Actions builds the Docker image and publishes it to GitHub's container registry (ghcr.io); the server pulls it.
+- **Backups:** to be decided (see open questions).
+- **Trial:** stock KitchenOwl and Vikunja are running now for evaluation; they're retired once the fork replaces them.
+
+## Build phases
+
+Groceries come first; each phase ends with something usable on the phones.
+
+1. **Fork and pipeline:** fork on GitHub, rebrand, automated Docker build, deploy to ZimaOS in place of stock Vikunja.
+2. **Household mode + basic shopping list:** single household, shopping module with the ShopShop-style view, quantities and units, categories. Online-only; first lesson through Go and Vue.
+3. **Catalogue and shop groups:** pre-loaded catalogue, autocomplete, Aldi + Supabarn group with tick-once behaviour, not-stocked flag, item photos.
+4. **Offline-first sync:** local database, outbox, live updates, sync badge, conflict log. Ends with a dead-zone test in the supermarket.
+5. **Recipes:** recipe database, scraper container, add ingredients to the shopping list.
+6. **Polish:** offline-readable tasks, theming, any trial feedback.
+
+## Out of scope and later
+
+**Not included:** finances or expense tracking (from KitchenOwl), multiple households, per-shop aisle ordering.
+
+**Later:**
+
+- Voice add via Siri Shortcuts or Google Assistant.
+- Offline editing of tasks (not just reading).
+- Store apps for iOS and Android.
+- Meal planning and a cooking mode (not yet decided).
+
+## Open questions
+
+- [x] App name: **Mandarin**. Logo still to design.
+- [ ] GitHub account for the fork (public repo assumed).
+- [ ] Local dev setup on the laptop, or build on GitHub and deploy straight to ZimaOS?
+- [ ] Meal planning and cooking mode: wanted, and in which phase?
+- [ ] Backups: nightly to a folder on the server, or off the box (e.g. the Synology NAS)?
+- [ ] Notifications when the other person changes a shared list: always, never, or per list?
+- [ ] Vikunja trial: reverse-proxy issue still to resolve.
