@@ -1302,6 +1302,18 @@ export type PaginatedSession = {
     total_pages?: number;
 };
 
+export type PaginatedShoppingCatalogItem = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<ShoppingCatalogItem> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedShoppingCategory = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1332,6 +1344,18 @@ export type PaginatedShoppingList = {
      */
     readonly $schema?: string;
     items?: Array<ShoppingList> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedShoppingShop = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<ShoppingShop> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -2054,6 +2078,112 @@ export type ShareCounts = {
     readonly user_shares?: number;
 };
 
+export type ShoppingCatalogItem = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The category new list items with this name go into. 0 means uncategorised.
+     */
+    category_id?: number;
+    /**
+     * When this entry was created.
+     */
+    readonly created?: string;
+    /**
+     * Whether the item has a photo. Fetch it from /shopping/catalog/{id}/photo.
+     */
+    readonly has_photo?: boolean;
+    /**
+     * The unique, numeric id of this catalogue entry.
+     */
+    readonly id?: number;
+    /**
+     * When the item was last added to a list; null if never.
+     */
+    readonly last_added?: string | null;
+    /**
+     * The item's name as it's shown, e.g. Vegemite.
+     */
+    name?: string;
+    /**
+     * Shops that don't stock this item. It is hidden on those shops' tabs. Replaced as a whole on update.
+     */
+    not_stocked_shop_ids?: Array<number> | null;
+    /**
+     * The quantity used last time; offered again when the item is re-added. 0 means none.
+     */
+    quantity?: number;
+    /**
+     * How many times the item has been added to a list. Autocomplete ranks frequent items first.
+     */
+    readonly times_added?: number;
+    /**
+     * The unit used last time.
+     */
+    unit?: string;
+    /**
+     * When this entry was last changed.
+     */
+    readonly updated?: string;
+};
+
+export type ShoppingCatalogReadBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The category new list items with this name go into. 0 means uncategorised.
+     */
+    category_id?: number;
+    /**
+     * When this entry was created.
+     */
+    readonly created?: string;
+    /**
+     * Whether the item has a photo. Fetch it from /shopping/catalog/{id}/photo.
+     */
+    readonly has_photo?: boolean;
+    /**
+     * The unique, numeric id of this catalogue entry.
+     */
+    readonly id?: number;
+    /**
+     * When the item was last added to a list; null if never.
+     */
+    readonly last_added?: string | null;
+    /**
+     * The caller's permission on this entry; always 2 (admin) for household members.
+     */
+    readonly max_permission?: number;
+    /**
+     * The item's name as it's shown, e.g. Vegemite.
+     */
+    name?: string;
+    /**
+     * Shops that don't stock this item. It is hidden on those shops' tabs. Replaced as a whole on update.
+     */
+    not_stocked_shop_ids?: Array<number> | null;
+    /**
+     * The quantity used last time; offered again when the item is re-added. 0 means none.
+     */
+    quantity?: number;
+    /**
+     * How many times the item has been added to a list. Autocomplete ranks frequent items first.
+     */
+    readonly times_added?: number;
+    /**
+     * The unit used last time.
+     */
+    unit?: string;
+    /**
+     * When this entry was last changed.
+     */
+    readonly updated?: string;
+};
+
 export type ShoppingCategory = {
     /**
      * A URL to the JSON Schema for this object.
@@ -2129,6 +2259,10 @@ export type ShoppingItem = {
      */
     readonly $schema?: string;
     /**
+     * The catalogue entry this item was matched to by name. Set by the server.
+     */
+    readonly catalog_item_id?: number;
+    /**
      * The category this item is grouped under. 0 means uncategorised.
      */
     category_id?: number;
@@ -2149,6 +2283,10 @@ export type ShoppingItem = {
      */
     readonly done_at?: string | null;
     /**
+     * Whether the item's catalogue entry has a photo.
+     */
+    readonly has_photo?: boolean;
+    /**
      * The unique, numeric id of this item.
      */
     readonly id?: number;
@@ -2160,6 +2298,10 @@ export type ShoppingItem = {
      * What to buy, e.g. Milk.
      */
     name?: string;
+    /**
+     * Shops that don't stock this item (from its catalogue entry); hide it on those shops' tabs.
+     */
+    readonly not_stocked_shop_ids?: Array<number> | null;
     /**
      * Free-text note, e.g. the brand or a size.
      */
@@ -2188,6 +2330,10 @@ export type ShoppingItemReadBody = {
      */
     readonly $schema?: string;
     /**
+     * The catalogue entry this item was matched to by name. Set by the server.
+     */
+    readonly catalog_item_id?: number;
+    /**
      * The category this item is grouped under. 0 means uncategorised.
      */
     category_id?: number;
@@ -2208,6 +2354,10 @@ export type ShoppingItemReadBody = {
      */
     readonly done_at?: string | null;
     /**
+     * Whether the item's catalogue entry has a photo.
+     */
+    readonly has_photo?: boolean;
+    /**
      * The unique, numeric id of this item.
      */
     readonly id?: number;
@@ -2223,6 +2373,10 @@ export type ShoppingItemReadBody = {
      * What to buy, e.g. Milk.
      */
     name?: string;
+    /**
+     * Shops that don't stock this item (from its catalogue entry); hide it on those shops' tabs.
+     */
+    readonly not_stocked_shop_ids?: Array<number> | null;
     /**
      * Free-text note, e.g. the brand or a size.
      */
@@ -2267,6 +2421,10 @@ export type ShoppingList = {
      */
     position?: number;
     /**
+     * The shops this list is bought at, in tab order. Manage them under /shopping/lists/{list}/shops.
+     */
+    readonly shops?: Array<ShoppingShop> | null;
+    /**
      * The name of the list, e.g. Groceries.
      */
     title?: string;
@@ -2302,11 +2460,81 @@ export type ShoppingListReadBody = {
      */
     position?: number;
     /**
+     * The shops this list is bought at, in tab order. Manage them under /shopping/lists/{list}/shops.
+     */
+    readonly shops?: Array<ShoppingShop> | null;
+    /**
      * The name of the list, e.g. Groceries.
      */
     title?: string;
     /**
      * When this list was last changed.
+     */
+    readonly updated?: string;
+};
+
+export type ShoppingShop = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When this shop was added.
+     */
+    readonly created?: string;
+    /**
+     * The unique, numeric id of this shop.
+     */
+    readonly id?: number;
+    /**
+     * The list this shop belongs to. Taken from the URL; ignored in the body.
+     */
+    readonly list_id?: number;
+    /**
+     * Order of the shop's tab; lower comes first.
+     */
+    position?: number;
+    /**
+     * The shop's name, e.g. Aldi.
+     */
+    title?: string;
+    /**
+     * When this shop was last changed.
+     */
+    readonly updated?: string;
+};
+
+export type ShoppingShopReadBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When this shop was added.
+     */
+    readonly created?: string;
+    /**
+     * The unique, numeric id of this shop.
+     */
+    readonly id?: number;
+    /**
+     * The list this shop belongs to. Taken from the URL; ignored in the body.
+     */
+    readonly list_id?: number;
+    /**
+     * The caller's permission on this shop; always 2 (admin) for household members.
+     */
+    readonly max_permission?: number;
+    /**
+     * Order of the shop's tab; lower comes first.
+     */
+    position?: number;
+    /**
+     * The shop's name, e.g. Aldi.
+     */
+    title?: string;
+    /**
+     * When this shop was last changed.
      */
     readonly updated?: string;
 };
@@ -4398,6 +4626,14 @@ export type PaginatedSessionWritable = {
     total_pages?: number;
 };
 
+export type PaginatedShoppingCatalogItemWritable = {
+    items?: Array<ShoppingCatalogItemWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedShoppingCategoryWritable = {
     items?: Array<ShoppingCategoryWritable> | null;
     page?: number;
@@ -4416,6 +4652,14 @@ export type PaginatedShoppingItemWritable = {
 
 export type PaginatedShoppingListWritable = {
     items?: Array<ShoppingListWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedShoppingShopWritable = {
+    items?: Array<ShoppingShopWritable> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -4766,6 +5010,52 @@ export type SavedFilterReadBodyWritable = {
     title?: string;
 };
 
+export type ShoppingCatalogItemWritable = {
+    /**
+     * The category new list items with this name go into. 0 means uncategorised.
+     */
+    category_id?: number;
+    /**
+     * The item's name as it's shown, e.g. Vegemite.
+     */
+    name?: string;
+    /**
+     * Shops that don't stock this item. It is hidden on those shops' tabs. Replaced as a whole on update.
+     */
+    not_stocked_shop_ids?: Array<number> | null;
+    /**
+     * The quantity used last time; offered again when the item is re-added. 0 means none.
+     */
+    quantity?: number;
+    /**
+     * The unit used last time.
+     */
+    unit?: string;
+};
+
+export type ShoppingCatalogReadBodyWritable = {
+    /**
+     * The category new list items with this name go into. 0 means uncategorised.
+     */
+    category_id?: number;
+    /**
+     * The item's name as it's shown, e.g. Vegemite.
+     */
+    name?: string;
+    /**
+     * Shops that don't stock this item. It is hidden on those shops' tabs. Replaced as a whole on update.
+     */
+    not_stocked_shop_ids?: Array<number> | null;
+    /**
+     * The quantity used last time; offered again when the item is re-added. 0 means none.
+     */
+    quantity?: number;
+    /**
+     * The unit used last time.
+     */
+    unit?: string;
+};
+
 export type ShoppingCategoryWritable = {
     /**
      * Order of the category's group on a list; lower comes first.
@@ -4875,6 +5165,28 @@ export type ShoppingListReadBodyWritable = {
     position?: number;
     /**
      * The name of the list, e.g. Groceries.
+     */
+    title?: string;
+};
+
+export type ShoppingShopWritable = {
+    /**
+     * Order of the shop's tab; lower comes first.
+     */
+    position?: number;
+    /**
+     * The shop's name, e.g. Aldi.
+     */
+    title?: string;
+};
+
+export type ShoppingShopReadBodyWritable = {
+    /**
+     * Order of the shop's tab; lower comes first.
+     */
+    position?: number;
+    /**
+     * The shop's name, e.g. Aldi.
      */
     title?: string;
 };
@@ -9128,6 +9440,281 @@ export type AuthLinkShareResponses = {
 
 export type AuthLinkShareResponse = AuthLinkShareResponses[keyof AuthLinkShareResponses];
 
+export type ShoppingCatalogListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/shopping/catalog';
+};
+
+export type ShoppingCatalogListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCatalogListError = ShoppingCatalogListErrors[keyof ShoppingCatalogListErrors];
+
+export type ShoppingCatalogListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedShoppingCatalogItem;
+};
+
+export type ShoppingCatalogListResponse = ShoppingCatalogListResponses[keyof ShoppingCatalogListResponses];
+
+export type ShoppingCatalogCreateData = {
+    body: ShoppingCatalogItemWritable;
+    path?: never;
+    query?: never;
+    url: '/shopping/catalog';
+};
+
+export type ShoppingCatalogCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCatalogCreateError = ShoppingCatalogCreateErrors[keyof ShoppingCatalogCreateErrors];
+
+export type ShoppingCatalogCreateResponses = {
+    /**
+     * Created
+     */
+    201: ShoppingCatalogItem;
+};
+
+export type ShoppingCatalogCreateResponse = ShoppingCatalogCreateResponses[keyof ShoppingCatalogCreateResponses];
+
+export type ShoppingCatalogDeleteData = {
+    body?: never;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/catalog/{id}';
+};
+
+export type ShoppingCatalogDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCatalogDeleteError = ShoppingCatalogDeleteErrors[keyof ShoppingCatalogDeleteErrors];
+
+export type ShoppingCatalogDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type ShoppingCatalogDeleteResponse = ShoppingCatalogDeleteResponses[keyof ShoppingCatalogDeleteResponses];
+
+export type ShoppingCatalogReadData = {
+    body?: never;
+    headers?: {
+        /**
+         * Succeeds if the server's resource matches one of the passed values.
+         */
+        'If-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.
+         */
+        'If-None-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource date is more recent than the passed date.
+         */
+        'If-Modified-Since'?: string;
+        /**
+         * Succeeds if the server's resource date is older or the same as the passed date.
+         */
+        'If-Unmodified-Since'?: string;
+    };
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/catalog/{id}';
+};
+
+export type ShoppingCatalogReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCatalogReadError = ShoppingCatalogReadErrors[keyof ShoppingCatalogReadErrors];
+
+export type ShoppingCatalogReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingCatalogReadBody;
+};
+
+export type ShoppingCatalogReadResponse = ShoppingCatalogReadResponses[keyof ShoppingCatalogReadResponses];
+
+export type PatchShoppingCatalogReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/catalog/{id}';
+};
+
+export type PatchShoppingCatalogReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchShoppingCatalogReadError = PatchShoppingCatalogReadErrors[keyof PatchShoppingCatalogReadErrors];
+
+export type PatchShoppingCatalogReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingCatalogItem;
+};
+
+export type PatchShoppingCatalogReadResponse = PatchShoppingCatalogReadResponses[keyof PatchShoppingCatalogReadResponses];
+
+export type ShoppingCatalogUpdateData = {
+    body: ShoppingCatalogReadBodyWritable;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/catalog/{id}';
+};
+
+export type ShoppingCatalogUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCatalogUpdateError = ShoppingCatalogUpdateErrors[keyof ShoppingCatalogUpdateErrors];
+
+export type ShoppingCatalogUpdateResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingCatalogItem;
+};
+
+export type ShoppingCatalogUpdateResponse = ShoppingCatalogUpdateResponses[keyof ShoppingCatalogUpdateResponses];
+
+export type ShoppingCatalogPhotoDeleteData = {
+    body?: never;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/catalog/{id}/photo';
+};
+
+export type ShoppingCatalogPhotoDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCatalogPhotoDeleteError = ShoppingCatalogPhotoDeleteErrors[keyof ShoppingCatalogPhotoDeleteErrors];
+
+export type ShoppingCatalogPhotoDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type ShoppingCatalogPhotoDeleteResponse = ShoppingCatalogPhotoDeleteResponses[keyof ShoppingCatalogPhotoDeleteResponses];
+
+export type ShoppingCatalogPhotoGetData = {
+    body?: never;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/catalog/{id}/photo';
+};
+
+export type ShoppingCatalogPhotoGetErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCatalogPhotoGetError = ShoppingCatalogPhotoGetErrors[keyof ShoppingCatalogPhotoGetErrors];
+
+export type ShoppingCatalogPhotoGetResponses = {
+    /**
+     * The photo as JPEG.
+     */
+    200: Blob | File;
+};
+
+export type ShoppingCatalogPhotoGetResponse = ShoppingCatalogPhotoGetResponses[keyof ShoppingCatalogPhotoGetResponses];
+
+export type ShoppingCatalogPhotoUploadData = {
+    body: {
+        /**
+         * The photo. PNG, JPEG, GIF, TIFF or BMP; shrunk to fit 1024px and stored as JPEG.
+         */
+        photo: Blob | File;
+    };
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/catalog/{id}/photo';
+};
+
+export type ShoppingCatalogPhotoUploadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCatalogPhotoUploadError = ShoppingCatalogPhotoUploadErrors[keyof ShoppingCatalogPhotoUploadErrors];
+
+export type ShoppingCatalogPhotoUploadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingCatalogItem;
+};
+
+export type ShoppingCatalogPhotoUploadResponse = ShoppingCatalogPhotoUploadResponses[keyof ShoppingCatalogPhotoUploadResponses];
+
 export type ShoppingCategoriesListData = {
     body?: never;
     path?: never;
@@ -9729,6 +10316,203 @@ export type ShoppingItemsUpdateResponses = {
 };
 
 export type ShoppingItemsUpdateResponse = ShoppingItemsUpdateResponses[keyof ShoppingItemsUpdateResponses];
+
+export type ShoppingShopsListData = {
+    body?: never;
+    path: {
+        list: number;
+    };
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/shopping/lists/{list}/shops';
+};
+
+export type ShoppingShopsListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingShopsListError = ShoppingShopsListErrors[keyof ShoppingShopsListErrors];
+
+export type ShoppingShopsListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedShoppingShop;
+};
+
+export type ShoppingShopsListResponse = ShoppingShopsListResponses[keyof ShoppingShopsListResponses];
+
+export type ShoppingShopsCreateData = {
+    body: ShoppingShopWritable;
+    path: {
+        list: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/shops';
+};
+
+export type ShoppingShopsCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingShopsCreateError = ShoppingShopsCreateErrors[keyof ShoppingShopsCreateErrors];
+
+export type ShoppingShopsCreateResponses = {
+    /**
+     * Created
+     */
+    201: ShoppingShop;
+};
+
+export type ShoppingShopsCreateResponse = ShoppingShopsCreateResponses[keyof ShoppingShopsCreateResponses];
+
+export type ShoppingShopsDeleteData = {
+    body?: never;
+    path: {
+        list: number;
+        shop: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/shops/{shop}';
+};
+
+export type ShoppingShopsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingShopsDeleteError = ShoppingShopsDeleteErrors[keyof ShoppingShopsDeleteErrors];
+
+export type ShoppingShopsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type ShoppingShopsDeleteResponse = ShoppingShopsDeleteResponses[keyof ShoppingShopsDeleteResponses];
+
+export type ShoppingShopsReadData = {
+    body?: never;
+    headers?: {
+        /**
+         * Succeeds if the server's resource matches one of the passed values.
+         */
+        'If-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.
+         */
+        'If-None-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource date is more recent than the passed date.
+         */
+        'If-Modified-Since'?: string;
+        /**
+         * Succeeds if the server's resource date is older or the same as the passed date.
+         */
+        'If-Unmodified-Since'?: string;
+    };
+    path: {
+        list: number;
+        shop: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/shops/{shop}';
+};
+
+export type ShoppingShopsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingShopsReadError = ShoppingShopsReadErrors[keyof ShoppingShopsReadErrors];
+
+export type ShoppingShopsReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingShopReadBody;
+};
+
+export type ShoppingShopsReadResponse = ShoppingShopsReadResponses[keyof ShoppingShopsReadResponses];
+
+export type PatchShoppingShopsReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        list: number;
+        shop: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/shops/{shop}';
+};
+
+export type PatchShoppingShopsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchShoppingShopsReadError = PatchShoppingShopsReadErrors[keyof PatchShoppingShopsReadErrors];
+
+export type PatchShoppingShopsReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingShop;
+};
+
+export type PatchShoppingShopsReadResponse = PatchShoppingShopsReadResponses[keyof PatchShoppingShopsReadResponses];
+
+export type ShoppingShopsUpdateData = {
+    body: ShoppingShopReadBodyWritable;
+    path: {
+        list: number;
+        shop: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/shops/{shop}';
+};
+
+export type ShoppingShopsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingShopsUpdateError = ShoppingShopsUpdateErrors[keyof ShoppingShopsUpdateErrors];
+
+export type ShoppingShopsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingShop;
+};
+
+export type ShoppingShopsUpdateResponse = ShoppingShopsUpdateResponses[keyof ShoppingShopsUpdateResponses];
 
 export type SubscriptionsDeleteData = {
     body?: never;
