@@ -171,8 +171,9 @@ function getBuildConfig(env: Record<string, string>) {
 				injectRegister: false,
 				useCredentials: true,
 				manifest: {
-					name: 'Vikunja',
-					short_name: 'Vikunja',
+					// FORK: Mandarin name for the home-screen app
+					name: 'Mandarin',
+					short_name: 'Mandarin',
 					theme_color: '#1973ff',
 					icons: [
 						{

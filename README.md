@@ -1,66 +1,44 @@
-<img src="https://vikunja.io/images/vikunja-logo.svg" alt="" style="display: block;width: 50%;margin: 0 auto;" width="50%"/>
+# Mandarin
 
-[![Build Status](https://github.com/go-vikunja/vikunja/actions/workflows/ci.yml/badge.svg)](https://github.com/go-vikunja/vikunja/actions/workflows/ci.yml)
-[![License: AGPL-3.0-or-later](https://img.shields.io/badge/License-AGPL--3.0--or--later-blue.svg)](LICENSE)
-[![Install](https://img.shields.io/badge/download-v2.7.0-brightgreen.svg)](https://vikunja.io/docs/installing)
-[![Docker Pulls](https://img.shields.io/docker/pulls/vikunja/vikunja.svg)](https://hub.docker.com/r/vikunja/vikunja/)
-[![OpenAPI Docs](https://img.shields.io/badge/swagger-docs-brightgreen.svg)](https://try.vikunja.io/api/v2/docs)
+> One self-hosted app for the household: tasks, shopping lists that work with no signal, and recipes.
 
-# Vikunja
+Mandarin is a soft fork of **[Vikunja](https://vikunja.io)**, the open-source, self-hosted task
+manager by [kolaente](https://github.com/kolaente) and the
+[Vikunja contributors](https://github.com/go-vikunja/vikunja/graphs/contributors). Everything you
+like about the task side (projects, list/table/kanban views, saved filters, reminders, CalDAV,
+the API) is Vikunja's work. Mandarin adds household features on top:
 
-> The task manager you actually own. 
+- **Shopping lists:** a ShopShop-style list with categories, shop groups (Aldi + Supabarn) and offline-first sync.
+- **Recipes:** web import of exact ingredients and steps, and "add to shopping list".
+- **Household mode:** one household per server, every user in it automatically.
 
-If Vikunja is useful to you, please consider [supporting the project](https://vikunja.io/support/). You can [buy a coffee](https://www.buymeacoffee.com/kolaente), [sponsor on GitHub](https://github.com/sponsors/kolaente) or buy [a sticker pack](https://vikunja.io/stickers).
-We're also offering [a hosted version of Vikunja](https://vikunja.cloud/) if you want a hassle-free solution for yourself or your team.
-If you or your company needs admin panel, audit logs or time tracking, check out [Vikunja Pro](https://vikunja.io/pro/).
+See [SPEC.md](SPEC.md) for the full plan and build phases. This is a personal household project.
+For a task manager for yourself or your team, please use and
+[support upstream Vikunja](https://vikunja.io/support/) directly.
 
-> [!NOTE]
-> For the development of Vikunja, we're using LLM-Assisted coding tools in various parts of the codebase.
-> Most contributions made @tink-bot are built that way.
+## Running it
 
-## Table of contents
+The Docker image is built from the `household` branch by GitHub Actions:
 
-- [Security Reports](#security-reports)
-- [Features](#features)
-- [Docs](#docs)
-	- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-	- [Unsplash Images](#unsplash-images)
+```
+ghcr.io/<owner>/mandarin:household
+```
 
-## Security Reports
+It is a drop-in replacement for the `vikunja/vikunja` image (same port `3456`, same `/db` and
+`/app/vikunja/files` volumes, same `VIKUNJA_*` environment variables), so
+[Vikunja's install docs](https://vikunja.io/docs/installing) apply.
 
-If you find any security-related issues you don't want to disclose publicly, please use [the contact information on our website](https://vikunja.io/contact/#security).
+## Branches
 
-## Features
+- `main` mirrors [go-vikunja/vikunja](https://github.com/go-vikunja/vikunja) `main`, untouched.
+- `household` is where Mandarin's work lives. Upstream is merged in every few weeks.
 
-See [the features page](https://vikunja.io/features/) on our website for a more exhaustive list or 
-try it on [try.vikunja.io](https://try.vikunja.io)!
-
-## Docs
-
-* [Installing](https://vikunja.io/docs/installing/)
-* [Build from source](https://vikunja.io/docs/build-from-sources/)
-* [Development setup](https://vikunja.io/docs/development/)
-* [Magefile](https://vikunja.io/docs/magefile/)
-* [Testing](https://vikunja.io/docs/testing/)
-
-All docs can be found on [the Vikunja home page](https://vikunja.io/docs/).
-
-### Roadmap
-
-See [the roadmap](https://my.vikunja.cloud/share/QFyzYEmEYfSyQfTOmIRSwLUpkFjboaBqQCnaPmWd/auth) (hosted on Vikunja!) for more!
-
-## Contributing
-
-Please check out the contribution guidelines on [the website](https://vikunja.io/docs/development/).
+Fork-specific code lives in its own folders (e.g. `frontend/src/household/`); the few edits to
+Vikunja's own files are marked with `FORK:` comments (`git grep -n "FORK:"`). See
+[CLAUDE.md](CLAUDE.md).
 
 ## License
 
-Most of this repository is licensed under [AGPL‑3.0‑or‑later](LICENSE).
-The contents of [`desktop/`](desktop/) are licensed under
-[GPL‑3.0‑or‑later](desktop/LICENSE).
-
-### Unsplash Images
-
-Background images from Unsplash are distributed under the [Unsplash License](https://unsplash.com/license). The license requires giving credit to the photographer and Unsplash. See [Unsplash’s terms](https://unsplash.com/terms) for more information.
+Like Vikunja, Mandarin is licensed under the
+[GNU Affero General Public License v3.0 or later](LICENSE). The full source is public in this
+repository. Original Vikunja code is copyright the Vikunja authors.

@@ -5,8 +5,10 @@ import { useAuthStore } from '@/stores/auth'
 import { useConfigStore } from '@/stores/config'
 import { useColorScheme } from '@/composables/useColorScheme'
 
-import LogoFull from '@/assets/logo-full.svg?component'
-import LogoFullPride from '@/assets/logo-full-pride.svg?component'
+// FORK: Mandarin logo placeholder (no pride variant yet, so both point at it)
+import LogoFull from '@/household/assets/logo-full.svg?component'
+import LogoFullPride from '@/household/assets/logo-full.svg?component'
+import {APP_NAME} from '@/household/branding'
 import {MILLISECONDS_A_HOUR} from '@/constants/date'
 
 const now = useNow({
@@ -37,15 +39,16 @@ const CustomLogo = computed(() => {
 
 <template>
 	<div>
+		<!-- FORK: alt text uses APP_NAME -->
 		<Logo
 			v-if="!CustomLogo"
-			alt="Vikunja"
+			:alt="APP_NAME"
 			class="logo"
 		/>
 		<img
 			v-else
 			:src="CustomLogo"
-			alt="Vikunja"
+			:alt="APP_NAME"
 			class="logo"
 		>
 	</div>
