@@ -5,6 +5,11 @@
 import {queryOptions, useMutation, type QueryClient} from '@tanstack/vue-query'
 
 import {
+	shoppingCatalogList,
+	shoppingCatalogPhotoDelete,
+	shoppingCatalogPhotoGet,
+	shoppingCatalogPhotoUpload,
+	shoppingCatalogUpdate,
 	shoppingCategoriesList,
 	shoppingItemsCreate,
 	shoppingItemsDelete,
@@ -15,23 +20,65 @@ import {
 	shoppingListsDelete,
 	shoppingListsList,
 	shoppingListsUpdate,
+	shoppingShopsCreate,
+	shoppingShopsDelete,
+	shoppingShopsUpdate,
 } from '@/client/generated'
-import type {ShoppingCategory, ShoppingItem, ShoppingList} from '@/client/generated'
+import type {
+	ShoppingCatalogItem,
+	ShoppingCategory,
+	ShoppingItem,
+	ShoppingList,
+	ShoppingShop,
+} from '@/client/generated'
+import {ApiError} from '@/client/problem'
+import {expectBlob} from '@/client/queries/blobResponse'
 import {fetchAllPages} from '@/client/queries/fetchAllPages'
 import {contextMutationOptions} from '@/client/queries/contextMutation'
+import {queryClient} from '@/client/queryClient'
 
 // ---- Normalised shapes ----
 // The generated types mark every field optional. These are what the UI works
 // with: the fields the backend always sends are required.
 
-export type ShoppingListResponse = Required<Pick<ShoppingList, 'id' | 'title' | 'position'>>
+export type ShoppingShopResponse = Required<Pick<ShoppingShop, 'id' | 'list_id' | 'title' | 'position'>>
+export type ShoppingListResponse = Required<Pick<ShoppingList, 'id' | 'title' | 'position'>> & {
+	shops: ShoppingShopResponse[]
+}
 export type ShoppingCategoryResponse = Required<Pick<ShoppingCategory, 'id' | 'title' | 'position'>>
 export type ShoppingItemResponse = Required<Pick<ShoppingItem,
-	'id' | 'list_id' | 'name' | 'quantity' | 'unit' | 'note' | 'category_id' | 'done' | 'position'>> &
-	Pick<ShoppingItem, 'done_at' | 'created_by'>
+	'id' | 'list_id' | 'name' | 'quantity' | 'unit' | 'note' | 'category_id' | 'done' | 'position' |
+	'catalog_item_id' | 'has_photo'>> &
+	Pick<ShoppingItem, 'done_at' | 'created_by'> & {not_stocked_shop_ids: number[]}
+export type CatalogEntry = Required<Pick<ShoppingCatalogItem,
+	'id' | 'name' | 'category_id' | 'quantity' | 'unit' | 'times_added' | 'has_photo'>> &
+	Pick<ShoppingCatalogItem, 'last_added'> & {not_stocked_shop_ids: number[]}
+
+export function normalizeShop(shop: ShoppingShop): ShoppingShopResponse {
+	return {id: shop.id ?? 0, list_id: shop.list_id ?? 0, title: shop.title ?? '', position: shop.position ?? 0}
+}
 
 export function normalizeList(list: ShoppingList): ShoppingListResponse {
-	return {id: list.id ?? 0, title: list.title ?? '', position: list.position ?? 0}
+	return {
+		id: list.id ?? 0,
+		title: list.title ?? '',
+		position: list.position ?? 0,
+		shops: (list.shops ?? []).map(normalizeShop),
+	}
+}
+
+export function normalizeCatalogEntry(entry: ShoppingCatalogItem): CatalogEntry {
+	return {
+		id: entry.id ?? 0,
+		name: entry.name ?? '',
+		category_id: entry.category_id ?? 0,
+		quantity: entry.quantity ?? 0,
+		unit: entry.unit ?? '',
+		times_added: entry.times_added ?? 0,
+		has_photo: entry.has_photo ?? false,
+		last_added: entry.last_added,
+		not_stocked_shop_ids: entry.not_stocked_shop_ids ?? [],
+	}
 }
 
 export function normalizeCategory(category: ShoppingCategory): ShoppingCategoryResponse {
@@ -49,6 +96,9 @@ export function normalizeItem(item: ShoppingItem): ShoppingItemResponse {
 		category_id: item.category_id ?? 0,
 		done: item.done ?? false,
 		position: item.position ?? 0,
+		catalog_item_id: item.catalog_item_id ?? 0,
+		has_photo: item.has_photo ?? false,
+		not_stocked_shop_ids: item.not_stocked_shop_ids ?? [],
 		done_at: item.done_at,
 		created_by: item.created_by,
 	}
@@ -60,7 +110,10 @@ export const shoppingKeys = {
 	all: ['shopping'] as const,
 	lists: () => [...shoppingKeys.all, 'lists'] as const,
 	categories: () => [...shoppingKeys.all, 'categories'] as const,
-	items: (listId: number) => [...shoppingKeys.all, 'items', listId] as const,
+	allItems: () => [...shoppingKeys.all, 'items'] as const,
+	items: (listId: number) => [...shoppingKeys.allItems(), listId] as const,
+	catalog: () => [...shoppingKeys.all, 'catalog'] as const,
+	photo: (catalogId: number) => [...shoppingKeys.all, 'photo', catalogId] as const,
 }
 
 // ---- Queries ----
@@ -79,6 +132,29 @@ export function shoppingCategoriesQuery() {
 		queryFn: async () => (await fetchAllPages(async page =>
 			(await shoppingCategoriesList({query: {page}})).data)).map(normalizeCategory),
 		staleTime: 5 * 60 * 1000,
+	})
+}
+
+export function shoppingCatalogQuery() {
+	return queryOptions({
+		queryKey: shoppingKeys.catalog(),
+		queryFn: async () => (await fetchAllPages(async page =>
+			(await shoppingCatalogList({query: {page}})).data)).map(normalizeCatalogEntry),
+		staleTime: 5 * 60 * 1000,
+	})
+}
+
+export function shoppingPhotoQuery(catalogId: number) {
+	return queryOptions({
+		queryKey: shoppingKeys.photo(catalogId),
+		queryFn: async ({signal}) => expectBlob(
+			(await shoppingCatalogPhotoGet({path: {id: catalogId}, parseAs: 'blob', signal})).data,
+			'Shopping photo',
+		),
+		staleTime: Infinity,
+		// The row just shows no thumbnail if it fails.
+		meta: {handlesError: true},
+		retry: false,
 	})
 }
 
@@ -162,7 +238,11 @@ export function createShoppingItemMutationOptions() {
 		},
 		onSuccess: (created, item, client, tempId) =>
 			patchItems(client, item.list_id, items => items.map(i => i.id === tempId ? created : i)),
-		onSettled: (item, client) => client.invalidateQueries({queryKey: shoppingKeys.items(item.list_id)}),
+		onSettled: (item, client) => Promise.all([
+			client.invalidateQueries({queryKey: shoppingKeys.items(item.list_id)}),
+			// A new name or a new use changes the catalogue (autocomplete).
+			client.invalidateQueries({queryKey: shoppingKeys.catalog()}),
+		]),
 	})
 }
 
@@ -185,8 +265,15 @@ export function updateShoppingItemMutationOptions() {
 	})
 }
 
+// Updates and deletes are safe to repeat ("done: true" twice is still done),
+// so a server error such as a briefly locked SQLite database is retried.
+// Creates aren't retried: that could add the item twice.
+function retryServerErrors(failureCount: number, error: unknown) {
+	return failureCount < 2 && error instanceof ApiError && error.status >= 500
+}
+
 export function useUpdateShoppingItemMutation() {
-	return useMutation(updateShoppingItemMutationOptions())
+	return useMutation({...updateShoppingItemMutationOptions(), retry: retryServerErrors})
 }
 
 export function deleteShoppingItemMutationOptions() {
@@ -203,7 +290,7 @@ export function deleteShoppingItemMutationOptions() {
 }
 
 export function useDeleteShoppingItemMutation() {
-	return useMutation(deleteShoppingItemMutationOptions())
+	return useMutation({...deleteShoppingItemMutationOptions(), retry: retryServerErrors})
 }
 
 export function clearDoneItemsMutationOptions() {
@@ -220,4 +307,125 @@ export function clearDoneItemsMutationOptions() {
 
 export function useClearDoneItemsMutation() {
 	return useMutation(clearDoneItemsMutationOptions())
+}
+
+// ---- Shops ----
+
+export function createShopMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({listId, title}: {listId: number, title: string}) =>
+			normalizeShop((await shoppingShopsCreate({path: {list: listId}, body: {title}})).data),
+		onSettled: (_input, client) => client.invalidateQueries({queryKey: shoppingKeys.lists()}),
+	})
+}
+
+export function useCreateShopMutation() {
+	return useMutation(createShopMutationOptions())
+}
+
+export function renameShopMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async (shop: ShoppingShopResponse) =>
+			normalizeShop((await shoppingShopsUpdate({path: {list: shop.list_id, shop: shop.id}, body: shop})).data),
+		onSettled: (_input, client) => client.invalidateQueries({queryKey: shoppingKeys.lists()}),
+	})
+}
+
+export function useRenameShopMutation() {
+	return useMutation(renameShopMutationOptions())
+}
+
+export function deleteShopMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async (shop: Pick<ShoppingShopResponse, 'id' | 'list_id'>) => {
+			await shoppingShopsDelete({path: {list: shop.list_id, shop: shop.id}})
+		},
+		onSettled: (_input, client) => Promise.all([
+			client.invalidateQueries({queryKey: shoppingKeys.lists()}),
+			// The shop's not-stocked marks went with it.
+			client.invalidateQueries({queryKey: shoppingKeys.allItems()}),
+			client.invalidateQueries({queryKey: shoppingKeys.catalog()}),
+		]),
+	})
+}
+
+export function useDeleteShopMutation() {
+	return useMutation(deleteShopMutationOptions())
+}
+
+// ---- Catalogue: not-stocked shops and photos ----
+
+export function setNotStockedMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({catalogId, shopIds}: {catalogId: number, shopIds: number[]}) =>
+			normalizeCatalogEntry((await shoppingCatalogUpdate({
+				path: {id: catalogId},
+				// PUT replaces the entry, so send what we have plus the new marks.
+				body: await currentCatalogBody(catalogId, shopIds),
+			})).data),
+		optimistic: {
+			queryKeys: () => [shoppingKeys.allItems()],
+			update: ({catalogId, shopIds}, client) => {
+				client.setQueriesData<ShoppingItemResponse[]>({queryKey: shoppingKeys.allItems()}, current =>
+					current?.map(i => i.catalog_item_id === catalogId ? {...i, not_stocked_shop_ids: shopIds} : i))
+			},
+		},
+		onSettled: (_input, client) => Promise.all([
+			client.invalidateQueries({queryKey: shoppingKeys.allItems()}),
+			client.invalidateQueries({queryKey: shoppingKeys.catalog()}),
+		]),
+	})
+}
+
+// The catalogue entry as the server last sent it, with new not-stocked marks.
+async function currentCatalogBody(catalogId: number, shopIds: number[]) {
+	const entries = await queryClient.ensureQueryData(shoppingCatalogQuery())
+	const entry = entries.find(e => e.id === catalogId)
+	if (!entry) {
+		throw new Error(`Catalogue entry ${catalogId} not found`)
+	}
+	return {
+		name: entry.name,
+		category_id: entry.category_id,
+		quantity: entry.quantity,
+		unit: entry.unit,
+		not_stocked_shop_ids: shopIds,
+	}
+}
+
+export function useSetNotStockedMutation() {
+	return useMutation(setNotStockedMutationOptions())
+}
+
+function invalidatePhoto(client: QueryClient, catalogId: number) {
+	return Promise.all([
+		client.invalidateQueries({queryKey: shoppingKeys.photo(catalogId)}),
+		client.invalidateQueries({queryKey: shoppingKeys.allItems()}),
+		client.invalidateQueries({queryKey: shoppingKeys.catalog()}),
+	])
+}
+
+export function uploadPhotoMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async ({catalogId, file}: {catalogId: number, file: File}) =>
+			normalizeCatalogEntry((await shoppingCatalogPhotoUpload({path: {id: catalogId}, body: {photo: file}})).data),
+		onSettled: ({catalogId}, client) => invalidatePhoto(client, catalogId),
+	})
+}
+
+export function useUploadPhotoMutation() {
+	return useMutation(uploadPhotoMutationOptions())
+}
+
+export function deletePhotoMutationOptions() {
+	return contextMutationOptions({
+		mutationFn: async (catalogId: number) => {
+			await shoppingCatalogPhotoDelete({path: {id: catalogId}})
+		},
+		onSettled: (catalogId, client) => invalidatePhoto(client, catalogId),
+	})
+}
+
+export function useDeletePhotoMutation() {
+	return useMutation(deletePhotoMutationOptions())
 }

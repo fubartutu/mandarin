@@ -39,8 +39,16 @@
 				</div>
 			</header>
 
+			<ShopTabs
+				v-model="activeShopId"
+				:list-id="activeList.id"
+				:shops="activeList.shops"
+			/>
+
 			<AddItemBar
 				:categories="categories"
+				:catalog="catalog"
+				:on-list="openNames"
 				@add="addItem"
 			/>
 
@@ -50,6 +58,12 @@
 					class="has-text-centered has-text-grey is-italic"
 				>
 					{{ $t('household.shopping.empty') }}
+				</p>
+				<p
+					v-if="hiddenCount > 0"
+					class="hidden-note"
+				>
+					{{ $t('household.shopping.shops.hidden', {count: hiddenCount, shop: activeShop?.title}, hiddenCount) }}
 				</p>
 
 				<CategoryGroup
@@ -67,6 +81,7 @@
 							v-if="editingId === item.id"
 							:item="item"
 							:categories="categories"
+							:shops="activeList.shops"
 							@save="saveItem"
 							@delete="deleteItem(item)"
 							@cancel="editingId = null"
@@ -74,6 +89,7 @@
 						<ItemRow
 							v-else
 							:item="item"
+							:hint="notStockedHint(item)"
 							@toggle="toggleItem(item)"
 							@edit="editingId = item.id"
 						/>
@@ -122,6 +138,7 @@ import CategoryGroup from './components/CategoryGroup.vue'
 import ItemEditor from './components/ItemEditor.vue'
 import ItemRow from './components/ItemRow.vue'
 import ListSwitcher from './components/ListSwitcher.vue'
+import ShopTabs from './components/ShopTabs.vue'
 import {
 	useClearDoneItemsMutation,
 	useCreateShoppingItemMutation,
@@ -129,11 +146,20 @@ import {
 	useDeleteShoppingItemMutation,
 	useDeleteShoppingListMutation,
 	useRenameShoppingListMutation,
+	useSetNotStockedMutation,
 	useUpdateShoppingItemMutation,
 	type ShoppingItemResponse,
 } from './queries'
+import {findCatalogEntry} from './autocomplete'
 import type {ParsedItem} from './quantity'
-import {groupItems, useShoppingCategories, useShoppingItems, useShoppingLists} from './useShopping'
+import {
+	groupItems,
+	itemsForShop,
+	useShoppingCatalog,
+	useShoppingCategories,
+	useShoppingItems,
+	useShoppingLists,
+} from './useShopping'
 
 const props = defineProps<{
 	listId: number // 0 when the URL is just /shopping
@@ -144,6 +170,7 @@ const {t} = useI18n({useScope: 'global'})
 
 const {lists, isPending: listsPending} = useShoppingLists()
 const {categories} = useShoppingCategories()
+const {catalog} = useShoppingCatalog()
 
 // ---- Which list is open ----
 
@@ -167,23 +194,56 @@ watch(activeListId, id => {
 
 useTitle(() => activeList.value?.title ?? t('household.shopping.title'))
 
+// ---- Which shop tab is open (remembered per list on this device) ----
+
+const shopTabs = useStorage<Record<number, number>>('mandarin.shopping.shopTab', {})
+const activeShop = computed(() => activeList.value?.shops.find(s => s.id === shopTabs.value[activeListId.value]))
+// A computed with get and set can be used with v-model.
+const activeShopId = computed({
+	get: () => activeShop.value?.id ?? 0, // a deleted shop falls back to All
+	set: id => {
+		shopTabs.value = {...shopTabs.value, [activeListId.value]: id}
+	},
+})
+
 // ---- Items ----
 
 const {items, isPending: itemsPending} = useShoppingItems(activeListId)
-const grouped = computed(() => groupItems(items.value, categories.value, t('household.shopping.noCategory')))
+const shopItems = computed(() => itemsForShop(items.value, activeShopId.value))
+const hiddenCount = computed(() => items.value.filter(i => !i.done).length - shopItems.value.filter(i => !i.done).length)
+const grouped = computed(() => groupItems(shopItems.value, categories.value, t('household.shopping.noCategory')))
+const openNames = computed(() => items.value.filter(i => !i.done).map(i => i.name))
 const editingId = ref<number | null>(null)
+
+// On the All tab, say which shops don't stock an item.
+function notStockedHint(item: ShoppingItemResponse): string | undefined {
+	if (activeShopId.value !== 0 || item.not_stocked_shop_ids.length === 0) return undefined
+	const titles = (activeList.value?.shops ?? [])
+		.filter(shop => item.not_stocked_shop_ids.includes(shop.id))
+		.map(shop => shop.title)
+	return titles.length ? t('household.shopping.shops.notAt', {shops: titles.join(', ')}) : undefined
+}
 
 const createItem = useCreateShoppingItemMutation()
 const updateItem = useUpdateShoppingItemMutation()
 const removeItem = useDeleteShoppingItemMutation()
 const clearDone = useClearDoneItemsMutation()
+const setNotStocked = useSetNotStockedMutation()
 
 function addItem(item: ParsedItem & {category_id: number}) {
-	const categoryExists = categories.value.some(c => c.id === item.category_id)
+	// Fill blanks from the catalogue the way the server will, so the item
+	// appears in the right group straight away instead of jumping there.
+	const known = findCatalogEntry(catalog.value, item.name)
+	const categoryId = categories.value.some(c => c.id === item.category_id)
+		? item.category_id
+		: known?.category_id ?? 0
+	const keepLast = known && item.quantity === 0 && item.unit === ''
 	createItem.mutate({
-		...item,
+		name: known?.name ?? item.name,
+		quantity: keepLast ? known.quantity : item.quantity,
+		unit: keepLast ? known.unit : item.unit,
 		list_id: activeListId.value,
-		category_id: categoryExists ? item.category_id : 0,
+		category_id: categoryId,
 	})
 }
 
@@ -191,9 +251,18 @@ function toggleItem(item: ShoppingItemResponse) {
 	updateItem.mutate({...item, done: !item.done})
 }
 
-function saveItem(item: ShoppingItemResponse) {
+async function saveItem(item: ShoppingItemResponse, notStockedShopIds: number[]) {
 	editingId.value = null
-	updateItem.mutate(item)
+	const changed = [...notStockedShopIds].sort().join() !== [...item.not_stocked_shop_ids].sort().join()
+	try {
+		// One after the other: both write, and SQLite allows one writer at a time.
+		const saved = await updateItem.mutateAsync(item)
+		if (changed && saved.catalog_item_id) {
+			setNotStocked.mutate({catalogId: saved.catalog_item_id, shopIds: notStockedShopIds})
+		}
+	} catch {
+		return // already toasted by the mutation
+	}
 }
 
 function deleteItem(item: ShoppingItemResponse) {
@@ -258,6 +327,12 @@ function deleteList() {
 .list-action {
 	padding: .5rem;
 	color: var(--grey-500);
+}
+
+.hidden-note {
+	margin-block-end: .75rem;
+	color: var(--grey-500);
+	font-size: .85rem;
 }
 
 .done-group {

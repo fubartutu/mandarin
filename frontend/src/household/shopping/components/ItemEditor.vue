@@ -1,6 +1,6 @@
 <template>
 	<li class="item-editor">
-		<form @submit.prevent="emit('save', draft)">
+		<form @submit.prevent="emit('save', draft, notStocked)">
 			<h3 class="is-sr-only">
 				{{ $t('household.shopping.edit.title', {name: item.name}) }}
 			</h3>
@@ -19,7 +19,7 @@
 				<label class="field quantity">
 					<span class="label">{{ $t('household.shopping.edit.quantity') }}</span>
 					<input
-						v-model.number="draft.quantity"
+						v-model="quantity"
 						class="input"
 						type="number"
 						inputmode="decimal"
@@ -64,6 +64,64 @@
 						:placeholder="$t('household.shopping.edit.notePlaceholder')"
 					>
 				</label>
+				<fieldset
+					v-if="shops.length > 0"
+					class="field not-stocked"
+				>
+					<legend class="label">
+						{{ $t('household.shopping.edit.notStockedAt') }}
+					</legend>
+					<label
+						v-for="shop in shops"
+						:key="shop.id"
+						class="checkbox"
+					>
+						<input
+							v-model="notStocked"
+							type="checkbox"
+							:value="shop.id"
+						>
+						{{ shop.title }}
+					</label>
+				</fieldset>
+				<div
+					v-if="item.catalog_item_id"
+					class="field photo"
+				>
+					<span class="label">{{ $t('household.shopping.photo.label') }}</span>
+					<div class="photo-row">
+						<ItemPhoto
+							v-if="item.has_photo"
+							:catalog-id="item.catalog_item_id"
+							:name="item.name"
+							size="large"
+						/>
+						<!-- capture="environment" opens the back camera on a phone. -->
+						<label class="button is-small">
+							<Icon icon="camera" />
+							<span>{{ $t(item.has_photo ? 'household.shopping.photo.replace' : 'household.shopping.photo.add') }}</span>
+							<input
+								class="is-sr-only"
+								type="file"
+								accept="image/*"
+								capture="environment"
+								@change="choosePhoto"
+							>
+						</label>
+						<XButton
+							v-if="item.has_photo"
+							variant="tertiary"
+							:loading="deletePhoto.isPending.value"
+							@click="deletePhoto.mutate(item.catalog_item_id)"
+						>
+							{{ $t('household.shopping.photo.remove') }}
+						</XButton>
+						<span
+							v-if="uploadPhoto.isPending.value"
+							class="uploading"
+						>{{ $t('household.shopping.photo.uploading') }}</span>
+					</div>
+				</div>
 			</div>
 			<div class="actions">
 				<XButton
@@ -89,25 +147,55 @@
 </template>
 
 <script setup lang="ts">
-import {reactive} from 'vue'
+import {computed, reactive, ref} from 'vue'
 
-import type {ShoppingCategoryResponse, ShoppingItemResponse} from '../queries'
+import ItemPhoto from './ItemPhoto.vue'
+import {
+	useDeletePhotoMutation,
+	useUploadPhotoMutation,
+	type ShoppingCategoryResponse,
+	type ShoppingItemResponse,
+	type ShoppingShopResponse,
+} from '../queries'
 
 const props = defineProps<{
 	item: ShoppingItemResponse
 	categories: ShoppingCategoryResponse[]
+	shops: ShoppingShopResponse[]
 }>()
 
 const emit = defineEmits<{
-	save: [item: ShoppingItemResponse]
+	save: [item: ShoppingItemResponse, notStockedShopIds: number[]]
 	delete: []
 	cancel: []
 }>()
+
+// Photos save straight away: they belong to the catalogue entry, not this edit.
+const uploadPhoto = useUploadPhotoMutation()
+const deletePhoto = useDeletePhotoMutation()
+
+function choosePhoto(event: Event) {
+	const input = event.target as HTMLInputElement
+	const file = input.files?.[0]
+	if (file && props.item.catalog_item_id) {
+		uploadPhoto.mutate({catalogId: props.item.catalog_item_id, file})
+	}
+	input.value = '' // so picking the same file again still fires
+}
 
 // A draft copy: edits only reach the list when Save is pressed. The parent
 // mounts this component fresh (keyed by item id) each time editing starts.
 // eslint-disable-next-line vue/no-setup-props-reactivity-loss -- seeded once so a refetch keeps the draft; mounted fresh per edit
 const draft = reactive<ShoppingItemResponse>({...props.item, quantity: props.item.quantity || 0})
+// 0 means "no quantity", so the field shows empty rather than 0.
+const quantity = computed({
+	get: () => draft.quantity || '',
+	set: (value: string | number) => {
+		draft.quantity = Math.max(0, Number(value) || 0)
+	},
+})
+// eslint-disable-next-line vue/no-setup-props-reactivity-loss -- same: a draft of the marks
+const notStocked = ref<number[]>([...props.item.not_stocked_shop_ids])
 </script>
 
 <style lang="scss" scoped>
@@ -122,8 +210,33 @@ const draft = reactive<ShoppingItemResponse>({...props.item, quantity: props.ite
 	grid-template-columns: 1fr 1fr;
 	gap: .5rem .75rem;
 
-	.name, .note, .category {
+	.name, .note, .category, .not-stocked, .photo {
 		grid-column: 1 / -1;
+	}
+
+	.not-stocked {
+		display: flex;
+		flex-wrap: wrap;
+		gap: .25rem 1rem;
+		margin: 0;
+		padding: 0;
+		border: 0;
+
+		legend {
+			inline-size: 100%;
+		}
+	}
+
+	.photo-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: .5rem;
+	}
+
+	.uploading {
+		color: var(--grey-500);
+		font-size: .85rem;
 	}
 
 	.label {

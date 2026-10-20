@@ -30,16 +30,24 @@
 				class="quantity"
 			>{{ quantity }}</span>
 			<span
-				v-if="item.note"
+				v-if="item.note || hint"
 				class="note"
-			>{{ item.note }}</span>
+			>{{ [item.note, hint].filter(Boolean).join(' · ') }}</span>
 		</button>
+
+		<ItemPhoto
+			v-if="item.has_photo && item.catalog_item_id"
+			class="thumb"
+			:catalog-id="item.catalog_item_id"
+			:name="item.name"
+		/>
 	</li>
 </template>
 
 <script setup lang="ts">
 import {computed} from 'vue'
 
+import ItemPhoto from './ItemPhoto.vue'
 import {formatQuantity} from '../quantity'
 import type {ShoppingItemResponse} from '../queries'
 
@@ -47,6 +55,8 @@ import type {ShoppingItemResponse} from '../queries'
 // component's inputs and the events it can send to its parent.
 const props = defineProps<{
 	item: ShoppingItemResponse
+	// Extra muted text, e.g. "Not at Aldi" on the All tab.
+	hint?: string
 }>()
 
 const emit = defineEmits<{
@@ -111,6 +121,11 @@ const quantity = computed(() => formatQuantity(props.item.quantity, props.item.u
 		color: var(--grey-400);
 		text-decoration: line-through;
 	}
+}
+
+.thumb {
+	align-self: center;
+	margin-inline-end: .75rem;
 }
 
 .quantity {

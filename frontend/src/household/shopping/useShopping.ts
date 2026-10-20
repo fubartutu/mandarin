@@ -5,6 +5,7 @@ import {computed, toValue, type MaybeRefOrGetter} from 'vue'
 import {useQuery} from '@tanstack/vue-query'
 
 import {
+	shoppingCatalogQuery,
 	shoppingCategoriesQuery,
 	shoppingItemsQuery,
 	shoppingListsQuery,
@@ -60,6 +61,18 @@ export function useShoppingCategories() {
 		categories: computed(() => query.data.value ?? []),
 		isPending: query.isPending,
 	}
+}
+
+export function useShoppingCatalog() {
+	const query = useQuery(shoppingCatalogQuery())
+	return {
+		catalog: computed(() => query.data.value ?? []),
+	}
+}
+
+/** Items a shop's tab shows: everything except what the shop doesn't stock. 0 = all shops. */
+export function itemsForShop(items: ShoppingItemResponse[], shopId: number): ShoppingItemResponse[] {
+	return shopId === 0 ? items : items.filter(i => !i.not_stocked_shop_ids.includes(shopId))
 }
 
 export function useShoppingItems(listId: MaybeRefOrGetter<number>) {

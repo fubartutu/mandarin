@@ -30,7 +30,32 @@
 				"notePlaceholder": "Brand, size, …",
 				"save": "Save",
 				"delete": "Delete",
-				"cancel": "Cancel"
+				"cancel": "Cancel",
+				"notStockedAt": "Not stocked at"
+			},
+			"autoCategory": "Auto category",
+			"shops": {
+				"label": "Shops",
+				"all": "All",
+				"manage": "Manage shops",
+				"addFirst": "Add shops",
+				"help": "Shops are tabs on this list. Each tab hides the items marked as not stocked there, and ticking an item ticks it everywhere.",
+				"rename": "Rename {title}",
+				"delete": "Delete {title}",
+				"deleteConfirm": "Delete the shop \"{title}\"? Items stay on the list.",
+				"newPlaceholder": "Shop name, e.g. Aldi",
+				"add": "Add shop",
+				"done": "Done",
+				"hidden": "No items are hidden | 1 item isn't stocked at {shop} and is hidden | {count} items aren't stocked at {shop} and are hidden",
+				"notAt": "Not at {shops}"
+			},
+			"photo": {
+				"label": "Photo",
+				"add": "Add photo",
+				"replace": "Replace photo",
+				"remove": "Remove photo",
+				"uploading": "Uploading…",
+				"view": "Show photo of {name}"
 			}
 		}
 	}
