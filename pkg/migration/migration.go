@@ -23,6 +23,7 @@ import (
 	"code.vikunja.io/api/pkg/config"
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/files"
+	"code.vikunja.io/api/pkg/household/shopping" // FORK: Mandarin shopping tables
 	"code.vikunja.io/api/pkg/license"
 	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/models"
@@ -271,6 +272,7 @@ func schemaBeans() []interface{} {
 	schemeBeans = append(schemeBeans, migration.GetTables()...)
 	schemeBeans = append(schemeBeans, user.GetTables()...)
 	schemeBeans = append(schemeBeans, notifications.GetTables()...)
+	schemeBeans = append(schemeBeans, shopping.GetTables()...) // FORK: Mandarin shopping tables on fresh installs
 	return schemeBeans
 }
 

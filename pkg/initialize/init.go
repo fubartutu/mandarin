@@ -26,6 +26,7 @@ import (
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/files"
+	"code.vikunja.io/api/pkg/household/shopping" // FORK: Mandarin shopping seeding
 	"code.vikunja.io/api/pkg/i18n"
 	"code.vikunja.io/api/pkg/license"
 	"code.vikunja.io/api/pkg/log"
@@ -93,6 +94,8 @@ func FullInitWithoutAsync() {
 
 	// Run the migrations
 	migration.Migrate(nil)
+
+	shopping.Init() // FORK: seed Mandarin shopping categories and first list
 
 	// Set Engine
 	InitEngines()
