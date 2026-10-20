@@ -42,6 +42,8 @@ func RegisterHouseholdShoppingRoutes(api huma.API) {
 	registerShoppingListRoutes(api)
 	registerShoppingItemRoutes(api)
 	registerShoppingCategoryRoutes(api)
+	registerShoppingShopRoutes(api)
+	registerShoppingCatalogRoutes(api)
 }
 
 const shoppingAccess = " Shopping data belongs to the household: every user on the server can read and change all of it; link shares cannot."
@@ -459,6 +461,386 @@ func shoppingCategoriesDelete(ctx context.Context, in *struct {
 		return nil, err
 	}
 	if err := handler.DoDelete(ctx, &shopping.ShoppingCategory{ID: in.ID}, a); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &emptyBody{}, nil
+}
+
+// ---- Shops ----
+
+type shoppingShopListBody struct {
+	Body Paginated[*shopping.ShoppingShop]
+}
+
+type shoppingShopReadBody struct {
+	shopping.ShoppingShop
+	MaxPermission models.Permission `json:"max_permission" readOnly:"true" doc:"The caller's permission on this shop; always 2 (admin) for household members."`
+}
+
+func registerShoppingShopRoutes(api huma.API) {
+	tags := []string{"shopping"}
+
+	Register(api, huma.Operation{
+		OperationID: "shopping-shops-list",
+		Summary:     "List a shopping list's shops",
+		Description: "Shops are views of their list: each hides the items marked not stocked there. The list read already includes its shops.",
+		Method:      http.MethodGet, Path: "/shopping/lists/{list}/shops", Tags: tags,
+	}, shoppingShopsList)
+	Register(api, huma.Operation{
+		OperationID: "shopping-shops-read",
+		Summary:     "Get a shop",
+		Description: "404 if the shop doesn't belong to the list in the URL.",
+		Method:      http.MethodGet, Path: "/shopping/lists/{list}/shops/{shop}", Tags: tags,
+	}, shoppingShopsRead)
+	Register(api, huma.Operation{
+		OperationID: "shopping-shops-create",
+		Summary:     "Add a shop to a shopping list",
+		Description: "Without a position the shop's tab goes last.",
+		Method:      http.MethodPost, Path: "/shopping/lists/{list}/shops", Tags: tags,
+	}, shoppingShopsCreate)
+	Register(api, huma.Operation{
+		OperationID: "shopping-shops-update",
+		Summary:     "Update a shop",
+		Description: "Replaces the title and position. Use PATCH for a partial update.",
+		Method:      http.MethodPut, Path: "/shopping/lists/{list}/shops/{shop}", Tags: tags,
+	}, shoppingShopsUpdate)
+	Register(api, huma.Operation{
+		OperationID: "shopping-shops-delete",
+		Summary:     "Delete a shop",
+		Description: "Also removes every not-stocked mark for the shop. The list's items are untouched.",
+		Method:      http.MethodDelete, Path: "/shopping/lists/{list}/shops/{shop}", Tags: tags,
+	}, shoppingShopsDelete)
+}
+
+func shoppingShopsList(ctx context.Context, in *struct {
+	ListID int64 `path:"list"`
+	ListParams
+}) (*shoppingShopListBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, _, total, err := handler.DoReadAll(ctx, &shopping.ShoppingShop{ListID: in.ListID}, a, in.Q, in.Page, in.PerPage)
+	if err != nil {
+		return nil, translateDomainError(err)
+	}
+	shops, ok := result.([]*shopping.ShoppingShop)
+	if !ok {
+		return nil, fmt.Errorf("shopping shops ReadAll returned unexpected type %T", result)
+	}
+	return &shoppingShopListBody{Body: NewPaginated(shops, total, in.Page, in.PerPage)}, nil
+}
+
+func shoppingShopsRead(ctx context.Context, in *struct {
+	ListID int64 `path:"list"`
+	ID     int64 `path:"shop"`
+	conditional.Params
+}) (*singleReadBody[shoppingShopReadBody], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	shop := &shopping.ShoppingShop{ListID: in.ListID, ID: in.ID}
+	maxPermission, err := handler.DoReadOne(ctx, shop, a)
+	if err != nil {
+		return nil, translateDomainError(err)
+	}
+	body := &shoppingShopReadBody{ShoppingShop: *shop, MaxPermission: models.Permission(maxPermission)}
+	return conditionalReadResponse(&in.Params, body, shop.Updated, maxPermission)
+}
+
+func shoppingShopsCreate(ctx context.Context, in *struct {
+	ListID int64 `path:"list"`
+	Body   shopping.ShoppingShop
+}) (*singleBody[shopping.ShoppingShop], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	in.Body.ListID = in.ListID
+	if err := handler.DoCreate(ctx, &in.Body, a); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &singleBody[shopping.ShoppingShop]{Body: &in.Body}, nil
+}
+
+func shoppingShopsUpdate(ctx context.Context, in *struct {
+	ListID int64 `path:"list"`
+	ID     int64 `path:"shop"`
+	Body   shoppingShopReadBody
+}) (*singleBody[shopping.ShoppingShop], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	shop := &in.Body.ShoppingShop
+	shop.ListID = in.ListID
+	shop.ID = in.ID
+	if err := handler.DoUpdate(ctx, shop, a); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &singleBody[shopping.ShoppingShop]{Body: shop}, nil
+}
+
+func shoppingShopsDelete(ctx context.Context, in *struct {
+	ListID int64 `path:"list"`
+	ID     int64 `path:"shop"`
+}) (*emptyBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := handler.DoDelete(ctx, &shopping.ShoppingShop{ListID: in.ListID, ID: in.ID}, a); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &emptyBody{}, nil
+}
+
+// ---- Catalogue ----
+
+type shoppingCatalogListBody struct {
+	Body Paginated[*shopping.ShoppingCatalogItem]
+}
+
+type shoppingCatalogReadBody struct {
+	shopping.ShoppingCatalogItem
+	MaxPermission models.Permission `json:"max_permission" readOnly:"true" doc:"The caller's permission on this entry; always 2 (admin) for household members."`
+}
+
+type shoppingPhotoUploadInput struct {
+	ID int64 `path:"id"`
+	// Same allow-list as the avatar upload: the formats the server can decode.
+	RawBody huma.MultipartFormFiles[struct {
+		Photo huma.FormFile `form:"photo" contentType:"image/png,image/jpeg,image/gif,image/tiff,image/bmp,application/octet-stream" required:"true" doc:"The photo. PNG, JPEG, GIF, TIFF or BMP; shrunk to fit 1024px and stored as JPEG."`
+	}]
+}
+
+type shoppingPhotoResponse struct {
+	ContentType  string `header:"Content-Type"`
+	CacheControl string `header:"Cache-Control"`
+	Body         []byte
+}
+
+func registerShoppingCatalogRoutes(api huma.API) {
+	tags := []string{"shopping"}
+
+	Register(api, huma.Operation{
+		OperationID: "shopping-catalog-list",
+		Summary:     "List the item catalogue",
+		Description: "Every item name the household has used plus the pre-loaded ones, most often and most recently added first. q filters by name. Clients usually fetch it all for autocomplete." + shoppingAccess,
+		Method:      http.MethodGet, Path: "/shopping/catalog", Tags: tags,
+	}, shoppingCatalogList)
+	Register(api, huma.Operation{
+		OperationID: "shopping-catalog-read",
+		Summary:     "Get a catalogue entry",
+		Method:      http.MethodGet, Path: "/shopping/catalog/{id}", Tags: tags,
+	}, shoppingCatalogRead)
+	Register(api, huma.Operation{
+		OperationID: "shopping-catalog-create",
+		Summary:     "Add a catalogue entry",
+		Description: "Adding an item to a list does this automatically; use this to add one without listing it. Names are unique ignoring case (409 if taken).",
+		Method:      http.MethodPost, Path: "/shopping/catalog", Tags: tags,
+	}, shoppingCatalogCreate)
+	Register(api, huma.Operation{
+		OperationID: "shopping-catalog-update",
+		Summary:     "Update a catalogue entry",
+		Description: "Rename it, or change its category, remembered quantity/unit and not-stocked shops (replaced as a whole). Use PATCH, e.g. {\"not_stocked_shop_ids\": [3]}.",
+		Method:      http.MethodPut, Path: "/shopping/catalog/{id}", Tags: tags,
+	}, shoppingCatalogUpdate)
+	Register(api, huma.Operation{
+		OperationID: "shopping-catalog-delete",
+		Summary:     "Delete a catalogue entry",
+		Description: "Also deletes its photo and not-stocked marks. Items already on lists keep their name and lose the link.",
+		Method:      http.MethodDelete, Path: "/shopping/catalog/{id}", Tags: tags,
+	}, shoppingCatalogDelete)
+
+	Register(api, withUploadLimits(huma.Operation{
+		OperationID: "shopping-catalog-photo-upload",
+		Summary:     "Set a catalogue entry's photo",
+		Description: "Replaces any earlier photo. The image is shrunk to fit 1024px, turned upright from its EXIF orientation, and stored as JPEG.",
+		Method:      http.MethodPut, Path: "/shopping/catalog/{id}/photo", Tags: tags,
+		DefaultStatus: http.StatusOK,
+	}), shoppingCatalogPhotoUpload)
+	Register(api, huma.Operation{
+		OperationID: "shopping-catalog-photo-get",
+		Summary:     "Get a catalogue entry's photo",
+		Description: "Returns the JPEG bytes; 404 if the entry has no photo.",
+		Method:      http.MethodGet, Path: "/shopping/catalog/{id}/photo", Tags: tags,
+		Responses: map[string]*huma.Response{
+			"200": {
+				Description: "The photo as JPEG.",
+				Content: map[string]*huma.MediaType{
+					"image/jpeg": {Schema: &huma.Schema{Type: huma.TypeString, Format: "binary"}},
+				},
+			},
+		},
+	}, shoppingCatalogPhotoGet)
+	Register(api, huma.Operation{
+		OperationID: "shopping-catalog-photo-delete",
+		Summary:     "Remove a catalogue entry's photo",
+		Method:      http.MethodDelete, Path: "/shopping/catalog/{id}/photo", Tags: tags,
+	}, shoppingCatalogPhotoDelete)
+}
+
+func shoppingCatalogList(ctx context.Context, in *struct{ ListParams }) (*shoppingCatalogListBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, _, total, err := handler.DoReadAll(ctx, &shopping.ShoppingCatalogItem{}, a, in.Q, in.Page, in.PerPage)
+	if err != nil {
+		return nil, translateDomainError(err)
+	}
+	entries, ok := result.([]*shopping.ShoppingCatalogItem)
+	if !ok {
+		return nil, fmt.Errorf("shopping catalog ReadAll returned unexpected type %T", result)
+	}
+	return &shoppingCatalogListBody{Body: NewPaginated(entries, total, in.Page, in.PerPage)}, nil
+}
+
+func shoppingCatalogRead(ctx context.Context, in *struct {
+	ID int64 `path:"id"`
+	conditional.Params
+}) (*singleReadBody[shoppingCatalogReadBody], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	entry := &shopping.ShoppingCatalogItem{ID: in.ID}
+	maxPermission, err := handler.DoReadOne(ctx, entry, a)
+	if err != nil {
+		return nil, translateDomainError(err)
+	}
+	body := &shoppingCatalogReadBody{ShoppingCatalogItem: *entry, MaxPermission: models.Permission(maxPermission)}
+	return conditionalReadResponse(&in.Params, body, entry.Updated, maxPermission)
+}
+
+func shoppingCatalogCreate(ctx context.Context, in *struct {
+	Body shopping.ShoppingCatalogItem
+}) (*singleBody[shopping.ShoppingCatalogItem], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := handler.DoCreate(ctx, &in.Body, a); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &singleBody[shopping.ShoppingCatalogItem]{Body: &in.Body}, nil
+}
+
+func shoppingCatalogUpdate(ctx context.Context, in *struct {
+	ID   int64 `path:"id"`
+	Body shoppingCatalogReadBody
+}) (*singleBody[shopping.ShoppingCatalogItem], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	entry := &in.Body.ShoppingCatalogItem
+	entry.ID = in.ID
+	if err := handler.DoUpdate(ctx, entry, a); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &singleBody[shopping.ShoppingCatalogItem]{Body: entry}, nil
+}
+
+func shoppingCatalogDelete(ctx context.Context, in *struct {
+	ID int64 `path:"id"`
+}) (*emptyBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := handler.DoDelete(ctx, &shopping.ShoppingCatalogItem{ID: in.ID}, a); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &emptyBody{}, nil
+}
+
+// The photo actions aren't CRUD, so they check permissions and manage the
+// session themselves (see the api-v2-routes skill).
+
+func shoppingCatalogPhotoUpload(ctx context.Context, in *shoppingPhotoUploadInput) (*singleBody[shopping.ShoppingCatalogItem], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s := db.NewSession()
+	defer s.Close()
+
+	entry := &shopping.ShoppingCatalogItem{ID: in.ID}
+	can, err := entry.CanUpdate(s, a)
+	if err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	if !can {
+		_ = s.Rollback()
+		return nil, huma.Error403Forbidden("forbidden")
+	}
+
+	src := in.RawBody.Data().Photo
+	defer func() { _ = src.Close() }()
+	if err := entry.SetPhoto(s, a, src); err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	if err := s.Commit(); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &singleBody[shopping.ShoppingCatalogItem]{Body: entry}, nil
+}
+
+func shoppingCatalogPhotoGet(ctx context.Context, in *struct {
+	ID int64 `path:"id"`
+}) (*shoppingPhotoResponse, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s := db.NewSession()
+	defer s.Close()
+
+	entry := &shopping.ShoppingCatalogItem{ID: in.ID}
+	if _, _, err := entry.CanRead(s, a); err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	data, err := entry.Photo(s)
+	if err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err) // ErrNoPhoto becomes a 404
+	}
+	_ = s.Commit()
+	// Private: the photo needs a login. Short max-age because it can be replaced.
+	return &shoppingPhotoResponse{ContentType: "image/jpeg", CacheControl: "private, max-age=300", Body: data}, nil
+}
+
+func shoppingCatalogPhotoDelete(ctx context.Context, in *struct {
+	ID int64 `path:"id"`
+}) (*emptyBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s := db.NewSession()
+	defer s.Close()
+
+	entry := &shopping.ShoppingCatalogItem{ID: in.ID}
+	can, err := entry.CanUpdate(s, a)
+	if err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	if !can {
+		_ = s.Rollback()
+		return nil, huma.Error403Forbidden("forbidden")
+	}
+	if err := entry.DeletePhoto(s); err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	if err := s.Commit(); err != nil {
 		return nil, translateDomainError(err)
 	}
 	return &emptyBody{}, nil

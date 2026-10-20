@@ -40,6 +40,10 @@ type ShoppingItem struct { //nolint:revive // stutters, but the type name is the
 	DoneAt   *time.Time `xorm:"datetime null" json:"done_at" readOnly:"true" doc:"When the item was ticked off; null while not done. Set by the server."`
 	Position float64    `xorm:"double not null default 0" json:"position" doc:"Order within its category; lower comes first."`
 
+	CatalogItemID     int64   `xorm:"bigint not null default 0 index" json:"catalog_item_id" readOnly:"true" doc:"The catalogue entry this item was matched to by name. Set by the server."`
+	NotStockedShopIDs []int64 `xorm:"-" json:"not_stocked_shop_ids" readOnly:"true" doc:"Shops that don't stock this item (from its catalogue entry); hide it on those shops' tabs."`
+	HasPhoto          bool    `xorm:"-" json:"has_photo" readOnly:"true" doc:"Whether the item's catalogue entry has a photo."`
+
 	CreatedByID int64      `xorm:"bigint not null default 0" json:"-"`
 	CreatedBy   *user.User `xorm:"-" json:"created_by" readOnly:"true" doc:"The member who added this item."`
 
@@ -144,12 +148,41 @@ func (i *ShoppingItem) Create(s *xorm.Session, a web.Auth) error {
 	if err := checkCategory(s, i.CategoryID); err != nil {
 		return err
 	}
+	// Fills blank category/quantity/unit from last time and remembers this use.
+	if err := useCatalogItem(s, i, true); err != nil {
+		return err
+	}
 	i.ID = 0
 	i.CreatedByID = u.ID
 	i.CreatedBy = u
 	i.setDoneAt(false, nil)
-	_, err = s.Insert(i)
-	return err
+	if _, err = s.Insert(i); err != nil {
+		return err
+	}
+	return fillItemDetails(s, i)
+}
+
+// fillItemDetails copies photo and not-stocked info from the items'
+// catalogue entries.
+func fillItemDetails(s *xorm.Session, items ...*ShoppingItem) error {
+	ids := make([]int64, 0, len(items))
+	for _, item := range items {
+		if item.CatalogItemID != 0 {
+			ids = append(ids, item.CatalogItemID)
+		}
+	}
+	details, err := loadCatalogDetails(s, ids)
+	if err != nil {
+		return err
+	}
+	for _, item := range items {
+		item.NotStockedShopIDs = []int64{}
+		if d, ok := details[item.CatalogItemID]; ok {
+			item.HasPhoto = d.hasPhoto
+			item.NotStockedShopIDs = d.notStocked
+		}
+	}
+	return nil
 }
 
 // ReadOne fills in the creator; CanRead already loaded the row.
@@ -159,7 +192,7 @@ func (i *ShoppingItem) ReadOne(s *xorm.Session, _ web.Auth) error {
 		return err
 	}
 	i.CreatedBy = creators[i.CreatedByID]
-	return nil
+	return fillItemDetails(s, i)
 }
 
 // ReadAll returns the items on ListID: not-done first, then by position.
@@ -202,6 +235,9 @@ func (i *ShoppingItem) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 	for _, item := range items {
 		item.CreatedBy = creators[item.CreatedByID]
 	}
+	if err := fillItemDetails(s, items...); err != nil {
+		return nil, 0, 0, err
+	}
 
 	return items, len(items), total, nil
 }
@@ -217,9 +253,13 @@ func (i *ShoppingItem) Update(s *xorm.Session, a web.Auth) error {
 		return err
 	}
 	i.setDoneAt(stored.Done, stored.DoneAt)
+	// Relinks the item if it was renamed, and teaches the catalogue the edit.
+	if err := useCatalogItem(s, i, false); err != nil {
+		return err
+	}
 
 	_, err = s.ID(i.ID).
-		Cols("name", "quantity", "unit", "note", "category_id", "done", "done_at", "position").
+		Cols("name", "quantity", "unit", "note", "category_id", "done", "done_at", "position", "catalog_item_id").
 		Update(i)
 	if err != nil {
 		return err

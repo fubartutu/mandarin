@@ -22,6 +22,7 @@ import (
 
 	"code.vikunja.io/api/pkg/config"
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/files"
 	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/user"
@@ -43,6 +44,9 @@ var (
 func TestMain(m *testing.M) {
 	log.InitLogger()
 	config.InitDefaultConfig()
+	// Order matters: each InitTests replaces the fixture set, and we need the
+	// users. Same order as pkg/models' TestMain.
+	files.InitTests() // photo storage
 	user.InitTests()
 
 	x, err := db.CreateTestEngine()
@@ -65,7 +69,7 @@ func setup(t *testing.T) *xorm.Session {
 	s := db.NewSession()
 	t.Cleanup(func() { s.Close() })
 
-	for _, table := range []string{"shopping_items", "shopping_lists", "shopping_categories"} {
+	for _, table := range []string{"shopping_items", "shopping_lists", "shopping_categories", "shopping_shops", "shopping_catalog_items", "shopping_not_stocked"} {
 		_, err := s.Exec("DELETE FROM " + table)
 		require.NoError(t, err)
 	}
@@ -81,6 +85,23 @@ func groceries(t *testing.T, s *xorm.Session) *ShoppingList {
 	require.NoError(t, err)
 	require.True(t, has)
 	return l
+}
+
+// addShop adds a shop to a list as user1.
+func addShop(t *testing.T, s *xorm.Session, listID int64, title string) *ShoppingShop {
+	t.Helper()
+	shop := &ShoppingShop{ListID: listID, Title: title}
+	require.NoError(t, shop.Create(s, user1))
+	return shop
+}
+
+// catalogEntry looks a catalogue entry up by name.
+func catalogEntry(t *testing.T, s *xorm.Session, name string) *ShoppingCatalogItem {
+	t.Helper()
+	entry, exists, err := findCatalogItemByName(s, name)
+	require.NoError(t, err)
+	require.True(t, exists, "catalogue has %q", name)
+	return entry
 }
 
 // addItem inserts an item as user1 and fails the test on error.

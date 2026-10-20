@@ -75,6 +75,59 @@ func Seed(s *xorm.Session) error {
 			return err
 		}
 	}
+
+	if err := seedCatalog(s); err != nil {
+		return err
+	}
+	return linkUncataloguedItems(s)
+}
+
+// seedCatalog loads DefaultCatalog into an empty catalogue. Entries whose
+// category was renamed or deleted start uncategorised.
+func seedCatalog(s *xorm.Session) error {
+	count, err := s.Count(&ShoppingCatalogItem{})
+	if err != nil || count > 0 {
+		return err
+	}
+
+	categories := []*ShoppingCategory{}
+	if err := s.Find(&categories); err != nil {
+		return err
+	}
+	categoryIDs := make(map[string]int64, len(categories))
+	for _, c := range categories {
+		categoryIDs[c.Title] = c.ID
+	}
+
+	entries := []*ShoppingCatalogItem{}
+	for categoryTitle, names := range DefaultCatalog {
+		for _, name := range names {
+			entries = append(entries, &ShoppingCatalogItem{
+				Name:       name,
+				NameKey:    nameKey(name),
+				CategoryID: categoryIDs[categoryTitle],
+			})
+		}
+	}
+	_, err = s.Insert(&entries)
+	return err
+}
+
+// linkUncataloguedItems gives items added before the catalogue existed (or
+// whose entry was deleted) a catalogue entry, without counting it as a use.
+func linkUncataloguedItems(s *xorm.Session) error {
+	items := []*ShoppingItem{}
+	if err := s.Where("catalog_item_id = 0").Find(&items); err != nil {
+		return err
+	}
+	for _, item := range items {
+		if err := useCatalogItem(s, item, false); err != nil {
+			return err
+		}
+		if _, err := s.ID(item.ID).Cols("catalog_item_id").Update(item); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

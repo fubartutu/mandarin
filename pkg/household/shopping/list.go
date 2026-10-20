@@ -40,6 +40,8 @@ type ShoppingList struct { //nolint:revive // "shopping.ShoppingList" stutters, 
 	CreatedByID int64      `xorm:"bigint not null default 0" json:"-"`
 	CreatedBy   *user.User `xorm:"-" json:"created_by" readOnly:"true" doc:"The member who created this list. Null for lists the server created."`
 
+	Shops []*ShoppingShop `xorm:"-" json:"shops" readOnly:"true" doc:"The shops this list is bought at, in tab order. Manage them under /shopping/lists/{list}/shops."`
+
 	Created time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"When this list was created."`
 	Updated time.Time `xorm:"updated not null" json:"updated" readOnly:"true" doc:"When this list was last changed."`
 
@@ -122,6 +124,7 @@ func (l *ShoppingList) Create(s *xorm.Session, a web.Auth) error {
 	l.ID = 0
 	l.CreatedByID = u.ID
 	l.CreatedBy = u
+	l.Shops = []*ShoppingShop{}
 	if l.Position == 0 {
 		if l.Position, err = nextPosition(s, "shopping_lists"); err != nil {
 			return err
@@ -138,6 +141,25 @@ func (l *ShoppingList) ReadOne(s *xorm.Session, _ web.Auth) error {
 		return err
 	}
 	l.CreatedBy = creators[l.CreatedByID]
+	return fillShops(s, l)
+}
+
+// fillShops sets Shops on each list ([] rather than null when there are none).
+func fillShops(s *xorm.Session, lists ...*ShoppingList) error {
+	ids := make([]int64, 0, len(lists))
+	for _, list := range lists {
+		ids = append(ids, list.ID)
+	}
+	byList, err := shopsForLists(s, ids)
+	if err != nil {
+		return err
+	}
+	for _, list := range lists {
+		list.Shops = byList[list.ID]
+		if list.Shops == nil {
+			list.Shops = []*ShoppingShop{}
+		}
+	}
 	return nil
 }
 
@@ -178,6 +200,9 @@ func (l *ShoppingList) ReadAll(s *xorm.Session, a web.Auth, search string, page 
 	for _, list := range lists {
 		list.CreatedBy = creators[list.CreatedByID]
 	}
+	if err := fillShops(s, lists...); err != nil {
+		return nil, 0, 0, err
+	}
 
 	return lists, len(lists), total, nil
 }
@@ -188,12 +213,22 @@ func (l *ShoppingList) Update(s *xorm.Session, a web.Auth) error {
 	if _, err := s.ID(l.ID).Cols("title", "position").Update(l); err != nil {
 		return err
 	}
-	return l.load(s, a)
+	if err := l.load(s, a); err != nil {
+		return err
+	}
+	return l.ReadOne(s, a)
 }
 
-// Delete removes the list and every item on it.
+// Delete removes the list with its items and shops.
 func (l *ShoppingList) Delete(s *xorm.Session, _ web.Auth) error {
 	if _, err := s.Where("list_id = ?", l.ID).Delete(&ShoppingItem{}); err != nil {
+		return err
+	}
+	var shopIDs []int64
+	if err := s.Table("shopping_shops").Where("list_id = ?", l.ID).Cols("id").Find(&shopIDs); err != nil {
+		return err
+	}
+	if err := deleteShops(s, shopIDs); err != nil {
 		return err
 	}
 	_, err := s.ID(l.ID).Delete(&ShoppingList{})

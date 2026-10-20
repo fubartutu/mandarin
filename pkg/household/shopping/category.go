@@ -151,15 +151,17 @@ func (c *ShoppingCategory) Update(s *xorm.Session, _ web.Auth) error {
 	return nil
 }
 
-// Delete removes the category. Its items become uncategorised (category 0)
-// rather than being deleted.
+// Delete removes the category. Its items and catalogue entries become
+// uncategorised (category 0) rather than being deleted.
 func (c *ShoppingCategory) Delete(s *xorm.Session, _ web.Auth) error {
-	_, err := s.Table("shopping_items").
-		Where("category_id = ?", c.ID).
-		Update(map[string]any{"category_id": 0})
-	if err != nil {
-		return err
+	for _, table := range []string{"shopping_items", "shopping_catalog_items"} {
+		_, err := s.Table(table).
+			Where("category_id = ?", c.ID).
+			Update(map[string]any{"category_id": 0})
+		if err != nil {
+			return err
+		}
 	}
-	_, err = s.ID(c.ID).Delete(&ShoppingCategory{})
+	_, err := s.ID(c.ID).Delete(&ShoppingCategory{})
 	return err
 }
