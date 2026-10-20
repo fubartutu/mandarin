@@ -36,6 +36,33 @@ non-obvious Go/Vue idioms briefly when writing code.
    the first `main` push from an upstream sync (which runs upstream `ci.yml` once), run:
    `for f in .github/workflows/*.yml; do case $f in *household*) ;; *) gh workflow disable $(basename $f) -R fubartutu/mandarin;; esac; done`
 
+## Where fork code goes
+
+Go forces a few compromises (one folder = one package, and unexported helpers can't be used from
+another package), so in practice:
+
+- **Models and logic:** `pkg/household/<module>/` (e.g. `pkg/household/shopping`). Permission is
+  `household.IsMember` (any user; never link shares). Error codes start at 90001.
+- **New files inside Vikunja packages** (no edits, so no merge conflicts) where Go requires it:
+  v2 routes `pkg/routes/api/v2/household_<module>.go`, migrations `pkg/migration/<timestamp>.go`,
+  webtests `pkg/webtests/household_<module>_test.go`. Our package must never import `pkg/migration`
+  (import cycle).
+- **Wiring (FORK lines):** tables in `schemaBeans()` in `pkg/migration/migration.go` (fresh
+  installs skip migrations, so new tables must be listed there too); start-up seeding in
+  `pkg/initialize/init.go`.
+- **Frontend:** `frontend/src/household/`. Routes are spread into `src/router/index.ts`, menu
+  entries come from `HouseholdNavItems.vue` in `Navigation.vue`, and `household/setup.ts` (imported
+  from `main.ts`) registers icons and merges `household/i18n/en.json`. Don't edit Vikunja's
+  `lang/en.json` or `Icon.ts`.
+- After changing a v2 route or model, run `mage generate:frontend-client` and commit
+  `frontend/src/client/generated`. On merge conflicts there, regenerate; never hand-merge.
+
+## Local setup
+
+Use Node 24 (pinned in `mise.toml`; run `mise trust && mise install` in the repo). Under Node 25+
+the frontend unit tests fail with `localStorage` undefined. pnpm is pinned in
+`frontend/package.json`; `npx pnpm@<that version>` works without a global install.
+
 ## Upstream guidance
 
 Vikunja's own conventions (commands, `mage`, API v2, generated clients, skills) still apply:
