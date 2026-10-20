@@ -54,6 +54,9 @@ another package), so in practice:
   entries come from `HouseholdNavItems.vue` in `Navigation.vue`, and `household/setup.ts` (imported
   from `main.ts`) registers icons and merges `household/i18n/en.json`. Don't edit Vikunja's
   `lang/en.json` or `Icon.ts`.
+- Production runs on **SQLite**, which allows one writer at a time: two requests that each read
+  then write can fail with "database is locked". Don't write rows that haven't changed, and don't
+  fire two writing requests from the client at once (chain them).
 - After changing a v2 route or model, run `mage generate:frontend-client` and commit
   `frontend/src/client/generated`. On merge conflicts there, regenerate; never hand-merge.
 
