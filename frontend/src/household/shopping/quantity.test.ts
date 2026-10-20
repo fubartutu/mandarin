@@ -22,6 +22,15 @@ describe('parseItemInput', () => {
 		['2 L', '2 L', 0, ''],
 		['12', '12', 0, ''],
 		['school shoes size 3', 'school shoes size 3', 0, ''],
+		['flour 1kg', 'flour', 1, 'kg'],
+		['milk 2 L', 'milk', 2, 'L'],
+		['Coke 1.25 litres', 'Coke', 1.25, 'L'],
+		['eggs 1/2 dozen', 'eggs', 0.5, 'dozen'],
+		['Tim Tams 3 packs', 'Tim Tams', 3, 'packs'],
+		['7up 2L', '7up', 2, 'L'],
+		['apples 3', 'apples 3', 0, ''],
+		['size 10 shoes', 'size 10 shoes', 0, ''],
+		['flour1kg', 'flour1kg', 0, ''],
 	])('%j → %j, %d %j', (input, name, quantity, unit) => {
 		expect(parseItemInput(input)).toEqual({name, quantity, unit})
 	})
