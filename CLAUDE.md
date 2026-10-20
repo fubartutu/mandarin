@@ -32,7 +32,9 @@ non-obvious Go/Vue idioms briefly when writing code.
    The source stays public. Code borrowed from Specifically Clementines (MIT) keeps its notice.
 4. **Don't touch the license system** in `pkg/license/` (see upstream's guidance below).
 5. Upstream's own CI workflows are disabled in the fork's GitHub Actions settings, not deleted,
-   so merges stay clean.
+   so merges stay clean. GitHub only lets you disable a workflow once it's registered, so after
+   the first `main` push from an upstream sync (which runs upstream `ci.yml` once), run:
+   `for f in .github/workflows/*.yml; do case $f in *household*) ;; *) gh workflow disable $(basename $f) -R fubartutu/mandarin;; esac; done`
 
 ## Upstream guidance
 
