@@ -1302,6 +1302,42 @@ export type PaginatedSession = {
     total_pages?: number;
 };
 
+export type PaginatedShoppingCategory = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<ShoppingCategory> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedShoppingItem = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<ShoppingItem> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedShoppingList = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<ShoppingList> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedTask = {
     /**
      * A URL to the JSON Schema for this object.
@@ -2016,6 +2052,263 @@ export type ShareCounts = {
      * Number of user-project shares.
      */
     readonly user_shares?: number;
+};
+
+export type ShoppingCategory = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When this category was created.
+     */
+    readonly created?: string;
+    /**
+     * The unique, numeric id of this category.
+     */
+    readonly id?: number;
+    /**
+     * Order of the category's group on a list; lower comes first.
+     */
+    position?: number;
+    /**
+     * The category name, e.g. Dairy & Eggs.
+     */
+    title?: string;
+    /**
+     * When this category was last changed.
+     */
+    readonly updated?: string;
+};
+
+export type ShoppingCategoryReadBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When this category was created.
+     */
+    readonly created?: string;
+    /**
+     * The unique, numeric id of this category.
+     */
+    readonly id?: number;
+    /**
+     * The caller's permission on this category; always 2 (admin) for household members.
+     */
+    readonly max_permission?: number;
+    /**
+     * Order of the category's group on a list; lower comes first.
+     */
+    position?: number;
+    /**
+     * The category name, e.g. Dairy & Eggs.
+     */
+    title?: string;
+    /**
+     * When this category was last changed.
+     */
+    readonly updated?: string;
+};
+
+export type ShoppingClearDoneResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * How many ticked items were removed.
+     */
+    deleted?: number;
+};
+
+export type ShoppingItem = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The category this item is grouped under. 0 means uncategorised.
+     */
+    category_id?: number;
+    /**
+     * When this item was added.
+     */
+    readonly created?: string;
+    /**
+     * The member who added this item.
+     */
+    readonly created_by?: User;
+    /**
+     * Whether the item has been ticked off.
+     */
+    done?: boolean;
+    /**
+     * When the item was ticked off; null while not done. Set by the server.
+     */
+    readonly done_at?: string | null;
+    /**
+     * The unique, numeric id of this item.
+     */
+    readonly id?: number;
+    /**
+     * The list this item is on. Taken from the URL; ignored in the body.
+     */
+    readonly list_id?: number;
+    /**
+     * What to buy, e.g. Milk.
+     */
+    name?: string;
+    /**
+     * Free-text note, e.g. the brand or a size.
+     */
+    note?: string;
+    /**
+     * Order within its category; lower comes first.
+     */
+    position?: number;
+    /**
+     * How many or how much, read together with unit. 0 means no quantity.
+     */
+    quantity?: number;
+    /**
+     * Unit for quantity, e.g. g, kg, L, packs. Empty for a plain count.
+     */
+    unit?: string;
+    /**
+     * When this item was last changed.
+     */
+    readonly updated?: string;
+};
+
+export type ShoppingItemReadBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The category this item is grouped under. 0 means uncategorised.
+     */
+    category_id?: number;
+    /**
+     * When this item was added.
+     */
+    readonly created?: string;
+    /**
+     * The member who added this item.
+     */
+    readonly created_by?: User;
+    /**
+     * Whether the item has been ticked off.
+     */
+    done?: boolean;
+    /**
+     * When the item was ticked off; null while not done. Set by the server.
+     */
+    readonly done_at?: string | null;
+    /**
+     * The unique, numeric id of this item.
+     */
+    readonly id?: number;
+    /**
+     * The list this item is on. Taken from the URL; ignored in the body.
+     */
+    readonly list_id?: number;
+    /**
+     * The caller's permission on this item; always 2 (admin) for household members.
+     */
+    readonly max_permission?: number;
+    /**
+     * What to buy, e.g. Milk.
+     */
+    name?: string;
+    /**
+     * Free-text note, e.g. the brand or a size.
+     */
+    note?: string;
+    /**
+     * Order within its category; lower comes first.
+     */
+    position?: number;
+    /**
+     * How many or how much, read together with unit. 0 means no quantity.
+     */
+    quantity?: number;
+    /**
+     * Unit for quantity, e.g. g, kg, L, packs. Empty for a plain count.
+     */
+    unit?: string;
+    /**
+     * When this item was last changed.
+     */
+    readonly updated?: string;
+};
+
+export type ShoppingList = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When this list was created.
+     */
+    readonly created?: string;
+    /**
+     * The member who created this list. Null for lists the server created.
+     */
+    readonly created_by?: User;
+    /**
+     * The unique, numeric id of this shopping list.
+     */
+    readonly id?: number;
+    /**
+     * Sort order among lists; lower comes first.
+     */
+    position?: number;
+    /**
+     * The name of the list, e.g. Groceries.
+     */
+    title?: string;
+    /**
+     * When this list was last changed.
+     */
+    readonly updated?: string;
+};
+
+export type ShoppingListReadBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When this list was created.
+     */
+    readonly created?: string;
+    /**
+     * The member who created this list. Null for lists the server created.
+     */
+    readonly created_by?: User;
+    /**
+     * The unique, numeric id of this shopping list.
+     */
+    readonly id?: number;
+    /**
+     * The caller's permission on this list; always 2 (admin) for household members.
+     */
+    readonly max_permission?: number;
+    /**
+     * Sort order among lists; lower comes first.
+     */
+    position?: number;
+    /**
+     * The name of the list, e.g. Groceries.
+     */
+    title?: string;
+    /**
+     * When this list was last changed.
+     */
+    readonly updated?: string;
 };
 
 export type Status = {
@@ -4105,6 +4398,30 @@ export type PaginatedSessionWritable = {
     total_pages?: number;
 };
 
+export type PaginatedShoppingCategoryWritable = {
+    items?: Array<ShoppingCategoryWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedShoppingItemWritable = {
+    items?: Array<ShoppingItemWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedShoppingListWritable = {
+    items?: Array<ShoppingListWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedTaskWritable = {
     items?: Array<TaskWritable> | null;
     page?: number;
@@ -4445,6 +4762,119 @@ export type SavedFilterReadBodyWritable = {
     is_favorite?: boolean;
     /**
      * The title of the filter.
+     */
+    title?: string;
+};
+
+export type ShoppingCategoryWritable = {
+    /**
+     * Order of the category's group on a list; lower comes first.
+     */
+    position?: number;
+    /**
+     * The category name, e.g. Dairy & Eggs.
+     */
+    title?: string;
+};
+
+export type ShoppingCategoryReadBodyWritable = {
+    /**
+     * Order of the category's group on a list; lower comes first.
+     */
+    position?: number;
+    /**
+     * The category name, e.g. Dairy & Eggs.
+     */
+    title?: string;
+};
+
+export type ShoppingClearDoneResultWritable = {
+    /**
+     * How many ticked items were removed.
+     */
+    deleted?: number;
+};
+
+export type ShoppingItemWritable = {
+    /**
+     * The category this item is grouped under. 0 means uncategorised.
+     */
+    category_id?: number;
+    /**
+     * Whether the item has been ticked off.
+     */
+    done?: boolean;
+    /**
+     * What to buy, e.g. Milk.
+     */
+    name?: string;
+    /**
+     * Free-text note, e.g. the brand or a size.
+     */
+    note?: string;
+    /**
+     * Order within its category; lower comes first.
+     */
+    position?: number;
+    /**
+     * How many or how much, read together with unit. 0 means no quantity.
+     */
+    quantity?: number;
+    /**
+     * Unit for quantity, e.g. g, kg, L, packs. Empty for a plain count.
+     */
+    unit?: string;
+};
+
+export type ShoppingItemReadBodyWritable = {
+    /**
+     * The category this item is grouped under. 0 means uncategorised.
+     */
+    category_id?: number;
+    /**
+     * Whether the item has been ticked off.
+     */
+    done?: boolean;
+    /**
+     * What to buy, e.g. Milk.
+     */
+    name?: string;
+    /**
+     * Free-text note, e.g. the brand or a size.
+     */
+    note?: string;
+    /**
+     * Order within its category; lower comes first.
+     */
+    position?: number;
+    /**
+     * How many or how much, read together with unit. 0 means no quantity.
+     */
+    quantity?: number;
+    /**
+     * Unit for quantity, e.g. g, kg, L, packs. Empty for a plain count.
+     */
+    unit?: string;
+};
+
+export type ShoppingListWritable = {
+    /**
+     * Sort order among lists; lower comes first.
+     */
+    position?: number;
+    /**
+     * The name of the list, e.g. Groceries.
+     */
+    title?: string;
+};
+
+export type ShoppingListReadBodyWritable = {
+    /**
+     * Sort order among lists; lower comes first.
+     */
+    position?: number;
+    /**
+     * The name of the list, e.g. Groceries.
      */
     title?: string;
 };
@@ -8697,6 +9127,608 @@ export type AuthLinkShareResponses = {
 };
 
 export type AuthLinkShareResponse = AuthLinkShareResponses[keyof AuthLinkShareResponses];
+
+export type ShoppingCategoriesListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/shopping/categories';
+};
+
+export type ShoppingCategoriesListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCategoriesListError = ShoppingCategoriesListErrors[keyof ShoppingCategoriesListErrors];
+
+export type ShoppingCategoriesListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedShoppingCategory;
+};
+
+export type ShoppingCategoriesListResponse = ShoppingCategoriesListResponses[keyof ShoppingCategoriesListResponses];
+
+export type ShoppingCategoriesCreateData = {
+    body: ShoppingCategoryWritable;
+    path?: never;
+    query?: never;
+    url: '/shopping/categories';
+};
+
+export type ShoppingCategoriesCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCategoriesCreateError = ShoppingCategoriesCreateErrors[keyof ShoppingCategoriesCreateErrors];
+
+export type ShoppingCategoriesCreateResponses = {
+    /**
+     * Created
+     */
+    201: ShoppingCategory;
+};
+
+export type ShoppingCategoriesCreateResponse = ShoppingCategoriesCreateResponses[keyof ShoppingCategoriesCreateResponses];
+
+export type ShoppingCategoriesDeleteData = {
+    body?: never;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/categories/{id}';
+};
+
+export type ShoppingCategoriesDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCategoriesDeleteError = ShoppingCategoriesDeleteErrors[keyof ShoppingCategoriesDeleteErrors];
+
+export type ShoppingCategoriesDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type ShoppingCategoriesDeleteResponse = ShoppingCategoriesDeleteResponses[keyof ShoppingCategoriesDeleteResponses];
+
+export type ShoppingCategoriesReadData = {
+    body?: never;
+    headers?: {
+        /**
+         * Succeeds if the server's resource matches one of the passed values.
+         */
+        'If-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.
+         */
+        'If-None-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource date is more recent than the passed date.
+         */
+        'If-Modified-Since'?: string;
+        /**
+         * Succeeds if the server's resource date is older or the same as the passed date.
+         */
+        'If-Unmodified-Since'?: string;
+    };
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/categories/{id}';
+};
+
+export type ShoppingCategoriesReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCategoriesReadError = ShoppingCategoriesReadErrors[keyof ShoppingCategoriesReadErrors];
+
+export type ShoppingCategoriesReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingCategoryReadBody;
+};
+
+export type ShoppingCategoriesReadResponse = ShoppingCategoriesReadResponses[keyof ShoppingCategoriesReadResponses];
+
+export type PatchShoppingCategoriesReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/categories/{id}';
+};
+
+export type PatchShoppingCategoriesReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchShoppingCategoriesReadError = PatchShoppingCategoriesReadErrors[keyof PatchShoppingCategoriesReadErrors];
+
+export type PatchShoppingCategoriesReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingCategory;
+};
+
+export type PatchShoppingCategoriesReadResponse = PatchShoppingCategoriesReadResponses[keyof PatchShoppingCategoriesReadResponses];
+
+export type ShoppingCategoriesUpdateData = {
+    body: ShoppingCategoryReadBodyWritable;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/shopping/categories/{id}';
+};
+
+export type ShoppingCategoriesUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingCategoriesUpdateError = ShoppingCategoriesUpdateErrors[keyof ShoppingCategoriesUpdateErrors];
+
+export type ShoppingCategoriesUpdateResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingCategory;
+};
+
+export type ShoppingCategoriesUpdateResponse = ShoppingCategoriesUpdateResponses[keyof ShoppingCategoriesUpdateResponses];
+
+export type ShoppingListsListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/shopping/lists';
+};
+
+export type ShoppingListsListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingListsListError = ShoppingListsListErrors[keyof ShoppingListsListErrors];
+
+export type ShoppingListsListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedShoppingList;
+};
+
+export type ShoppingListsListResponse = ShoppingListsListResponses[keyof ShoppingListsListResponses];
+
+export type ShoppingListsCreateData = {
+    body: ShoppingListWritable;
+    path?: never;
+    query?: never;
+    url: '/shopping/lists';
+};
+
+export type ShoppingListsCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingListsCreateError = ShoppingListsCreateErrors[keyof ShoppingListsCreateErrors];
+
+export type ShoppingListsCreateResponses = {
+    /**
+     * Created
+     */
+    201: ShoppingList;
+};
+
+export type ShoppingListsCreateResponse = ShoppingListsCreateResponses[keyof ShoppingListsCreateResponses];
+
+export type ShoppingListsDeleteData = {
+    body?: never;
+    path: {
+        list: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}';
+};
+
+export type ShoppingListsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingListsDeleteError = ShoppingListsDeleteErrors[keyof ShoppingListsDeleteErrors];
+
+export type ShoppingListsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type ShoppingListsDeleteResponse = ShoppingListsDeleteResponses[keyof ShoppingListsDeleteResponses];
+
+export type ShoppingListsReadData = {
+    body?: never;
+    headers?: {
+        /**
+         * Succeeds if the server's resource matches one of the passed values.
+         */
+        'If-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.
+         */
+        'If-None-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource date is more recent than the passed date.
+         */
+        'If-Modified-Since'?: string;
+        /**
+         * Succeeds if the server's resource date is older or the same as the passed date.
+         */
+        'If-Unmodified-Since'?: string;
+    };
+    path: {
+        list: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}';
+};
+
+export type ShoppingListsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingListsReadError = ShoppingListsReadErrors[keyof ShoppingListsReadErrors];
+
+export type ShoppingListsReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingListReadBody;
+};
+
+export type ShoppingListsReadResponse = ShoppingListsReadResponses[keyof ShoppingListsReadResponses];
+
+export type PatchShoppingListsReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        list: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}';
+};
+
+export type PatchShoppingListsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchShoppingListsReadError = PatchShoppingListsReadErrors[keyof PatchShoppingListsReadErrors];
+
+export type PatchShoppingListsReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingList;
+};
+
+export type PatchShoppingListsReadResponse = PatchShoppingListsReadResponses[keyof PatchShoppingListsReadResponses];
+
+export type ShoppingListsUpdateData = {
+    body: ShoppingListReadBodyWritable;
+    path: {
+        list: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}';
+};
+
+export type ShoppingListsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingListsUpdateError = ShoppingListsUpdateErrors[keyof ShoppingListsUpdateErrors];
+
+export type ShoppingListsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingList;
+};
+
+export type ShoppingListsUpdateResponse = ShoppingListsUpdateResponses[keyof ShoppingListsUpdateResponses];
+
+export type ShoppingListsClearDoneData = {
+    body?: never;
+    path: {
+        list: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/clear-done';
+};
+
+export type ShoppingListsClearDoneErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingListsClearDoneError = ShoppingListsClearDoneErrors[keyof ShoppingListsClearDoneErrors];
+
+export type ShoppingListsClearDoneResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingClearDoneResult;
+};
+
+export type ShoppingListsClearDoneResponse = ShoppingListsClearDoneResponses[keyof ShoppingListsClearDoneResponses];
+
+export type ShoppingItemsListData = {
+    body?: never;
+    path: {
+        list: number;
+    };
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/shopping/lists/{list}/items';
+};
+
+export type ShoppingItemsListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingItemsListError = ShoppingItemsListErrors[keyof ShoppingItemsListErrors];
+
+export type ShoppingItemsListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedShoppingItem;
+};
+
+export type ShoppingItemsListResponse = ShoppingItemsListResponses[keyof ShoppingItemsListResponses];
+
+export type ShoppingItemsCreateData = {
+    body: ShoppingItemWritable;
+    path: {
+        list: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/items';
+};
+
+export type ShoppingItemsCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingItemsCreateError = ShoppingItemsCreateErrors[keyof ShoppingItemsCreateErrors];
+
+export type ShoppingItemsCreateResponses = {
+    /**
+     * Created
+     */
+    201: ShoppingItem;
+};
+
+export type ShoppingItemsCreateResponse = ShoppingItemsCreateResponses[keyof ShoppingItemsCreateResponses];
+
+export type ShoppingItemsDeleteData = {
+    body?: never;
+    path: {
+        list: number;
+        item: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/items/{item}';
+};
+
+export type ShoppingItemsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingItemsDeleteError = ShoppingItemsDeleteErrors[keyof ShoppingItemsDeleteErrors];
+
+export type ShoppingItemsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type ShoppingItemsDeleteResponse = ShoppingItemsDeleteResponses[keyof ShoppingItemsDeleteResponses];
+
+export type ShoppingItemsReadData = {
+    body?: never;
+    headers?: {
+        /**
+         * Succeeds if the server's resource matches one of the passed values.
+         */
+        'If-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.
+         */
+        'If-None-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource date is more recent than the passed date.
+         */
+        'If-Modified-Since'?: string;
+        /**
+         * Succeeds if the server's resource date is older or the same as the passed date.
+         */
+        'If-Unmodified-Since'?: string;
+    };
+    path: {
+        list: number;
+        item: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/items/{item}';
+};
+
+export type ShoppingItemsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingItemsReadError = ShoppingItemsReadErrors[keyof ShoppingItemsReadErrors];
+
+export type ShoppingItemsReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingItemReadBody;
+};
+
+export type ShoppingItemsReadResponse = ShoppingItemsReadResponses[keyof ShoppingItemsReadResponses];
+
+export type PatchShoppingItemsReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        list: number;
+        item: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/items/{item}';
+};
+
+export type PatchShoppingItemsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchShoppingItemsReadError = PatchShoppingItemsReadErrors[keyof PatchShoppingItemsReadErrors];
+
+export type PatchShoppingItemsReadResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingItem;
+};
+
+export type PatchShoppingItemsReadResponse = PatchShoppingItemsReadResponses[keyof PatchShoppingItemsReadResponses];
+
+export type ShoppingItemsUpdateData = {
+    body: ShoppingItemReadBodyWritable;
+    path: {
+        list: number;
+        item: number;
+    };
+    query?: never;
+    url: '/shopping/lists/{list}/items/{item}';
+};
+
+export type ShoppingItemsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingItemsUpdateError = ShoppingItemsUpdateErrors[keyof ShoppingItemsUpdateErrors];
+
+export type ShoppingItemsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingItem;
+};
+
+export type ShoppingItemsUpdateResponse = ShoppingItemsUpdateResponses[keyof ShoppingItemsUpdateResponses];
 
 export type SubscriptionsDeleteData = {
     body?: never;
