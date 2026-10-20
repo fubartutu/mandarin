@@ -42,7 +42,7 @@ type ShoppingCatalogItem struct { //nolint:revive // stutters, but the type name
 	TimesAdded int64      `xorm:"bigint not null default 0" json:"times_added" readOnly:"true" doc:"How many times the item has been added to a list. Autocomplete ranks frequent items first."`
 	LastAdded  *time.Time `xorm:"datetime null" json:"last_added" readOnly:"true" doc:"When the item was last added to a list; null if never."`
 
-	PhotoFileID int64 `xorm:"bigint not null default 0" json:"-"`
+	PhotoFileID int64 `xorm:"bigint not null default 0" json:"photo_id" readOnly:"true" doc:"Changes whenever the photo is replaced, so clients can cache photos by it. 0 means no photo."`
 	HasPhoto    bool  `xorm:"-" json:"has_photo" readOnly:"true" doc:"Whether the item has a photo. Fetch it from /shopping/catalog/{id}/photo."`
 
 	NotStockedShopIDs []int64 `xorm:"-" json:"not_stocked_shop_ids" doc:"Shops that don't stock this item. It is hidden on those shops' tabs. Replaced as a whole on update."`
@@ -111,6 +111,9 @@ func useCatalogItem(s *xorm.Session, item *ShoppingItem, newUse bool) error {
 		if _, err := s.Insert(entry); err != nil {
 			return err
 		}
+		if err := recordChange(s, entityCatalog, entry.ID, "", false); err != nil {
+			return err
+		}
 	}
 
 	// Blanks on a newly added item come from last time.
@@ -145,8 +148,10 @@ func useCatalogItem(s *xorm.Session, item *ShoppingItem, newUse bool) error {
 		learned.LastAdded = &now
 		cols = append(cols, "times_added", "last_added")
 	}
-	_, err = s.ID(entry.ID).Cols(cols...).Update(&learned)
-	return err
+	if _, err = s.ID(entry.ID).Cols(cols...).Update(&learned); err != nil {
+		return err
+	}
+	return recordChange(s, entityCatalog, entry.ID, "", false)
 }
 
 // catalogDetails holds the per-entry extras that items show: photo and
@@ -231,7 +236,7 @@ func setNotStocked(s *xorm.Session, catalogItemID int64, shopIDs []int64) error 
 			return err
 		}
 	}
-	return nil
+	return recordChange(s, entityCatalog, catalogItemID, "", false)
 }
 
 // CanRead lets every household member read every catalogue entry.
@@ -364,6 +369,9 @@ func (c *ShoppingCatalogItem) Update(s *xorm.Session, _ web.Auth) error {
 	if _, err := s.ID(c.ID).Cols("name", "name_key", "category_id", "quantity", "unit").Update(c); err != nil {
 		return err
 	}
+	if err := recordChange(s, entityCatalog, c.ID, "", false); err != nil {
+		return err
+	}
 	// A nil slice means the client didn't send the field (e.g. an old
 	// client); leave the marks alone then. [] clears them.
 	if c.NotStockedShopIDs != nil {
@@ -392,12 +400,23 @@ func (c *ShoppingCatalogItem) Delete(s *xorm.Session, _ web.Auth) error {
 	if _, err := s.Where("catalog_item_id = ?", c.ID).Delete(&ShoppingNotStocked{}); err != nil {
 		return err
 	}
+	items := []*ShoppingItem{}
+	if err := s.Where("catalog_item_id = ?", c.ID).Cols("id", "uid").Find(&items); err != nil {
+		return err
+	}
 	_, err = s.Table("shopping_items").Where("catalog_item_id = ?", c.ID).Update(map[string]any{"catalog_item_id": 0})
 	if err != nil {
 		return err
 	}
-	_, err = s.ID(c.ID).Delete(&ShoppingCatalogItem{})
-	return err
+	for _, item := range items {
+		if err := recordItemChange(s, item, false); err != nil {
+			return err
+		}
+	}
+	if _, err = s.ID(c.ID).Delete(&ShoppingCatalogItem{}); err != nil {
+		return err
+	}
+	return recordChange(s, entityCatalog, c.ID, "", true)
 }
 
 // deletePhotoFile removes a stored photo; a file that's already gone is fine.

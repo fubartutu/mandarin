@@ -77,6 +77,9 @@ func (c *ShoppingCatalogItem) SetPhoto(s *xorm.Session, a web.Auth, src io.Reade
 	if _, err := s.ID(stored.ID).Cols("photo_file_id").Update(stored); err != nil {
 		return err
 	}
+	if err := recordChange(s, entityCatalog, stored.ID, "", false); err != nil {
+		return err
+	}
 	*c = *stored
 	return fillDetails(s, c)
 }
@@ -112,6 +115,9 @@ func (c *ShoppingCatalogItem) DeletePhoto(s *xorm.Session) error {
 	}
 	stored.PhotoFileID = 0
 	if _, err := s.ID(stored.ID).Cols("photo_file_id").Update(stored); err != nil {
+		return err
+	}
+	if err := recordChange(s, entityCatalog, stored.ID, "", false); err != nil {
 		return err
 	}
 	*c = *stored

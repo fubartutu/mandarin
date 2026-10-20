@@ -126,8 +126,11 @@ func (sh *ShoppingShop) Create(s *xorm.Session, _ web.Auth) (err error) {
 			return err
 		}
 	}
-	_, err = s.Insert(sh)
-	return err
+	if _, err = s.Insert(sh); err != nil {
+		return err
+	}
+	// Phones get shops as part of their list.
+	return recordChange(s, entityList, sh.ListID, "", false)
 }
 
 // ReadOne has nothing to add: CanRead already loaded the row.
@@ -165,21 +168,33 @@ func (sh *ShoppingShop) Update(s *xorm.Session, _ web.Auth) error {
 		return err
 	}
 	*sh = *stored
-	return nil
+	return recordChange(s, entityList, sh.ListID, "", false)
 }
 
 // Delete removes the shop and every "not stocked here" mark for it.
 func (sh *ShoppingShop) Delete(s *xorm.Session, _ web.Auth) error {
-	return deleteShops(s, []int64{sh.ID})
+	if err := deleteShops(s, []int64{sh.ID}); err != nil {
+		return err
+	}
+	return recordChange(s, entityList, sh.ListID, "", false)
 }
 
+// deleteShops removes shops and their not-stocked marks. The caller logs the
+// change to the shops' list.
 func deleteShops(s *xorm.Session, ids []int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
+	// The catalogue entries that lose a mark change too.
+	var marked []int64
+	if err := s.Table("shopping_not_stocked").In("shop_id", ids).Distinct("catalog_item_id").Find(&marked); err != nil {
+		return err
+	}
 	if _, err := s.In("shop_id", ids).Delete(&ShoppingNotStocked{}); err != nil {
 		return err
 	}
-	_, err := s.In("id", ids).Delete(&ShoppingShop{})
-	return err
+	if _, err := s.In("id", ids).Delete(&ShoppingShop{}); err != nil {
+		return err
+	}
+	return recordChanges(s, entityCatalog, marked)
 }

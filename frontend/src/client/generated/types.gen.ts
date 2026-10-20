@@ -2112,6 +2112,10 @@ export type ShoppingCatalogItem = {
      */
     not_stocked_shop_ids?: Array<number> | null;
     /**
+     * Changes whenever the photo is replaced, so clients can cache photos by it. 0 means no photo.
+     */
+    readonly photo_id?: number;
+    /**
      * The quantity used last time; offered again when the item is re-added. 0 means none.
      */
     quantity?: number;
@@ -2166,6 +2170,10 @@ export type ShoppingCatalogReadBody = {
      * Shops that don't stock this item. It is hidden on those shops' tabs. Replaced as a whole on update.
      */
     not_stocked_shop_ids?: Array<number> | null;
+    /**
+     * Changes whenever the photo is replaced, so clients can cache photos by it. 0 means no photo.
+     */
+    readonly photo_id?: number;
     /**
      * The quantity used last time; offered again when the item is re-added. 0 means none.
      */
@@ -2253,6 +2261,53 @@ export type ShoppingClearDoneResult = {
     deleted?: number;
 };
 
+export type ShoppingConflict = {
+    /**
+     * When the server noticed the conflict.
+     */
+    readonly created?: string;
+    /**
+     * What both changed: name, amount, note, category_id or done; deleted when an edit arrived after the item was removed.
+     */
+    field?: string;
+    /**
+     * The unique, numeric id of this conflict.
+     */
+    readonly id?: number;
+    /**
+     * The item's name at the time.
+     */
+    item_name?: string;
+    /**
+     * The item both edits were to.
+     */
+    item_uid?: string;
+    /**
+     * When the lost change was made.
+     */
+    loser_at?: string;
+    /**
+     * Who made the lost change.
+     */
+    loser_by?: User;
+    /**
+     * The value that was overwritten or dropped.
+     */
+    loser_value?: string;
+    /**
+     * When the kept change was made.
+     */
+    winner_at?: string;
+    /**
+     * Who made the kept change; null if unknown.
+     */
+    winner_by?: User;
+    /**
+     * The kept value: a name, an amount such as "2 kg", a note, a category id, or true/false for done.
+     */
+    winner_value?: string;
+};
+
 export type ShoppingItem = {
     /**
      * A URL to the JSON Schema for this object.
@@ -2315,6 +2370,10 @@ export type ShoppingItem = {
      */
     quantity?: number;
     /**
+     * The item's id across devices: a UUID made by the app that added it. Sync uses it; the numeric id is for these REST endpoints.
+     */
+    readonly uid?: string;
+    /**
      * Unit for quantity, e.g. g, kg, L, packs. Empty for a plain count.
      */
     unit?: string;
@@ -2322,6 +2381,31 @@ export type ShoppingItem = {
      * When this item was last changed.
      */
     readonly updated?: string;
+};
+
+export type ShoppingItemFields = {
+    /**
+     * 0 for none. An unknown category becomes 0.
+     */
+    category_id?: number;
+    done?: boolean;
+    /**
+     * 1–250 characters.
+     */
+    name?: string;
+    /**
+     * Up to 2000 characters.
+     */
+    note?: string;
+    position?: number;
+    /**
+     * 0 or more; sent together with unit.
+     */
+    quantity?: number;
+    /**
+     * Up to 50 characters; sent together with quantity.
+     */
+    unit?: string;
 };
 
 export type ShoppingItemReadBody = {
@@ -2389,6 +2473,10 @@ export type ShoppingItemReadBody = {
      * How many or how much, read together with unit. 0 means no quantity.
      */
     quantity?: number;
+    /**
+     * The item's id across devices: a UUID made by the app that added it. Sync uses it; the numeric id is for these REST endpoints.
+     */
+    readonly uid?: string;
     /**
      * Unit for quantity, e.g. g, kg, L, packs. Empty for a plain count.
      */
@@ -2537,6 +2625,99 @@ export type ShoppingShopReadBody = {
      * When this shop was last changed.
      */
     readonly updated?: string;
+};
+
+export type ShoppingSyncInputBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The cursor from the last sync; 0 for a full copy.
+     */
+    cursor?: number;
+    /**
+     * Changes made on the device since the last sync, oldest first. Send at most 500 at a time.
+     */
+    ops?: Array<ShoppingSyncOp> | null;
+};
+
+export type ShoppingSyncOp = {
+    /**
+     * When the change was made, in Unix milliseconds. Per field, the latest change wins. Times in the future count as now.
+     */
+    at?: number;
+    /**
+     * item.update: the changed fields as the app had them before; used to spot conflicts.
+     */
+    before?: ShoppingItemFields;
+    /**
+     * The app's id for this change; echoed back if it's rejected.
+     */
+    id?: string;
+    /**
+     * The item's name as the app knew it, for the conflict log.
+     */
+    item_name?: string;
+    /**
+     * The item's uid; for item.create a new UUID made by the app.
+     */
+    item_uid?: string;
+    /**
+     * item.create: the list to add to.
+     */
+    list_id?: number;
+    /**
+     * item.create: the new item. item.update: only the changed fields.
+     */
+    set?: ShoppingItemFields;
+    /**
+     * item.not_stocked: every shop that doesn't stock the item (replaces the marks).
+     */
+    shop_ids?: Array<number> | null;
+    /**
+     * item.create, item.update, item.delete or item.not_stocked.
+     */
+    type?: string;
+};
+
+export type ShoppingSyncRejection = {
+    op_id?: string;
+    reason?: string;
+};
+
+export type ShoppingSyncResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    catalog?: Array<ShoppingCatalogItem> | null;
+    categories?: Array<ShoppingCategory> | null;
+    /**
+     * New entries for the conflict log.
+     */
+    conflicts?: Array<ShoppingConflict> | null;
+    /**
+     * Send this as cursor next time.
+     */
+    cursor?: number;
+    deleted_catalog_ids?: Array<number> | null;
+    deleted_category_ids?: Array<number> | null;
+    deleted_item_uids?: Array<string> | null;
+    deleted_list_ids?: Array<number> | null;
+    /**
+     * True when this is a complete copy: replace everything stored locally. Otherwise only changes are included.
+     */
+    full?: boolean;
+    items?: Array<ShoppingItem> | null;
+    /**
+     * Lists (with their shops) that are new or changed.
+     */
+    lists?: Array<ShoppingList> | null;
+    /**
+     * Ops from this request that were dropped.
+     */
+    rejected?: Array<ShoppingSyncRejection> | null;
 };
 
 export type Status = {
@@ -5085,6 +5266,45 @@ export type ShoppingClearDoneResultWritable = {
     deleted?: number;
 };
 
+export type ShoppingConflictWritable = {
+    /**
+     * What both changed: name, amount, note, category_id or done; deleted when an edit arrived after the item was removed.
+     */
+    field?: string;
+    /**
+     * The item's name at the time.
+     */
+    item_name?: string;
+    /**
+     * The item both edits were to.
+     */
+    item_uid?: string;
+    /**
+     * When the lost change was made.
+     */
+    loser_at?: string;
+    /**
+     * Who made the lost change.
+     */
+    loser_by?: UserWritable;
+    /**
+     * The value that was overwritten or dropped.
+     */
+    loser_value?: string;
+    /**
+     * When the kept change was made.
+     */
+    winner_at?: string;
+    /**
+     * Who made the kept change; null if unknown.
+     */
+    winner_by?: UserWritable;
+    /**
+     * The kept value: a name, an amount such as "2 kg", a note, a category id, or true/false for done.
+     */
+    winner_value?: string;
+};
+
 export type ShoppingItemWritable = {
     /**
      * The category this item is grouped under. 0 means uncategorised.
@@ -5189,6 +5409,47 @@ export type ShoppingShopReadBodyWritable = {
      * The shop's name, e.g. Aldi.
      */
     title?: string;
+};
+
+export type ShoppingSyncInputBodyWritable = {
+    /**
+     * The cursor from the last sync; 0 for a full copy.
+     */
+    cursor?: number;
+    /**
+     * Changes made on the device since the last sync, oldest first. Send at most 500 at a time.
+     */
+    ops?: Array<ShoppingSyncOp> | null;
+};
+
+export type ShoppingSyncResultWritable = {
+    catalog?: Array<ShoppingCatalogItemWritable> | null;
+    categories?: Array<ShoppingCategoryWritable> | null;
+    /**
+     * New entries for the conflict log.
+     */
+    conflicts?: Array<ShoppingConflictWritable> | null;
+    /**
+     * Send this as cursor next time.
+     */
+    cursor?: number;
+    deleted_catalog_ids?: Array<number> | null;
+    deleted_category_ids?: Array<number> | null;
+    deleted_item_uids?: Array<string> | null;
+    deleted_list_ids?: Array<number> | null;
+    /**
+     * True when this is a complete copy: replace everything stored locally. Otherwise only changes are included.
+     */
+    full?: boolean;
+    items?: Array<ShoppingItemWritable> | null;
+    /**
+     * Lists (with their shops) that are new or changed.
+     */
+    lists?: Array<ShoppingListWritable> | null;
+    /**
+     * Ops from this request that were dropped.
+     */
+    rejected?: Array<ShoppingSyncRejection> | null;
 };
 
 export type TaskWritable = {
@@ -10513,6 +10774,31 @@ export type ShoppingShopsUpdateResponses = {
 };
 
 export type ShoppingShopsUpdateResponse = ShoppingShopsUpdateResponses[keyof ShoppingShopsUpdateResponses];
+
+export type ShoppingSyncData = {
+    body: ShoppingSyncInputBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/shopping/sync';
+};
+
+export type ShoppingSyncErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ShoppingSyncError = ShoppingSyncErrors[keyof ShoppingSyncErrors];
+
+export type ShoppingSyncResponses = {
+    /**
+     * OK
+     */
+    200: ShoppingSyncResult;
+};
+
+export type ShoppingSyncResponse = ShoppingSyncResponses[keyof ShoppingSyncResponses];
 
 export type SubscriptionsDeleteData = {
     body?: never;

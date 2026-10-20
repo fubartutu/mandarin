@@ -130,8 +130,10 @@ func (l *ShoppingList) Create(s *xorm.Session, a web.Auth) error {
 			return err
 		}
 	}
-	_, err = s.Insert(l)
-	return err
+	if _, err = s.Insert(l); err != nil {
+		return err
+	}
+	return recordChange(s, entityList, l.ID, "", false)
 }
 
 // ReadOne fills in the creator; CanRead already loaded the row.
@@ -213,6 +215,9 @@ func (l *ShoppingList) Update(s *xorm.Session, a web.Auth) error {
 	if _, err := s.ID(l.ID).Cols("title", "position").Update(l); err != nil {
 		return err
 	}
+	if err := recordChange(s, entityList, l.ID, "", false); err != nil {
+		return err
+	}
 	if err := l.load(s, a); err != nil {
 		return err
 	}
@@ -221,7 +226,11 @@ func (l *ShoppingList) Update(s *xorm.Session, a web.Auth) error {
 
 // Delete removes the list with its items and shops.
 func (l *ShoppingList) Delete(s *xorm.Session, _ web.Auth) error {
-	if _, err := s.Where("list_id = ?", l.ID).Delete(&ShoppingItem{}); err != nil {
+	items := []*ShoppingItem{}
+	if err := s.Where("list_id = ?", l.ID).Cols("id", "uid").Find(&items); err != nil {
+		return err
+	}
+	if err := deleteItems(s, items...); err != nil {
 		return err
 	}
 	var shopIDs []int64
@@ -231,12 +240,18 @@ func (l *ShoppingList) Delete(s *xorm.Session, _ web.Auth) error {
 	if err := deleteShops(s, shopIDs); err != nil {
 		return err
 	}
-	_, err := s.ID(l.ID).Delete(&ShoppingList{})
-	return err
+	if _, err := s.ID(l.ID).Delete(&ShoppingList{}); err != nil {
+		return err
+	}
+	return recordChange(s, entityList, l.ID, "", true)
 }
 
 // ClearDoneItems deletes the ticked items on the list and returns how many
 // went. Callers must check CanUpdate first; this is not a generic CRUD action.
 func (l *ShoppingList) ClearDoneItems(s *xorm.Session) (int64, error) {
-	return s.Where("list_id = ? AND done = ?", l.ID, true).Delete(&ShoppingItem{})
+	items := []*ShoppingItem{}
+	if err := s.Where("list_id = ? AND done = ?", l.ID, true).Cols("id", "uid").Find(&items); err != nil {
+		return 0, err
+	}
+	return int64(len(items)), deleteItems(s, items...)
 }

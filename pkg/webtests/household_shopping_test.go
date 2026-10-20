@@ -52,7 +52,7 @@ func setupShoppingEnv(t *testing.T) *echo.Echo {
 
 	s := db.NewSession()
 	defer s.Close()
-	for _, table := range []string{"shopping_items", "shopping_lists", "shopping_categories", "shopping_shops", "shopping_catalog_items", "shopping_not_stocked"} {
+	for _, table := range []string{"shopping_items", "shopping_lists", "shopping_categories", "shopping_shops", "shopping_catalog_items", "shopping_not_stocked", "shopping_changes", "shopping_conflicts"} {
 		_, err := s.Exec("DELETE FROM " + table)
 		require.NoError(t, err)
 	}
@@ -307,4 +307,58 @@ func TestHouseholdShopping_ShopsAndCatalog(t *testing.T) {
 			assert.Equal(t, http.StatusForbidden, rec.Code, "%s %s: %s", req.method, req.path, rec.Body.String())
 		}
 	})
+}
+
+func TestHouseholdShopping_Sync(t *testing.T) {
+	e := setupShoppingEnv(t)
+	user1 := humaTokenFor(t, &testuser1)
+	user2 := humaTokenFor(t, &testuser2)
+	type syncResult struct {
+		Cursor   int64
+		Full     bool
+		Lists    []shopping.ShoppingList
+		Items    []shopping.ShoppingItem
+		Rejected []shopping.ShoppingSyncRejection
+	}
+
+	// 1. A first sync is a full copy.
+	rec := humaRequest(t, e, http.MethodPost, "/api/v2/shopping/sync", `{"cursor":0,"ops":[]}`, user1, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	first := decode[syncResult](t, rec.Body.Bytes())
+	assert.True(t, first.Full)
+	require.Len(t, first.Lists, 1)
+	listID := first.Lists[0].ID
+
+	// 2. user1's phone sends an item it added offline, plus one bad op.
+	const uid = "3f1c0b8e-5a8f-4a43-9c55-0f2d3c7e9a11"
+	ops := fmt.Sprintf(`{"cursor":%d,"ops":[
+		{"id":"op1","type":"item.create","at":1790000000000,"item_uid":"%s","list_id":%d,"set":{"name":"Milk","quantity":2,"unit":"L"}},
+		{"id":"op2","type":"item.create","at":1790000000000,"item_uid":"not-a-uuid","list_id":%d,"set":{"name":"Eggs"}}]}`,
+		first.Cursor, uid, listID, listID)
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/shopping/sync", ops, user1, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	second := decode[syncResult](t, rec.Body.Bytes())
+	assert.False(t, second.Full)
+	require.Len(t, second.Items, 1, "the answer includes the phone's own change")
+	assert.Equal(t, uid, second.Items[0].UID)
+	require.Len(t, second.Rejected, 1)
+	assert.Equal(t, "op2", second.Rejected[0].OpID)
+
+	// 3. user2's phone, synced before, now gets just that item.
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/shopping/sync", fmt.Sprintf(`{"cursor":%d,"ops":[]}`, first.Cursor), user2, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	third := decode[syncResult](t, rec.Body.Bytes())
+	require.Len(t, third.Items, 1)
+	assert.Equal(t, "Milk", third.Items[0].Name)
+
+	// 4. The REST API sees it too.
+	rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("/api/v2/shopping/lists/%d/items", listID), "", user2, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Contains(t, rec.Body.String(), uid)
+
+	// 5. Link shares are refused.
+	share, err := auth.NewLinkShareJWTAuthtoken(&models.LinkSharing{ID: 1, Hash: "test", ProjectID: 1, Permission: models.PermissionRead, SharedByID: 1})
+	require.NoError(t, err)
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/shopping/sync", `{"cursor":0,"ops":[]}`, share, "")
+	assert.Equal(t, http.StatusForbidden, rec.Code, rec.Body.String())
 }

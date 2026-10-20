@@ -102,8 +102,10 @@ func (c *ShoppingCategory) Create(s *xorm.Session, _ web.Auth) (err error) {
 			return err
 		}
 	}
-	_, err = s.Insert(c)
-	return err
+	if _, err = s.Insert(c); err != nil {
+		return err
+	}
+	return recordChange(s, entityCategory, c.ID, "", false)
 }
 
 // ReadOne has nothing to add: CanRead already loaded the row.
@@ -148,12 +150,20 @@ func (c *ShoppingCategory) Update(s *xorm.Session, _ web.Auth) error {
 		return err
 	}
 	*c = *stored
-	return nil
+	return recordChange(s, entityCategory, c.ID, "", false)
 }
 
 // Delete removes the category. Its items and catalogue entries become
 // uncategorised (category 0) rather than being deleted.
 func (c *ShoppingCategory) Delete(s *xorm.Session, _ web.Auth) error {
+	items := []*ShoppingItem{}
+	if err := s.Where("category_id = ?", c.ID).Cols("id", "uid").Find(&items); err != nil {
+		return err
+	}
+	var entries []int64
+	if err := s.Table("shopping_catalog_items").Where("category_id = ?", c.ID).Cols("id").Find(&entries); err != nil {
+		return err
+	}
 	for _, table := range []string{"shopping_items", "shopping_catalog_items"} {
 		_, err := s.Table(table).
 			Where("category_id = ?", c.ID).
@@ -162,6 +172,16 @@ func (c *ShoppingCategory) Delete(s *xorm.Session, _ web.Auth) error {
 			return err
 		}
 	}
-	_, err := s.ID(c.ID).Delete(&ShoppingCategory{})
-	return err
+	if _, err := s.ID(c.ID).Delete(&ShoppingCategory{}); err != nil {
+		return err
+	}
+	for _, item := range items {
+		if err := recordItemChange(s, item, false); err != nil {
+			return err
+		}
+	}
+	if err := recordChanges(s, entityCatalog, entries); err != nil {
+		return err
+	}
+	return recordChange(s, entityCategory, c.ID, "", true)
 }

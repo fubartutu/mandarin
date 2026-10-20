@@ -18,6 +18,7 @@ package shopping
 
 import (
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/log"
 
 	"xorm.io/xorm"
@@ -79,7 +80,26 @@ func Seed(s *xorm.Session) error {
 	if err := seedCatalog(s); err != nil {
 		return err
 	}
-	return linkUncataloguedItems(s)
+	if err := linkUncataloguedItems(s); err != nil {
+		return err
+	}
+	return startChangeLog(s)
+}
+
+// startChangeLog gives an empty change log one row. Phones treat cursor 0 as
+// "send me everything", so until the first change they'd get a full copy on
+// every sync.
+func startChangeLog(s *xorm.Session) error {
+	count, err := s.Count(&ShoppingChange{})
+	if err != nil || count > 0 {
+		return err
+	}
+	list := &ShoppingList{}
+	if _, err := s.OrderBy("id ASC").Get(list); err != nil {
+		return err
+	}
+	_, err = s.Insert(&ShoppingChange{Entity: entityList, EntityID: list.ID})
+	return err
 }
 
 // seedCatalog loads DefaultCatalog into an empty catalogue. Entries whose
@@ -131,11 +151,14 @@ func linkUncataloguedItems(s *xorm.Session) error {
 	return nil
 }
 
-// Init runs at server start-up, after the migrations.
+// Init runs at server start-up, after the migrations and before the event
+// system starts.
 func Init() {
 	if err := seedInTransaction(); err != nil {
 		log.Fatalf("Could not seed shopping defaults: %s", err)
 	}
+	// Tell open apps to sync whenever shopping data changes.
+	events.RegisterListener((&ChangedEvent{}).Name(), &changedListener{})
 }
 
 // seedInTransaction is split out of Init so its deferred Close still runs:
@@ -144,6 +167,8 @@ func seedInTransaction() error {
 	s := db.NewSession()
 	defer s.Close()
 
+	// Nobody is connected yet, so there's no one to tell about these changes.
+	defer events.CleanupPending(s)
 	if err := Seed(s); err != nil {
 		_ = s.Rollback()
 		return err

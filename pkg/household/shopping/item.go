@@ -22,13 +22,17 @@ import (
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
 
+	"github.com/google/uuid"
 	"xorm.io/xorm"
 )
 
 // ShoppingItem is one line on a shopping list: "2 L milk", "500 g mince",
 // "school shoes (size 3)".
 type ShoppingItem struct { //nolint:revive // stutters, but the type name is the OpenAPI schema name.
-	ID         int64   `xorm:"bigint autoincr not null unique pk" json:"id" readOnly:"true" doc:"The unique, numeric id of this item."`
+	ID int64 `xorm:"bigint autoincr not null unique pk" json:"id" readOnly:"true" doc:"The unique, numeric id of this item."`
+	// UID is made by the phone that adds the item, so an item added offline
+	// has an id before the server has seen it.
+	UID        string  `xorm:"'uid' varchar(36) not null unique" json:"uid" readOnly:"true" doc:"The item's id across devices: a UUID made by the app that added it. Sync uses it; the numeric id is for these REST endpoints."`
 	ListID     int64   `xorm:"bigint not null index" json:"list_id" readOnly:"true" doc:"The list this item is on. Taken from the URL; ignored in the body."`
 	Name       string  `xorm:"varchar(250) not null" json:"name" valid:"runelength(1|250)" minLength:"1" maxLength:"250" doc:"What to buy, e.g. Milk."`
 	Quantity   float64 `xorm:"double not null default 0" json:"quantity" minimum:"0" doc:"How many or how much, read together with unit. 0 means no quantity."`
@@ -46,6 +50,10 @@ type ShoppingItem struct { //nolint:revive // stutters, but the type name is the
 
 	CreatedByID int64      `xorm:"bigint not null default 0" json:"-"`
 	CreatedBy   *user.User `xorm:"-" json:"created_by" readOnly:"true" doc:"The member who added this item."`
+
+	// FieldTimes says when each field last changed, so sync can let the
+	// latest change win per field (see sync.go).
+	FieldTimes fieldStamps `xorm:"text null json" json:"-"`
 
 	Created time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"When this item was added."`
 	Updated time.Time `xorm:"updated not null" json:"updated" readOnly:"true" doc:"When this item was last changed."`
@@ -125,12 +133,11 @@ func checkCategory(s *xorm.Session, categoryID int64) error {
 	return err
 }
 
-// setDoneAt keeps done_at in step with done: stamped when ticked, cleared
-// when unticked, left alone otherwise.
-func (i *ShoppingItem) setDoneAt(wasDone bool, previous *time.Time) {
+// setDoneAt keeps done_at in step with done: set to now when ticked,
+// cleared when unticked, left alone otherwise.
+func (i *ShoppingItem) setDoneAt(wasDone bool, previous *time.Time, now time.Time) {
 	switch {
 	case i.Done && !wasDone:
-		now := time.Now()
 		i.DoneAt = &now
 	case !i.Done:
 		i.DoneAt = nil
@@ -148,6 +155,13 @@ func (i *ShoppingItem) Create(s *xorm.Session, a web.Auth) error {
 	if err := checkCategory(s, i.CategoryID); err != nil {
 		return err
 	}
+	i.UID = uuid.NewString()
+	return i.insert(s, u, time.Now())
+}
+
+// insert adds a new item made by u at time at. Sync passes the time the
+// item was added on the phone.
+func (i *ShoppingItem) insert(s *xorm.Session, u *user.User, at time.Time) error {
 	// Fills blank category/quantity/unit from last time and remembers this use.
 	if err := useCatalogItem(s, i, true); err != nil {
 		return err
@@ -155,8 +169,12 @@ func (i *ShoppingItem) Create(s *xorm.Session, a web.Auth) error {
 	i.ID = 0
 	i.CreatedByID = u.ID
 	i.CreatedBy = u
-	i.setDoneAt(false, nil)
-	if _, err = s.Insert(i); err != nil {
+	i.setDoneAt(false, nil, at)
+	i.FieldTimes = stampAll(at, u.ID)
+	if _, err := s.Insert(i); err != nil {
+		return err
+	}
+	if err := recordItemChange(s, i, false); err != nil {
 		return err
 	}
 	return fillItemDetails(s, i)
@@ -252,19 +270,30 @@ func (i *ShoppingItem) Update(s *xorm.Session, a web.Auth) error {
 	if err := checkCategory(s, i.CategoryID); err != nil {
 		return err
 	}
-	i.setDoneAt(stored.Done, stored.DoneAt)
+	i.UID = stored.UID // read-only, so not in the body
+	now := time.Now()
+	i.setDoneAt(stored.Done, stored.DoneAt, now)
+	// The fields that differ count as changed now, by this member.
+	i.FieldTimes = stored.FieldTimes.with(changedFields(stored, i), now, a.GetID())
+	if err := i.save(s); err != nil {
+		return err
+	}
+	return i.reload(s, a)
+}
+
+// save writes the editable fields of an existing item and logs the change.
+func (i *ShoppingItem) save(s *xorm.Session) error {
 	// Relinks the item if it was renamed, and teaches the catalogue the edit.
 	if err := useCatalogItem(s, i, false); err != nil {
 		return err
 	}
-
-	_, err = s.ID(i.ID).
-		Cols("name", "quantity", "unit", "note", "category_id", "done", "done_at", "position", "catalog_item_id").
+	_, err := s.ID(i.ID).
+		Cols("name", "quantity", "unit", "note", "category_id", "done", "done_at", "position", "catalog_item_id", "field_times").
 		Update(i)
 	if err != nil {
 		return err
 	}
-	return i.reload(s, a)
+	return recordItemChange(s, i, false)
 }
 
 func (i *ShoppingItem) reload(s *xorm.Session, a web.Auth) error {
@@ -278,6 +307,22 @@ func (i *ShoppingItem) reload(s *xorm.Session, a web.Auth) error {
 
 // Delete removes the item.
 func (i *ShoppingItem) Delete(s *xorm.Session, _ web.Auth) error {
-	_, err := s.Where("id = ? AND list_id = ?", i.ID, i.ListID).Delete(&ShoppingItem{})
-	return err
+	stored, err := getItem(s, i.ListID, i.ID)
+	if err != nil {
+		return err
+	}
+	return deleteItems(s, stored)
+}
+
+// deleteItems removes items and leaves a deletion in the change log for each.
+func deleteItems(s *xorm.Session, items ...*ShoppingItem) error {
+	for _, item := range items {
+		if _, err := s.ID(item.ID).Delete(&ShoppingItem{}); err != nil {
+			return err
+		}
+		if err := recordItemChange(s, item, true); err != nil {
+			return err
+		}
+	}
+	return nil
 }

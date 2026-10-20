@@ -27,6 +27,7 @@ import (
 	"net/http"
 
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/household/shopping"
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/web/handler"
@@ -44,6 +45,7 @@ func RegisterHouseholdShoppingRoutes(api huma.API) {
 	registerShoppingCategoryRoutes(api)
 	registerShoppingShopRoutes(api)
 	registerShoppingCatalogRoutes(api)
+	registerShoppingSyncRoutes(api)
 }
 
 const shoppingAccess = " Shopping data belongs to the household: every user on the server can read and change all of it; link shares cannot."
@@ -196,6 +198,8 @@ func shoppingListsClearDone(ctx context.Context, in *struct {
 	}
 	s := db.NewSession()
 	defer s.Close()
+	// Drops the "shopping changed" events queued by a failed attempt.
+	defer events.CleanupPending(s)
 
 	list := &shopping.ShoppingList{ID: in.ID}
 	can, err := list.CanUpdate(s, a)
@@ -215,6 +219,7 @@ func shoppingListsClearDone(ctx context.Context, in *struct {
 	if err := s.Commit(); err != nil {
 		return nil, translateDomainError(err)
 	}
+	events.DispatchPending(ctx, s)
 	return &shoppingClearDoneBody{Body: &ShoppingClearDoneResult{Deleted: deleted}}, nil
 }
 
@@ -767,6 +772,8 @@ func shoppingCatalogPhotoUpload(ctx context.Context, in *shoppingPhotoUploadInpu
 	}
 	s := db.NewSession()
 	defer s.Close()
+	// Drops the "shopping changed" events queued by a failed attempt.
+	defer events.CleanupPending(s)
 
 	entry := &shopping.ShoppingCatalogItem{ID: in.ID}
 	can, err := entry.CanUpdate(s, a)
@@ -788,6 +795,7 @@ func shoppingCatalogPhotoUpload(ctx context.Context, in *shoppingPhotoUploadInpu
 	if err := s.Commit(); err != nil {
 		return nil, translateDomainError(err)
 	}
+	events.DispatchPending(ctx, s)
 	return &singleBody[shopping.ShoppingCatalogItem]{Body: entry}, nil
 }
 
@@ -825,6 +833,8 @@ func shoppingCatalogPhotoDelete(ctx context.Context, in *struct {
 	}
 	s := db.NewSession()
 	defer s.Close()
+	// Drops the "shopping changed" events queued by a failed attempt.
+	defer events.CleanupPending(s)
 
 	entry := &shopping.ShoppingCatalogItem{ID: in.ID}
 	can, err := entry.CanUpdate(s, a)
@@ -843,5 +853,61 @@ func shoppingCatalogPhotoDelete(ctx context.Context, in *struct {
 	if err := s.Commit(); err != nil {
 		return nil, translateDomainError(err)
 	}
+	events.DispatchPending(ctx, s)
 	return &emptyBody{}, nil
+}
+
+// ---- Sync ----
+
+// shoppingSyncInput is what a phone sends: its cursor and its queued changes.
+type shoppingSyncInput struct {
+	Body struct {
+		Cursor int64                     `json:"cursor" minimum:"0" doc:"The cursor from the last sync; 0 for a full copy."`
+		Ops    []shopping.ShoppingSyncOp `json:"ops" maxItems:"500" doc:"Changes made on the device since the last sync, oldest first. Send at most 500 at a time."`
+	}
+}
+
+type shoppingSyncBody struct {
+	Body *shopping.ShoppingSyncResult
+}
+
+func registerShoppingSyncRoutes(api huma.API) {
+	Register(api, huma.Operation{
+		OperationID: "shopping-sync",
+		Summary:     "Sync shopping data with a device",
+		Description: "Applies the device's queued changes in order, then returns everything that changed since its cursor (all data when the cursor is 0). " +
+			"Per item field the latest change wins; crossing edits are recorded in the conflict log. A change that can't be applied is listed in rejected and skipped; the rest still apply. " +
+			"Safe to repeat: send the same changes again if the answer was lost." + shoppingAccess,
+		Method: http.MethodPost, Path: "/shopping/sync", Tags: []string{"shopping"},
+		DefaultStatus: http.StatusOK, // an action, not a create
+	}, shoppingSync)
+}
+
+func shoppingSync(ctx context.Context, in *shoppingSyncInput) (*shoppingSyncBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// One transaction: the changes apply together, and the answer is a
+	// consistent snapshot that includes them.
+	s := db.NewSession()
+	defer s.Close()
+	defer events.CleanupPending(s)
+
+	rejected, err := shopping.ApplySyncOps(s, a, in.Body.Ops)
+	if err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	result, err := shopping.PullChanges(s, a, in.Body.Cursor)
+	if err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	result.Rejected = rejected
+	if err := s.Commit(); err != nil {
+		return nil, translateDomainError(err)
+	}
+	events.DispatchPending(ctx, s)
+	return &shoppingSyncBody{Body: result}, nil
 }

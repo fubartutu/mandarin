@@ -95,7 +95,7 @@ func FullInitWithoutAsync() {
 	// Run the migrations
 	migration.Migrate(nil)
 
-	shopping.Init() // FORK: seed Mandarin shopping categories and first list
+	shopping.Init() // FORK: seed Mandarin shopping data, register its sync listener
 
 	// Set Engine
 	InitEngines()
