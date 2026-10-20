@@ -52,6 +52,8 @@
 						{{ $t('project.projects') }}
 					</RouterLink>
 				</li>
+				<!-- FORK: Mandarin household menu entries (Shopping) -->
+				<HouseholdNavItems />
 				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.labels"
@@ -153,6 +155,7 @@ import {useProjects} from '@/composables/useProjects'
 import {useConfigStore} from '@/stores/config'
 import {PRO_FEATURE} from '@/constants/proFeatures'
 import ProjectsNavigation from '@/components/home/ProjectsNavigation.vue'
+import HouseholdNavItems from '@/household/HouseholdNavItems.vue' // FORK: Mandarin menu entries
 import {useSidebarResize} from '@/composables/useSidebarResize'
 
 const baseStore = useBaseStore()

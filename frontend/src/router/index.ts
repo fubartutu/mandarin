@@ -23,6 +23,7 @@ import OpenIdAuth from '@/views/user/OpenIdAuth.vue'
 import UpcomingTasks from '@/views/tasks/ShowTasks.vue'
 
 import NotFoundComponent from '@/views/404.vue'
+import {householdRoutes} from '@/household/routes' // FORK: Mandarin household routes
 
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,6 +45,7 @@ const router = createRouter({
 		}
 	},
 	routes: [
+		...householdRoutes, // FORK: Mandarin household routes
 		{
 			path: '/',
 			name: 'home',

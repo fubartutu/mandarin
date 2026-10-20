@@ -48,6 +48,7 @@ import FontAwesomeIcon from '@/components/misc/Icon'
 import Button from '@/components/input/Button.vue'
 import Modal from '@/components/misc/Modal.vue'
 import Card from '@/components/misc/Card.vue'
+import '@/household/setup' // FORK: Mandarin icons and translations
 
 import {setupKeyboardModality} from '@/helpers/keyboardModality'
 import {handleChunkLoadErrors} from '@/helpers/handleChunkLoadErrors'

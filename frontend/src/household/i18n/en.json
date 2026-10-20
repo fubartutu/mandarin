@@ -1,0 +1,37 @@
+{
+	"household": {
+		"shopping": {
+			"title": "Shopping",
+			"lists": "Shopping lists",
+			"newList": "New list",
+			"newListPlaceholder": "List name, e.g. Kmart",
+			"renameList": "Rename list",
+			"deleteList": "Delete list",
+			"deleteListConfirm": "Delete \"{title}\" and everything on it?",
+			"noLists": "No shopping lists yet. Create one to get started.",
+			"addPlaceholder": "Add an item, e.g. 2 L milk",
+			"add": "Add",
+			"category": "Category",
+			"noCategory": "No category",
+			"empty": "Nothing to buy. Add something above.",
+			"ticked": "Ticked",
+			"clearTicked": "Clear ticked",
+			"tick": "Tick off {name}",
+			"untick": "Put {name} back on the list",
+			"collapse": "Collapse {title}",
+			"expand": "Expand {title}",
+			"edit": {
+				"title": "Edit {name}",
+				"name": "Name",
+				"quantity": "Quantity",
+				"unit": "Unit",
+				"unitPlaceholder": "g, kg, L, packs…",
+				"note": "Note",
+				"notePlaceholder": "Brand, size, …",
+				"save": "Save",
+				"delete": "Delete",
+				"cancel": "Cancel"
+			}
+		}
+	}
+}
