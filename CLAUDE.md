@@ -57,6 +57,16 @@ another package), so in practice:
 - Production runs on **SQLite**, which allows one writer at a time: two requests that each read
   then write can fail with "database is locked". Don't write rows that haven't changed, and don't
   fire two writing requests from the client at once (chain them).
+- **Offline sync (shopping):** phones keep a copy in IndexedDB and send queued ops to
+  `POST /api/v2/shopping/sync` (`pkg/household/shopping/sync.go`, `pull.go`;
+  `frontend/src/household/shopping/sync/`). Every server-side write to shopping data must call
+  `recordChange` (or `recordItemChange`) in the same transaction, or phones never see it. Item edits
+  must keep `FieldTimes` up to date (latest change wins per field). Custom handlers that write must
+  call `events.DispatchPending(ctx, s)` after commit, so open apps get the websocket "changed" push.
+- **Offline start:** small FORK hooks in `stores/auth.ts`, `stores/base.ts`, `Ready.vue`,
+  `client/queryClient.ts` and `sw.ts` delegate to `household/offline.ts` and `household/sw.ts`.
+  Upstream's `sw.ts` precached twice, and the empty second copy wiped the cache on activate. That
+  line is disabled (FORK); keep it disabled after merges, or the app won't open offline.
 - After changing a v2 route or model, run `mage generate:frontend-client` and commit
   `frontend/src/client/generated`. On merge conflicts there, regenerate; never hand-merge.
 

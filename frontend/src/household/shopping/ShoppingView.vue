@@ -18,13 +18,18 @@
 
 		<template v-if="activeList">
 			<header class="list-header">
-				<h1 class="title">
-					{{ activeList.title }}
-				</h1>
+				<div class="title-row">
+					<h1 class="title">
+						{{ activeList.title }}
+					</h1>
+					<SyncBadge :categories="categories" />
+				</div>
 				<div class="list-actions">
 					<BaseButton
 						class="list-action"
 						:aria-label="$t('household.shopping.renameList')"
+						:title="online ? undefined : $t('household.shopping.sync.needsSignal')"
+						:disabled="!online"
 						@click="renameList"
 					>
 						<Icon icon="pen" />
@@ -32,6 +37,8 @@
 					<BaseButton
 						class="list-action"
 						:aria-label="$t('household.shopping.deleteList')"
+						:title="online ? undefined : $t('household.shopping.sync.needsSignal')"
+						:disabled="!online"
 						@click="deleteList"
 					>
 						<Icon icon="trash-alt" />
@@ -52,9 +59,9 @@
 				@add="addItem"
 			/>
 
-			<div :class="{'is-loading': itemsPending}">
+			<div>
 				<p
-					v-if="!itemsPending && grouped.groups.length === 0 && grouped.done.length === 0"
+					v-if="grouped.groups.length === 0 && grouped.done.length === 0"
 					class="has-text-centered has-text-grey is-italic"
 				>
 					{{ $t('household.shopping.empty') }}
@@ -75,23 +82,23 @@
 				>
 					<template
 						v-for="item in group.items"
-						:key="item.id"
+						:key="item.uid"
 					>
 						<ItemEditor
-							v-if="editingId === item.id"
+							v-if="editingUid === item.uid"
 							:item="item"
 							:categories="categories"
 							:shops="activeList.shops"
 							@save="saveItem"
 							@delete="deleteItem(item)"
-							@cancel="editingId = null"
+							@cancel="editingUid = null"
 						/>
 						<ItemRow
 							v-else
 							:item="item"
 							:hint="notStockedHint(item)"
 							@toggle="toggleItem(item)"
-							@edit="editingId = item.id"
+							@edit="editingUid = item.uid"
 						/>
 					</template>
 				</CategoryGroup>
@@ -106,14 +113,14 @@
 					<template #actions>
 						<BaseButton
 							class="clear-done"
-							@click="clearDone.mutate(activeListId)"
+							@click="clearDone"
 						>
 							{{ $t('household.shopping.clearTicked') }}
 						</BaseButton>
 					</template>
 					<ItemRow
 						v-for="item in grouped.done"
-						:key="item.id"
+						:key="item.uid"
 						:item="item"
 						@toggle="toggleItem(item)"
 						@edit="toggleItem(item)"
@@ -139,26 +146,22 @@ import ItemEditor from './components/ItemEditor.vue'
 import ItemRow from './components/ItemRow.vue'
 import ListSwitcher from './components/ListSwitcher.vue'
 import ShopTabs from './components/ShopTabs.vue'
+import SyncBadge from './components/SyncBadge.vue'
 import {
-	useClearDoneItemsMutation,
-	useCreateShoppingItemMutation,
 	useCreateShoppingListMutation,
-	useDeleteShoppingItemMutation,
 	useDeleteShoppingListMutation,
 	useRenameShoppingListMutation,
-	useSetNotStockedMutation,
-	useUpdateShoppingItemMutation,
 	type ShoppingItemResponse,
 } from './queries'
 import {findCatalogEntry} from './autocomplete'
 import type {ParsedItem} from './quantity'
+import {createOp, deleteOp, notStockedOp, updateOp} from './sync/model'
+import {useShoppingOnline, useShoppingSync} from './sync/useShoppingSync'
 import {
 	groupItems,
 	itemsForShop,
-	useShoppingCatalog,
-	useShoppingCategories,
+	useShoppingData,
 	useShoppingItems,
-	useShoppingLists,
 } from './useShopping'
 
 const props = defineProps<{
@@ -168,9 +171,9 @@ const props = defineProps<{
 const router = useRouter()
 const {t} = useI18n({useScope: 'global'})
 
-const {lists, isPending: listsPending} = useShoppingLists()
-const {categories} = useShoppingCategories()
-const {catalog} = useShoppingCatalog()
+const sync = useShoppingSync()
+const online = useShoppingOnline()
+const {lists, categories, catalog, isPending: listsPending} = useShoppingData()
 
 // ---- Which list is open ----
 
@@ -181,7 +184,7 @@ const activeListId = computed(() => activeList.value?.id ?? 0)
 // /shopping (or a deleted list's URL) → the last-used list, else the first.
 // `watch` re-runs whenever one of the watched values changes.
 watch([() => props.listId, lists], () => {
-	if (listsPending.value || lists.value.length === 0 || activeList.value) {
+	if (lists.value.length === 0 || activeList.value) {
 		return
 	}
 	const fallback = lists.value.find(l => l.id === lastListId.value) ?? lists.value[0]
@@ -208,12 +211,12 @@ const activeShopId = computed({
 
 // ---- Items ----
 
-const {items, isPending: itemsPending} = useShoppingItems(activeListId)
+const {items} = useShoppingItems(activeListId)
 const shopItems = computed(() => itemsForShop(items.value, activeShopId.value))
 const hiddenCount = computed(() => items.value.filter(i => !i.done).length - shopItems.value.filter(i => !i.done).length)
 const grouped = computed(() => groupItems(shopItems.value, categories.value, t('household.shopping.noCategory')))
 const openNames = computed(() => items.value.filter(i => !i.done).map(i => i.name))
-const editingId = ref<number | null>(null)
+const editingUid = ref<string | null>(null)
 
 // On the All tab, say which shops don't stock an item.
 function notStockedHint(item: ShoppingItemResponse): string | undefined {
@@ -224,11 +227,8 @@ function notStockedHint(item: ShoppingItemResponse): string | undefined {
 	return titles.length ? t('household.shopping.shops.notAt', {shops: titles.join(', ')}) : undefined
 }
 
-const createItem = useCreateShoppingItemMutation()
-const updateItem = useUpdateShoppingItemMutation()
-const removeItem = useDeleteShoppingItemMutation()
-const clearDone = useClearDoneItemsMutation()
-const setNotStocked = useSetNotStockedMutation()
+// Every change goes through the sync engine: on screen and saved on the
+// phone at once, sent to the server when there's signal.
 
 function addItem(item: ParsedItem & {category_id: number}) {
 	// Fill blanks from the catalogue the way the server will, so the item
@@ -238,39 +238,42 @@ function addItem(item: ParsedItem & {category_id: number}) {
 		? item.category_id
 		: known?.category_id ?? 0
 	const keepLast = known && item.quantity === 0 && item.unit === ''
-	createItem.mutate({
+	sync.change(createOp({
 		name: known?.name ?? item.name,
 		quantity: keepLast ? known.quantity : item.quantity,
 		unit: keepLast ? known.unit : item.unit,
 		list_id: activeListId.value,
 		category_id: categoryId,
-	})
+	}))
 }
 
 function toggleItem(item: ShoppingItemResponse) {
-	updateItem.mutate({...item, done: !item.done})
+	const op = updateOp(item, {done: !item.done})
+	if (op) sync.change(op)
 }
 
-async function saveItem(item: ShoppingItemResponse, notStockedShopIds: number[]) {
-	editingId.value = null
-	const changed = [...notStockedShopIds].sort().join() !== [...item.not_stocked_shop_ids].sort().join()
-	try {
-		// One after the other: both write, and SQLite allows one writer at a time.
-		const saved = await updateItem.mutateAsync(item)
-		if (changed && saved.catalog_item_id) {
-			setNotStocked.mutate({catalogId: saved.catalog_item_id, shopIds: notStockedShopIds})
-		}
-	} catch {
-		return // already toasted by the mutation
-	}
+function saveItem(draft: ShoppingItemResponse, notStockedShopIds: number[]) {
+	editingUid.value = null
+	const item = items.value.find(i => i.uid === draft.uid)
+	if (!item) return // removed by someone else meanwhile
+	const op = updateOp(item, draft)
+	if (op) sync.change(op)
+	const marksChanged = [...notStockedShopIds].sort().join() !== [...item.not_stocked_shop_ids].sort().join()
+	if (marksChanged) sync.change(notStockedOp(item, notStockedShopIds))
 }
 
 function deleteItem(item: ShoppingItemResponse) {
-	editingId.value = null
-	removeItem.mutate(item)
+	editingUid.value = null
+	sync.change(deleteOp(item))
 }
 
-// ---- Lists ----
+function clearDone() {
+	for (const item of items.value.filter(i => i.done)) {
+		sync.change(deleteOp(item))
+	}
+}
+
+// ---- Lists (need a connection) ----
 
 const createListMutation = useCreateShoppingListMutation()
 const renameListMutation = useRenameShoppingListMutation()
@@ -279,6 +282,7 @@ const deleteListMutation = useDeleteShoppingListMutation()
 async function createList(title: string) {
 	try {
 		const list = await createListMutation.mutateAsync(title)
+		await sync.sync() // so the new list is there to open
 		router.push({name: 'shopping', params: {listId: list.id}})
 	} catch {
 		return // already toasted by the mutation
@@ -308,6 +312,7 @@ function deleteList() {
 }
 
 .list-header {
+	position: relative; // anchors the sync panel
 	display: flex;
 	align-items: center;
 	gap: .5rem;
@@ -315,7 +320,21 @@ function deleteList() {
 
 	.title {
 		margin: 0;
+		word-break: normal; // Bulma's break-word split "Groceries" mid-word
 	}
+}
+
+// Title and sync badge; a long badge wraps below the title, the buttons stay put.
+.title-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .25rem .5rem;
+	min-inline-size: 0;
+}
+
+.list-action:disabled {
+	opacity: .4;
 }
 
 .list-actions {

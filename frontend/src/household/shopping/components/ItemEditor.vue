@@ -97,7 +97,11 @@
 							size="large"
 						/>
 						<!-- capture="environment" opens the back camera on a phone. -->
-						<label class="button is-small">
+						<label
+							class="button is-small"
+							:disabled="!online || undefined"
+							:title="online ? undefined : $t('household.shopping.sync.needsSignal')"
+						>
 							<Icon icon="camera" />
 							<span>{{ $t(item.has_photo ? 'household.shopping.photo.replace' : 'household.shopping.photo.add') }}</span>
 							<input
@@ -105,12 +109,14 @@
 								type="file"
 								accept="image/*"
 								capture="environment"
+								:disabled="!online"
 								@change="choosePhoto"
 							>
 						</label>
 						<XButton
 							v-if="item.has_photo"
 							variant="tertiary"
+							:disabled="!online"
 							:loading="deletePhoto.isPending.value"
 							@click="deletePhoto.mutate(item.catalog_item_id)"
 						>
@@ -150,6 +156,7 @@
 import {computed, reactive, ref} from 'vue'
 
 import ItemPhoto from './ItemPhoto.vue'
+import {useShoppingOnline} from '../sync/useShoppingSync'
 import {
 	useDeletePhotoMutation,
 	useUploadPhotoMutation,
@@ -170,7 +177,9 @@ const emit = defineEmits<{
 	cancel: []
 }>()
 
-// Photos save straight away: they belong to the catalogue entry, not this edit.
+// Photos save straight away: they belong to the catalogue entry, not this
+// edit. They go straight to the server, so they need signal.
+const online = useShoppingOnline()
 const uploadPhoto = useUploadPhotoMutation()
 const deletePhoto = useDeletePhotoMutation()
 

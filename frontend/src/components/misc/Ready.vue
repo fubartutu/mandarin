@@ -4,8 +4,9 @@
 		class="offline"
 		style="height: 0;width: 0;"
 	/>
+	<!-- FORK: someone logged in can use the offline shopping list, so skip this page for them -->
 	<div
-		v-if="!online"
+		v-if="!online && !canStartOffline()"
 		class="app offline"
 	>
 		<div class="offline-message">
@@ -75,6 +76,7 @@ import NoAuthWrapper from '@/components/misc/NoAuthWrapper.vue'
 import {ERROR_NO_API_URL} from '@/helpers/checkAndSetApiUrl'
 
 import {useOnline} from '@/composables/useOnline'
+import {canStartOffline} from '@/household/offline' // FORK: Mandarin offline start
 import {ERROR_RATE_LIMITED, useBaseStore} from '@/stores/base'
 
 const online = useOnline()

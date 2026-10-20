@@ -23,6 +23,10 @@ workbox.setConfig({
 import { precacheAndRoute } from 'workbox-precaching'
 precacheAndRoute(self.__WB_MANIFEST)
 
+// FORK: open the app's pages from the cache when there's no signal (Mandarin offline shopping)
+import {registerOfflinePages} from './household/sw'
+registerOfflinePages()
+
 // Cache assets
 workbox.routing.registerRoute(
 	// This regexp matches all files in precache-manifest
@@ -71,7 +75,10 @@ self.addEventListener('notificationclick', function (event) {
 })
 
 workbox.core.clientsClaim()
-// The precaching code provided by Workbox.
-self.__precacheManifest = [...(self.__precacheManifest ?? [])]
-workbox.precaching.precacheAndRoute(self.__precacheManifest, {})
+// FORK: disabled. This second precache (a separate copy of Workbox with an
+// empty list) deleted every file the first one cached when the worker
+// activated, so the app could never open offline. The precacheAndRoute call
+// at the top already caches everything.
+// self.__precacheManifest = [...(self.__precacheManifest ?? [])]
+// workbox.precaching.precacheAndRoute(self.__precacheManifest, {})
 

@@ -33,6 +33,8 @@
 		<BaseButton
 			v-else
 			class="list-tab is-add"
+			:disabled="!online"
+			:title="online ? undefined : $t('household.shopping.sync.needsSignal')"
 			@click="adding = true"
 		>
 			<Icon icon="plus" />
@@ -45,6 +47,7 @@
 import {ref} from 'vue'
 
 import BaseButton from '@/components/base/BaseButton.vue'
+import {useShoppingOnline} from '../sync/useShoppingSync'
 import type {ShoppingListResponse} from '../queries'
 
 defineProps<{
@@ -67,6 +70,9 @@ function submitNew() {
 	newTitle.value = ''
 	adding.value = false
 }
+
+// Adding lists and shops needs the server.
+const online = useShoppingOnline()
 </script>
 
 <style lang="scss" scoped>

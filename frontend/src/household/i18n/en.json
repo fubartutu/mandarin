@@ -56,6 +56,45 @@
 				"remove": "Remove photo",
 				"uploading": "Uploading…",
 				"view": "Show photo of {name}"
+			},
+			"sync": {
+				"synced": "Synced",
+				"syncing": "Syncing…",
+				"offline": "Offline",
+				"waiting": "{count} waiting | {count} waiting | {count} waiting",
+				"error": "Sync problem",
+				"loading": "Loading…",
+				"details": "Sync status",
+				"lastSynced": "Last synced {when}.",
+				"neverSynced": "Not synced yet on this device.",
+				"offlineHelp": "No connection to the server. Changes are saved on this phone and sent when the signal returns.",
+				"errorHelp": "The server answered with an error. Retrying automatically.",
+				"pendingHelp": "No changes waiting | 1 change waiting to be sent | {count} changes waiting to be sent",
+				"syncNow": "Sync now",
+				"needsSignal": "Needs a connection",
+				"rejected": "A change couldn't be saved and was undone | A change to {names} couldn't be saved and was undone | {count} changes to {names} couldn't be saved and were undone",
+				"conflicts": {
+					"title": "Conflicts",
+					"none": "No conflicts in the last 30 days.",
+					"new": "New conflicts",
+					"help": "When two people change the same thing on an item at about the same time, the later change is kept.",
+					"kept": "Kept: {value}",
+					"lost": "Lost: {value}",
+					"by": "{who}, {when}",
+					"someone": "someone",
+					"deleted": "{name} was removed before an edit to it arrived. The edit was dropped.",
+					"fields": {
+						"name": "Name of {name}",
+						"amount": "Amount of {name}",
+						"note": "Note on {name}",
+						"category_id": "Category of {name}",
+						"done": "Tick on {name}",
+						"position": "Order of {name}"
+					},
+					"ticked": "ticked",
+					"notTicked": "not ticked",
+					"empty": "(empty)"
+				}
 			}
 		}
 	}

@@ -29,6 +29,8 @@
 			</button>
 			<BaseButton
 				class="manage"
+				:disabled="!online"
+				:title="online ? undefined : $t('household.shopping.sync.needsSignal')"
 				:aria-label="$t('household.shopping.shops.manage')"
 				:aria-expanded="managing"
 				@click="managing = !managing"
@@ -50,6 +52,7 @@
 import {ref} from 'vue'
 
 import BaseButton from '@/components/base/BaseButton.vue'
+import {useShoppingOnline} from '../sync/useShoppingSync'
 import ShopManager from './ShopManager.vue'
 import type {ShoppingShopResponse} from '../queries'
 
@@ -66,6 +69,9 @@ const emit = defineEmits<{
 }>()
 
 const managing = ref(false)
+
+// Adding lists and shops needs the server.
+const online = useShoppingOnline()
 </script>
 
 <style lang="scss" scoped>

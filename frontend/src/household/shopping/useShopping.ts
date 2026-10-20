@@ -1,17 +1,11 @@
 // Read side of the shopping module. A composable is a function that sets up
-// reactive state; components call it inside <script setup>.
+// reactive state; components call it inside <script setup>. Everything here
+// reads the sync engine's copy on the phone, so it works offline.
 
 import {computed, toValue, type MaybeRefOrGetter} from 'vue'
-import {useQuery} from '@tanstack/vue-query'
 
-import {
-	shoppingCatalogQuery,
-	shoppingCategoriesQuery,
-	shoppingItemsQuery,
-	shoppingListsQuery,
-	type ShoppingCategoryResponse,
-	type ShoppingItemResponse,
-} from './queries'
+import type {ShoppingCategoryResponse, ShoppingItemResponse} from './queries'
+import {useShoppingSync} from './sync/useShoppingSync'
 
 export interface ItemGroup {
 	categoryId: number // 0 = uncategorised
@@ -28,7 +22,9 @@ export function groupItems(
 	categories: ShoppingCategoryResponse[],
 	uncategorisedTitle: string,
 ): {groups: ItemGroup[], done: ShoppingItemResponse[]} {
-	const byPosition = (a: ShoppingItemResponse, b: ShoppingItemResponse) => a.position - b.position || a.id - b.id
+	// Items added offline have no id yet (0); they sort after the rest, in the order they were added.
+	const id = (i: ShoppingItemResponse) => i.id || Number.MAX_SAFE_INTEGER
+	const byPosition = (a: ShoppingItemResponse, b: ShoppingItemResponse) => a.position - b.position || id(a) - id(b)
 	const open = items.filter(i => !i.done)
 	const known = new Set(categories.map(c => c.id))
 
@@ -47,26 +43,20 @@ export function groupItems(
 	return {groups, done}
 }
 
-export function useShoppingLists() {
-	const query = useQuery(shoppingListsQuery())
-	return {
-		lists: computed(() => query.data.value ?? []),
-		isPending: query.isPending,
-	}
-}
+const byPositionThenId = (a: {position: number, id: number}, b: {position: number, id: number}) =>
+	a.position - b.position || a.id - b.id
 
-export function useShoppingCategories() {
-	const query = useQuery(shoppingCategoriesQuery())
+/** Lists (with shops), categories and the catalogue, from the phone's copy. */
+export function useShoppingData() {
+	const sync = useShoppingSync()
+	const data = sync.data
 	return {
-		categories: computed(() => query.data.value ?? []),
-		isPending: query.isPending,
-	}
-}
-
-export function useShoppingCatalog() {
-	const query = useQuery(shoppingCatalogQuery())
-	return {
-		catalog: computed(() => query.data.value ?? []),
+		lists: computed(() => [...data.value.lists.values()].sort(byPositionThenId)),
+		categories: computed(() => [...data.value.categories.values()].sort(byPositionThenId)),
+		catalog: computed(() => [...data.value.catalog.values()]),
+		// A new phone has nothing to show until its first sync (unless that can't happen yet).
+		isPending: computed(() => data.value.lists.size === 0 && sync.lastSyncedAt.value === null &&
+			!['offline', 'error'].includes(sync.status.value)),
 	}
 }
 
@@ -76,13 +66,8 @@ export function itemsForShop(items: ShoppingItemResponse[], shopId: number): Sho
 }
 
 export function useShoppingItems(listId: MaybeRefOrGetter<number>) {
-	// Passing a computed options object makes the query follow listId changes.
-	const query = useQuery(computed(() => ({
-		...shoppingItemsQuery(toValue(listId)),
-		enabled: toValue(listId) > 0,
-	})))
+	const sync = useShoppingSync()
 	return {
-		items: computed(() => query.data.value ?? []),
-		isPending: query.isPending,
+		items: computed(() => [...sync.data.value.items.values()].filter(i => i.list_id === toValue(listId))),
 	}
 }

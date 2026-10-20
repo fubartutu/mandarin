@@ -3,6 +3,7 @@ import {useI18n} from 'vue-i18n'
 import {defineStore, acceptHMRUpdate} from 'pinia'
 import {useQuery} from '@tanstack/vue-query'
 
+import {withinStartTimeout} from '@/household/offline' // FORK: Mandarin offline start
 import {checkAndSetApiUrl, ERROR_NO_API_URL} from '@/helpers/checkAndSetApiUrl'
 import {InvalidApiUrlProvidedError, NoApiUrlProvidedError} from '@/helpers/apiUrl'
 import {isDesktopApp} from '@/helpers/desktopAuth'
@@ -106,7 +107,7 @@ export const useBaseStore = defineStore('base', () => {
 				return
 			}
 
-			await checkAndSetApiUrl(window.API_URL)
+			await withinStartTimeout(checkAndSetApiUrl(window.API_URL)) // FORK: give up on a weak signal
 			await authStore.checkAuth()
 		} catch (e: unknown) {
 			if (e instanceof NoApiUrlProvidedError) {

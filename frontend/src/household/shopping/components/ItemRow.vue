@@ -1,7 +1,7 @@
 <template>
 	<li
 		class="item-row"
-		:class="{'is-done': item.done, 'is-pending': item.id < 0}"
+		:class="{'is-done': item.done}"
 	>
 		<!-- The big tick target: the whole left edge is one button. -->
 		<button
@@ -9,7 +9,6 @@
 			class="tick"
 			:aria-pressed="item.done"
 			:aria-label="$t(item.done ? 'household.shopping.untick' : 'household.shopping.tick', {name: item.name})"
-			:disabled="item.id < 0"
 			@click="emit('toggle')"
 		>
 			<Icon
@@ -21,7 +20,6 @@
 		<button
 			type="button"
 			class="details"
-			:disabled="item.id < 0"
 			@click="emit('edit')"
 		>
 			<span class="name">{{ item.name }}</span>
@@ -74,9 +72,6 @@ const quantity = computed(() => formatQuantity(props.item.quantity, props.item.u
 	border-block-end: 1px solid var(--grey-200);
 	background: var(--white);
 
-	&.is-pending {
-		opacity: .6;
-	}
 }
 
 .tick {

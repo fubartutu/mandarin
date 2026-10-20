@@ -28,6 +28,7 @@ import {
 } from '@/helpers/auth'
 import {MILLISECONDS_A_SECOND} from '@/constants/date'
 import {serverNowSeconds} from '@/helpers/serverClock'
+import {isUnreachable, keepSessionOffline, renewWithinStartTimeout, withinStartTimeout} from '@/household/offline' // FORK: Mandarin offline start
 import {useWebSocket} from '@/composables/useWebSocket'
 import {redirectToLastVisited} from '@/composables/useRedirectToLastVisited'
 import {setModuleLoading} from '@/stores/helper'
@@ -450,7 +451,7 @@ export const useAuthStore = defineStore('auth', () => {
 					// refresh before giving up. This lets users who reopen the app
 					// after the short JWT TTL seamlessly resume their session.
 					try {
-						await refreshUserToken(retryCheckAuth)
+						await renewWithinStartTimeout(refreshUserToken(retryCheckAuth)) // FORK: give up on a weak signal
 						const freshJwt = getToken()
 						if (freshJwt) {
 							const b64 = freshJwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
@@ -474,6 +475,11 @@ export const useAuthStore = defineStore('auth', () => {
 						const rejected401 = failure?.kind === 'rejected' && failure.status === 401
 						if (rejected401 && localStorage.getItem('token') === jwt) {
 							removeToken()
+						}
+						// FORK: no signal: keep the session so the offline shopping list opens
+						if (keepSessionOffline(failure)) {
+							isAuthenticated = true
+							setSession(payload)
 						}
 					}
 				}
@@ -506,7 +512,7 @@ export const useAuthStore = defineStore('auth', () => {
 		}
 
 		try {
-			const newUser = await refreshCurrentUser(session.value?.id ?? 0, session.value?.type ?? AUTH_TYPES.USER)
+			const newUser = await withinStartTimeout(refreshCurrentUser(session.value?.id ?? 0, session.value?.type ?? AUTH_TYPES.USER)) // FORK: give up on a weak signal
 
 			if (newUser.settings?.language) {
 				await setLanguage(newUser.settings.language as SupportedLocale)
@@ -517,6 +523,7 @@ export const useAuthStore = defineStore('auth', () => {
 			return newUser
 		} catch (e) {
 			if (e instanceof CancelledError) return
+			if (isUnreachable(e) && info.value) return info.value // FORK: no signal: carry on as the user the token names
 
 			const problem = e as VikunjaErrorModel
 			if (

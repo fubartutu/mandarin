@@ -35,6 +35,7 @@ import {useObjectUrl} from '@vueuse/core'
 
 import ImageLightbox from '@/components/misc/ImageLightbox.vue'
 import {shoppingPhotoQuery} from '../queries'
+import {useShoppingSync} from '../sync/useShoppingSync'
 
 const props = withDefaults(defineProps<{
 	catalogId: number
@@ -44,7 +45,13 @@ const props = withDefaults(defineProps<{
 
 // The photo needs the login token, so it's fetched as a blob and shown via a
 // blob: URL, which useObjectUrl frees again when the component goes away.
-const photo = useQuery(computed(() => shoppingPhotoQuery(props.catalogId)))
+// photo_id changes when the photo is replaced, so a new one is fetched then.
+const sync = useShoppingSync()
+const photoId = computed(() => sync.data.value.catalog.get(props.catalogId)?.photo_id ?? 0)
+const photo = useQuery(computed(() => ({
+	...shoppingPhotoQuery(props.catalogId, photoId.value, sync.storage),
+	enabled: photoId.value > 0,
+})))
 const url = useObjectUrl(computed(() => photo.data.value))
 const open = ref(false)
 </script>
