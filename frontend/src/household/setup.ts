@@ -12,6 +12,7 @@ import {
 	faChevronRight,
 	faCircleCheck,
 	faCloud,
+	faFileLines,
 	faLightbulb,
 	faStore,
 	faTriangleExclamation,
@@ -25,7 +26,7 @@ import {registerOfflineStart} from './offline'
 
 library.add(
 	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
-	faLightbulb, faStore, faTriangleExclamation, faCircle,
+	faFileLines, faLightbulb, faStore, faTriangleExclamation, faCircle,
 )
 
 // Other languages fall back to English for these keys (fallbackLocale).

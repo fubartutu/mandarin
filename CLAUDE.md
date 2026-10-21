@@ -72,6 +72,9 @@ another package), so in practice:
   `MANDARIN_SCRAPER_URL` (default `http://mandarin-scraper:8000`). Saving never depends on it: the
   Go simple parser fills in when it's down. Calls to it (and image downloads) happen before the DB
   session opens. "Add to list" goes through the shopping sync engine (`shopping/adding.ts`).
+  Paperless-ngx scans and the AI (Ollama on sampc) are scraper-side only (`paperless.py`,
+  `text_recipe.py` rules, `ai.py`; settings in `settings.py`); Mandarin proxies them under
+  `/recipes/paperless`, and a scan's page picture is `paperless:documents/<id>/image`.
 - **Offline start:** small FORK hooks in `stores/auth.ts`, `stores/base.ts`, `Ready.vue`,
   `client/queryClient.ts` and `sw.ts` delegate to `household/offline.ts` and `household/sw.ts`.
   Upstream's `sw.ts` precached twice, and the empty second copy wiped the cache on activate. That

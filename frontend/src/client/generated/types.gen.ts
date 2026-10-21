@@ -1506,6 +1506,30 @@ export type PaginatedWebhook = {
     total_pages?: number;
 };
 
+export type PaperlessDocument = {
+    /**
+     * When the document was created, as Paperless gives it.
+     */
+    created?: string;
+    id?: number;
+    title?: string;
+};
+
+export type PaperlessDocuments = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Whether imports can use the AI.
+     */
+    ai_available?: boolean;
+    /**
+     * Documents with the recipe tag, newest first.
+     */
+    documents?: Array<PaperlessDocument> | null;
+};
+
 export type PasswordReset = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1937,6 +1961,10 @@ export type Recipe = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
+    /**
+     * Import previews only: whether the scraper has an AI model set up.
+     */
+    readonly ai_available?: boolean;
     cook_minutes?: number;
     /**
      * When this recipe was added.
@@ -1959,9 +1987,17 @@ export type Recipe = {
      */
     readonly image_ids?: Array<number> | null;
     /**
-     * Import previews only: pictures found on the page. After saving, fetch the wanted ones with POST /recipes/{id}/images/fetch.
+     * Import previews only: pictures found on the page (or paperless:documents/{id}/image for a scan's page). After saving, fetch the wanted ones with POST /recipes/{id}/images/fetch.
      */
     readonly image_urls?: Array<string> | null;
+    /**
+     * Import previews only: false when the rules found no whole recipe and it needs checking closely.
+     */
+    readonly import_complete?: boolean;
+    /**
+     * Import previews only: schema (the page's recipe data), rules (simple rules on a scan's text) or ai.
+     */
+    readonly import_method?: string;
     /**
      * In order. Each line's amount and name are worked out by the server from its text.
      */
@@ -2034,6 +2070,10 @@ export type RecipeReadBody = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
+    /**
+     * Import previews only: whether the scraper has an AI model set up.
+     */
+    readonly ai_available?: boolean;
     cook_minutes?: number;
     /**
      * When this recipe was added.
@@ -2056,9 +2096,17 @@ export type RecipeReadBody = {
      */
     readonly image_ids?: Array<number> | null;
     /**
-     * Import previews only: pictures found on the page. After saving, fetch the wanted ones with POST /recipes/{id}/images/fetch.
+     * Import previews only: pictures found on the page (or paperless:documents/{id}/image for a scan's page). After saving, fetch the wanted ones with POST /recipes/{id}/images/fetch.
      */
     readonly image_urls?: Array<string> | null;
+    /**
+     * Import previews only: false when the rules found no whole recipe and it needs checking closely.
+     */
+    readonly import_complete?: boolean;
+    /**
+     * Import previews only: schema (the page's recipe data), rules (simple rules on a scan's text) or ai.
+     */
+    readonly import_method?: string;
     /**
      * In order. Each line's amount and name are worked out by the server from its text.
      */
@@ -2123,6 +2171,17 @@ export type RecipesImageFetchRequest = {
      * The web address.
      */
     url?: string;
+};
+
+export type RecipesPaperlessImportRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Go straight to the AI instead of trying the simple rules first.
+     */
+    ai_first?: boolean;
 };
 
 export type RegisterUserRequest = {
@@ -5148,6 +5207,17 @@ export type PaginatedWebhookWritable = {
     total_pages?: number;
 };
 
+export type PaperlessDocumentsWritable = {
+    /**
+     * Whether imports can use the AI.
+     */
+    ai_available?: boolean;
+    /**
+     * Documents with the recipe tag, newest first.
+     */
+    documents?: Array<PaperlessDocument> | null;
+};
+
 export type PasswordResetWritable = {
     new_password?: string;
     token?: string;
@@ -5459,6 +5529,13 @@ export type RecipesImageFetchRequestWritable = {
      * The web address.
      */
     url?: string;
+};
+
+export type RecipesPaperlessImportRequestWritable = {
+    /**
+     * Go straight to the AI instead of trying the simple rules first.
+     */
+    ai_first?: boolean;
 };
 
 export type RegisterUserRequestWritable = {
@@ -10026,6 +10103,90 @@ export type RecipesImportResponses = {
 };
 
 export type RecipesImportResponse = RecipesImportResponses[keyof RecipesImportResponses];
+
+export type RecipesPaperlessListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Words to search the scans' text for.
+         */
+        q?: string;
+    };
+    url: '/recipes/paperless';
+};
+
+export type RecipesPaperlessListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesPaperlessListError = RecipesPaperlessListErrors[keyof RecipesPaperlessListErrors];
+
+export type RecipesPaperlessListResponses = {
+    /**
+     * OK
+     */
+    200: PaperlessDocuments;
+};
+
+export type RecipesPaperlessListResponse = RecipesPaperlessListResponses[keyof RecipesPaperlessListResponses];
+
+export type RecipesPaperlessImportData = {
+    body: RecipesPaperlessImportRequestWritable;
+    path: {
+        document: number;
+    };
+    query?: never;
+    url: '/recipes/paperless/{document}/import';
+};
+
+export type RecipesPaperlessImportErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesPaperlessImportError = RecipesPaperlessImportErrors[keyof RecipesPaperlessImportErrors];
+
+export type RecipesPaperlessImportResponses = {
+    /**
+     * OK
+     */
+    200: Recipe;
+};
+
+export type RecipesPaperlessImportResponse = RecipesPaperlessImportResponses[keyof RecipesPaperlessImportResponses];
+
+export type RecipesPaperlessThumbData = {
+    body?: never;
+    path: {
+        document: number;
+    };
+    query?: never;
+    url: '/recipes/paperless/{document}/thumb';
+};
+
+export type RecipesPaperlessThumbErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesPaperlessThumbError = RecipesPaperlessThumbErrors[keyof RecipesPaperlessThumbErrors];
+
+export type RecipesPaperlessThumbResponses = {
+    /**
+     * Paperless's small preview (WebP or PNG).
+     */
+    200: Blob | File;
+};
+
+export type RecipesPaperlessThumbResponse = RecipesPaperlessThumbResponses[keyof RecipesPaperlessThumbResponses];
 
 export type RecipesDeleteData = {
     body?: never;

@@ -14,10 +14,13 @@ import {
 	recipesImageUpload,
 	recipesImport,
 	recipesList,
+	recipesPaperlessImport,
+	recipesPaperlessList,
+	recipesPaperlessThumb,
 	recipesRead,
 	recipesUpdate,
 } from '@/client/generated'
-import type {Recipe, RecipeIngredient} from '@/client/generated'
+import type {PaperlessDocument, Recipe, RecipeIngredient} from '@/client/generated'
 import {expectBlob} from '@/client/queries/blobResponse'
 import {contextMutationOptions} from '@/client/queries/contextMutation'
 import {fetchAllPages} from '@/client/queries/fetchAllPages'
@@ -42,10 +45,16 @@ export interface RecipeResponse {
 	notes: string
 	image_ids: number[]
 	image_urls: string[] // import previews only
+	// Import previews only: how it was read (schema, rules or ai), whether
+	// the rules found a whole recipe, and whether the AI could be asked.
+	import_method: string
+	import_complete: boolean
+	ai_available: boolean
 }
 
 /** What the editor sends: the server works out amounts from each line's text. */
-export type RecipeDraft = Omit<RecipeResponse, 'id' | 'image_ids' | 'image_urls' | 'ingredients'> & {
+export type RecipeDraft = Omit<RecipeResponse,
+	'id' | 'image_ids' | 'image_urls' | 'ingredients' | 'import_method' | 'import_complete' | 'ai_available'> & {
 	ingredients: Pick<IngredientLine, 'group' | 'text'>[]
 }
 
@@ -77,7 +86,18 @@ export function normalizeRecipe(r: Recipe): RecipeResponse {
 		notes: r.notes ?? '',
 		image_ids: r.image_ids ?? [],
 		image_urls: r.image_urls ?? [],
+		import_method: r.import_method ?? '',
+		import_complete: r.import_complete ?? false,
+		ai_available: r.ai_available ?? false,
 	}
+}
+
+export type ScanResponse = Required<PaperlessDocument>
+
+/** A picture address that's a Paperless scan's page, not a web address. */
+export function paperlessDocumentId(imageUrl: string): number {
+	const match = /^paperless:documents\/(\d+)\/image$/.exec(imageUrl)
+	return match ? Number(match[1]) : 0
 }
 
 // ---- Keys and queries ----
@@ -87,6 +107,8 @@ export const recipeKeys = {
 	list: () => [...recipeKeys.all, 'list'] as const,
 	detail: (id: number) => [...recipeKeys.all, 'detail', id] as const,
 	image: (imageId: number) => [...recipeKeys.all, 'image', imageId] as const,
+	paperless: (search: string) => [...recipeKeys.all, 'paperless', search] as const,
+	paperlessThumb: (docId: number) => [...recipeKeys.all, 'paperless-thumb', docId] as const,
 }
 
 /** Every recipe; the list is filtered on the device, so search is instant. */
@@ -120,6 +142,45 @@ export function recipeImageQuery(recipeId: number, imageId: number) {
 		meta: {handlesError: true}, // a missing picture just isn't shown
 		retry: false,
 	})
+}
+
+// ---- Paperless-ngx ----
+
+/** Recipe scans in Paperless. Errors (e.g. not set up) are shown in the picker. */
+export function paperlessQuery(search: string) {
+	return queryOptions({
+		queryKey: recipeKeys.paperless(search),
+		queryFn: async ({signal}) => {
+			const data = (await recipesPaperlessList({query: {q: search}, signal})).data
+			return {
+				documents: (data.documents ?? []).map(d => ({id: d.id ?? 0, title: d.title ?? '', created: d.created ?? ''})),
+				aiAvailable: data.ai_available ?? false,
+			}
+		},
+		staleTime: 60 * 1000,
+		meta: {handlesError: true},
+		retry: false,
+	})
+}
+
+export function paperlessThumbQuery(docId: number) {
+	return queryOptions({
+		queryKey: recipeKeys.paperlessThumb(docId),
+		queryFn: async ({signal}) => expectBlob(
+			(await recipesPaperlessThumb({path: {document: docId}, parseAs: 'blob', signal})).data,
+			'Paperless thumbnail',
+		),
+		staleTime: Infinity,
+		meta: {handlesError: true},
+		retry: false,
+	})
+}
+
+export function useImportPaperlessMutation() {
+	return useMutation(contextMutationOptions({
+		mutationFn: async ({docId, aiFirst}: {docId: number, aiFirst: boolean}) =>
+			normalizeRecipe((await recipesPaperlessImport({path: {document: docId}, body: {ai_first: aiFirst}})).data),
+	}))
 }
 
 // ---- Mutations ----

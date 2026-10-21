@@ -1,0 +1,108 @@
+"""Reads a recipe out of text with a language model, through Ollama on sampc.
+
+Used when the simple rules (text_recipe.py) can't make sense of a scan, and
+for web pages that publish no recipe data. The model only sorts the text into
+fields and must keep ingredient lines as written; amounts are split out by
+the same parser as everything else.
+"""
+
+import json
+
+import httpx
+from fastapi import HTTPException
+
+import settings
+
+MAX_TEXT = 20_000  # characters; a recipe page is well under this
+
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "servings": {"type": "number"},
+        "yields": {"type": "string"},
+        "prep_minutes": {"type": "integer"},
+        "cook_minutes": {"type": "integer"},
+        "total_minutes": {"type": "integer"},
+        "ingredient_groups": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"group": {"type": "string"}, "lines": {"type": "array", "items": {"type": "string"}}},
+                "required": ["group", "lines"],
+            },
+        },
+        "steps": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": "string"},
+        "tags": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["title", "ingredient_groups", "steps"],
+}
+
+PROMPT = """Extract the recipe from the text below into JSON.
+
+Rules:
+- Copy each ingredient line exactly as written, one per entry, including its amount. Join lines that were split across a line break.
+- Put ingredients under their heading (e.g. "Sauce") in "group"; use "" when there is no heading.
+- One cooking step per entry in "steps", without step numbers.
+- servings is a number (0 if not given). Times are whole minutes (0 if not given).
+- tags: at most 3 short ones, like the course or cuisine.
+- notes: tips or variations printed with the recipe, else "".
+- Leave out anything that isn't part of this recipe (adverts, page numbers, other recipes).
+- If there is no recipe in the text, return an empty title.
+
+Text:
+"""
+
+
+def _client() -> httpx.Client:
+    """A client for Ollama. Loading a model on sampc can take a while. Tests replace this."""
+    return httpx.Client(base_url=settings.ollama_url(), timeout=240)
+
+
+def extract(text: str) -> dict:
+    """A recipe draft in the same shape as text_recipe.parse_text."""
+    if not settings.ai_enabled():
+        raise HTTPException(503, "The AI isn't set up. Add OLLAMA_URL and OLLAMA_MODEL to the scraper.")
+    body = {
+        "model": settings.ollama_model(),
+        "messages": [{"role": "user", "content": PROMPT + text[:MAX_TEXT]}],
+        "format": SCHEMA,  # Ollama's structured outputs: the reply must match
+        "stream": False,
+        "options": {"temperature": 0},
+    }
+    try:
+        with _client() as client:
+            response = client.post("/api/chat", json=body)
+    except httpx.HTTPError as e:
+        raise HTTPException(503, "Couldn't reach the AI on sampc. Is sampc switched on?") from e
+    if response.status_code >= 400:
+        raise HTTPException(502, f"The AI answered {response.status_code}. Is the model pulled on sampc?")
+    try:
+        data = json.loads(response.json()["message"]["content"])
+    except (KeyError, ValueError, TypeError) as e:
+        raise HTTPException(502, "The AI's answer couldn't be read.") from e
+    if not str(data.get("title") or "").strip():
+        raise HTTPException(422, "The AI found no recipe in it.")
+
+    groups = []
+    for g in data.get("ingredient_groups") or []:
+        lines = [str(line).strip() for line in g.get("lines") or [] if str(line).strip()]
+        if lines:
+            groups.append((str(g.get("group") or "").strip().rstrip(":"), lines))
+    number = lambda key: max(0, int(data.get(key) or 0))  # noqa: E731 - tiny local helper
+    return {
+        "title": str(data.get("title")).strip(),
+        "description": str(data.get("description") or "").strip(),
+        "servings": max(0.0, float(data.get("servings") or 0)),
+        "yields": str(data.get("yields") or "").strip(),
+        "prep_minutes": number("prep_minutes"),
+        "cook_minutes": number("cook_minutes"),
+        "total_minutes": number("total_minutes"),
+        "ingredient_groups": groups,
+        "steps": [str(s).strip() for s in data.get("steps") or [] if str(s).strip()],
+        "notes": str(data.get("notes") or "").strip(),
+        "tags": [str(t).strip() for t in data.get("tags") or [] if str(t).strip()][:3],
+        "complete": True,
+    }

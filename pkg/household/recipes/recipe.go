@@ -69,7 +69,13 @@ type Recipe struct {
 	Notes       string              `xorm:"text null" json:"notes" maxLength:"10000" doc:"The household's own notes, e.g. what to change next time."`
 
 	ImageIDs  []int64  `xorm:"'image_ids' text null json" json:"image_ids" readOnly:"true" doc:"The recipe's pictures, first is the main one. Manage them under /recipes/{id}/images."`
-	ImageURLs []string `xorm:"-" json:"image_urls,omitempty" readOnly:"true" doc:"Import previews only: pictures found on the page. After saving, fetch the wanted ones with POST /recipes/{id}/images/fetch."`
+	ImageURLs []string `xorm:"-" json:"image_urls,omitempty" readOnly:"true" doc:"Import previews only: pictures found on the page (or paperless:documents/{id}/image for a scan's page). After saving, fetch the wanted ones with POST /recipes/{id}/images/fetch."`
+
+	// Import previews only: how the recipe was read, so the app can say how
+	// much to trust it and offer the AI.
+	ImportMethod   string `xorm:"-" json:"import_method,omitempty" readOnly:"true" doc:"Import previews only: schema (the page's recipe data), rules (simple rules on a scan's text) or ai."`
+	ImportComplete bool   `xorm:"-" json:"import_complete,omitempty" readOnly:"true" doc:"Import previews only: false when the rules found no whole recipe and it needs checking closely."`
+	AIAvailable    bool   `xorm:"-" json:"ai_available,omitempty" readOnly:"true" doc:"Import previews only: whether the scraper has an AI model set up."`
 
 	CreatedByID int64      `xorm:"bigint not null default 0" json:"-"`
 	CreatedBy   *user.User `xorm:"-" json:"created_by" readOnly:"true" doc:"The member who added this recipe."`

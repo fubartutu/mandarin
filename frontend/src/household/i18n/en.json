@@ -130,7 +130,6 @@
 			"importLabel": "Import from a web page",
 			"importPlaceholder": "Paste the recipe's web address",
 			"import": "Import",
-			"imported": "Imported. Check it over below, then save.",
 			"needsSignal": "Importing needs signal.",
 			"foundPictures": "Pictures from the page (ticked ones are saved)",
 			"pictures": "Pictures",
@@ -160,6 +159,22 @@
 				"notes": "Our notes",
 				"notesPlaceholder": "What to change next time",
 				"source": "Source web address"
+			},
+			"reading": "Reading the recipe… With the AI this can take a minute.",
+			"tryAI": "Try the AI instead",
+			"importedBy": {
+				"schema": "Imported. Check it over below, then save.",
+				"rules": "Read from the scan. Check it over below, then save.",
+				"ai": "Read by the AI. Check it over carefully, then save.",
+				"incomplete": "Couldn't read the whole recipe from this. Fill in what's missing, or try the AI."
+			},
+			"source": {
+				"web": "Web page",
+				"paperless": "Paperless scan"
+			},
+			"paperless": {
+				"search": "Search the scans' text",
+				"none": "No scans tagged \"{tag}\" in Paperless."
 			}
 		}
 	}

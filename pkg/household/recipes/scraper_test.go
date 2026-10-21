@@ -44,6 +44,24 @@ func fakeScraper(t *testing.T) {
 			_, _ = w.Write([]byte(`{"title": "Pasta", "source_url": "https://example.com/pasta", "servings": 4,
 				"ingredients": [{"group": "", "text": "2 cups (250g) flour", "quantity": 250, "unit": "g", "name": "flour", "note": ""}],
 				"steps": ["Boil."], "tags": ["Mains"], "image_urls": ["https://example.com/a.jpg"]}`))
+		case "/paperless/documents":
+			assert.Equal(t, "beef pie", r.URL.Query().Get("q"))
+			_, _ = w.Write([]byte(`{"documents": [{"id": 7, "title": "Beef pie", "created": "2026-01-02"}], "ai_available": true}`))
+		case "/paperless/documents/7/thumb":
+			w.Header().Set("Content-Type", "image/webp")
+			_, _ = w.Write([]byte("webp"))
+		case "/paperless/documents/7/image":
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = w.Write([]byte("jpeg"))
+		case "/paperless/documents/7/import":
+			method := "rules"
+			if r.URL.Query().Get("ai_first") == "true" {
+				method = "ai"
+			}
+			_, _ = w.Write([]byte(`{"title": "Beef pie", "source_url": "https://paperless.example.com/documents/7/details",
+				"ingredients": [{"group": "", "text": "1 kg beef", "quantity": 1, "unit": "kg", "name": "beef", "note": ""}],
+				"steps": ["Bake."], "image_urls": ["paperless:documents/7/image"],
+				"import_method": "` + method + `", "import_complete": true, "ai_available": true}`))
 		case "/parse":
 			var body struct{ Lines []string }
 			_ = json.NewDecoder(r.Body).Decode(&body)
@@ -100,4 +118,34 @@ func TestParseIngredients(t *testing.T) {
 		require.NoError(t, r.Create(s, user1))
 		assert.Equal(t, "eggs", r.Ingredients[0].Name)
 	})
+}
+
+func TestPaperless(t *testing.T) {
+	fakeScraper(t)
+	ctx := context.Background()
+
+	docs, err := ListPaperless(ctx, "beef pie")
+	require.NoError(t, err)
+	require.Len(t, docs.Documents, 1)
+	assert.Equal(t, "Beef pie", docs.Documents[0].Title)
+	assert.True(t, docs.AIAvailable)
+
+	thumb, contentType, err := PaperlessThumbnail(ctx, 7)
+	require.NoError(t, err)
+	assert.Equal(t, "webp", string(thumb))
+	assert.Equal(t, "image/webp", contentType)
+
+	r, err := ImportPaperless(ctx, 7, false)
+	require.NoError(t, err)
+	assert.Equal(t, "rules", r.ImportMethod)
+	assert.True(t, r.ImportComplete)
+	assert.Equal(t, []string{"paperless:documents/7/image"}, r.ImageURLs)
+	r, err = ImportPaperless(ctx, 7, true)
+	require.NoError(t, err)
+	assert.Equal(t, "ai", r.ImportMethod)
+
+	// The scanned page is fetched from the scraper, which has the Paperless token.
+	page, err := DownloadImage(ctx, "paperless:documents/7/image")
+	require.NoError(t, err)
+	assert.Equal(t, "jpeg", string(page))
 }

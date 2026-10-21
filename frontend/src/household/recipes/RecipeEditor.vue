@@ -5,33 +5,61 @@
 		</h1>
 
 		<!-- Import: only for a new recipe. The result fills the form below for checking. -->
-		<form
+		<section
 			v-if="!recipeId"
 			class="import"
-			@submit.prevent="runImport"
 		>
-			<label
-				class="label"
-				for="recipe-import-url"
-			>{{ $t('household.recipes.importLabel') }}</label>
-			<div class="import-row">
-				<input
-					id="recipe-import-url"
-					v-model="importUrl"
-					class="input"
-					type="url"
-					inputmode="url"
-					:placeholder="$t('household.recipes.importPlaceholder')"
-					required
+			<div
+				class="import-source"
+				role="tablist"
+			>
+				<button
+					v-for="option in (['web', 'paperless'] as const)"
+					:key="option"
+					type="button"
+					role="tab"
+					class="source-tab"
+					:class="{'is-active': source === option}"
+					:aria-selected="source === option"
+					@click="source = option"
 				>
-				<XButton
-					type="submit"
-					:loading="importing.isPending.value"
-					:disabled="!online"
-				>
-					{{ $t('household.recipes.import') }}
-				</XButton>
+					{{ $t(`household.recipes.source.${option}`) }}
+				</button>
 			</div>
+
+			<form
+				v-if="source === 'web'"
+				@submit.prevent="runImport"
+			>
+				<label
+					class="label"
+					for="recipe-import-url"
+				>{{ $t('household.recipes.importLabel') }}</label>
+				<div class="import-row">
+					<input
+						id="recipe-import-url"
+						v-model="importUrl"
+						class="input"
+						type="url"
+						inputmode="url"
+						:placeholder="$t('household.recipes.importPlaceholder')"
+						required
+					>
+					<XButton
+						type="submit"
+						:loading="importing.isPending.value"
+						:disabled="!online"
+					>
+						{{ $t('household.recipes.import') }}
+					</XButton>
+				</div>
+			</form>
+			<PaperlessPicker
+				v-else-if="online"
+				:busy="importingScan.isPending.value"
+				@pick="docId => runScanImport(docId, false)"
+			/>
+
 			<p
 				v-if="!online"
 				class="help"
@@ -39,12 +67,27 @@
 				{{ $t('household.recipes.needsSignal') }}
 			</p>
 			<p
-				v-else-if="imported"
-				class="help is-success"
+				v-else-if="importingScan.isPending.value || (importing.isPending.value && source === 'web')"
+				class="help"
 			>
-				{{ $t('household.recipes.imported') }}
+				{{ $t('household.recipes.reading') }}
 			</p>
-		</form>
+			<div
+				v-else-if="importInfo"
+				class="import-status"
+				:class="importInfo.complete ? 'is-success' : 'is-warning'"
+			>
+				<span>{{ $t(`household.recipes.importedBy.${importInfo.complete ? importInfo.method : 'incomplete'}`) }}</span>
+				<XButton
+					v-if="importInfo.scanId && importInfo.method !== 'ai' && importInfo.aiAvailable"
+					variant="secondary"
+					:loading="importingScan.isPending.value"
+					@click="runScanImport(importInfo.scanId, true)"
+				>
+					{{ $t('household.recipes.tryAI') }}
+				</XButton>
+			</div>
+		</section>
 
 		<p
 			v-if="recipeId && existing.isPending.value"
@@ -194,7 +237,12 @@
 						:key="url"
 						class="found-picture"
 					>
+						<PaperlessThumb
+							v-if="paperlessDocumentId(url)"
+							:doc-id="paperlessDocumentId(url)"
+						/>
 						<img
+							v-else
 							:src="url"
 							alt=""
 							referrerpolicy="no-referrer"
@@ -301,12 +349,16 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import {useTitle} from '@/composables/useTitle'
 import {error} from '@/message'
 
+import PaperlessPicker from './components/PaperlessPicker.vue'
+import PaperlessThumb from './components/PaperlessThumb.vue'
 import RecipeImage from './components/RecipeImage.vue'
 import {
+	paperlessDocumentId,
 	recipeQuery,
 	useAddImageMutation,
 	useDeleteImageMutation,
 	useDeleteRecipeMutation,
+	useImportPaperlessMutation,
 	useImportRecipeMutation,
 	useMakeImageMainMutation,
 	useSaveRecipeMutation,
@@ -373,20 +425,35 @@ watch(() => existing.data.value, r => {
 // ---- Import ----
 
 const importUrl = ref(typeof route.query.url === 'string' ? route.query.url : '')
+const source = ref<'web' | 'paperless'>('web')
 const importing = useImportRecipeMutation()
-const imported = ref(false)
+const importingScan = useImportPaperlessMutation()
 const foundImages = ref<string[]>([])
 const pickedImages = ref<string[]>([])
 
+// How the last import was read, for the line under the import box.
+const importInfo = ref<{method: string, complete: boolean, aiAvailable: boolean, scanId: number} | null>(null)
+
+function useImported(r: RecipeResponse, scanId = 0) {
+	fill(r)
+	foundImages.value = r.image_urls
+	pickedImages.value = r.image_urls.slice(0, 1)
+	importInfo.value = {method: r.import_method, complete: r.import_complete, aiAvailable: r.ai_available, scanId}
+}
+
 async function runImport() {
 	try {
-		const r = await importing.mutateAsync(importUrl.value.trim())
-		fill(r)
-		foundImages.value = r.image_urls
-		pickedImages.value = r.image_urls.slice(0, 1)
-		imported.value = true
+		useImported(await importing.mutateAsync(importUrl.value.trim()))
 	} catch {
-		imported.value = false // the error is already toasted
+		importInfo.value = null // the error is already toasted
+	}
+}
+
+async function runScanImport(docId: number, aiFirst: boolean) {
+	try {
+		useImported(await importingScan.mutateAsync({docId, aiFirst}), docId)
+	} catch {
+		// toasted; a failed "try the AI" keeps the rules' attempt in the form
 	}
 }
 
@@ -476,6 +543,43 @@ async function remove() {
 	gap: .5rem;
 }
 
+.import-source {
+	display: flex;
+	gap: .25rem;
+	margin-block-end: .75rem;
+}
+
+.source-tab {
+	padding: .35rem .8rem;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: var(--grey-600);
+	cursor: pointer;
+
+	&.is-active {
+		background: var(--primary);
+		color: var(--white);
+	}
+}
+
+.import-status {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .5rem 1rem;
+	margin-block-start: .5rem;
+	font-size: .9rem;
+
+	&.is-success {
+		color: var(--success-dark);
+	}
+
+	&.is-warning {
+		color: var(--warning-dark);
+	}
+}
+
 .fields {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
@@ -514,7 +618,7 @@ async function remove() {
 	inline-size: 8rem;
 	cursor: pointer;
 
-	img {
+	img, :deep(.paperless-thumb) {
 		display: block;
 		inline-size: 100%;
 		aspect-ratio: 4 / 3;

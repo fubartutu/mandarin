@@ -117,6 +117,34 @@ func RegisterHouseholdRecipeRoutes(api huma.API) {
 		DefaultStatus: http.StatusOK, // nothing is created
 	}, recipesImport)
 
+	Register(api, huma.Operation{
+		OperationID: "recipes-paperless-list",
+		Summary:     "List recipe scans in Paperless-ngx",
+		Description: "Documents with the recipe tag, newest first; q searches their text. 422 with a reason when Paperless isn't set up on the scraper.",
+		Method:      http.MethodGet, Path: "/recipes/paperless", Tags: tags,
+	}, recipesPaperlessList)
+	Register(api, huma.Operation{
+		OperationID: "recipes-paperless-thumb",
+		Summary:     "Get a recipe scan's thumbnail",
+		Method:      http.MethodGet, Path: "/recipes/paperless/{document}/thumb", Tags: tags,
+		Responses: map[string]*huma.Response{
+			"200": {
+				Description: "Paperless's small preview (WebP or PNG).",
+				Content: map[string]*huma.MediaType{
+					"image/webp": {Schema: &huma.Schema{Type: huma.TypeString, Format: "binary"}},
+				},
+			},
+		},
+	}, recipesPaperlessThumb)
+	Register(api, huma.Operation{
+		OperationID: "recipes-paperless-import",
+		Summary:     "Read a recipe scan from Paperless-ngx",
+		Description: "Returns the recipe without saving it, like /recipes/import. Simple rules read the scan's text first and the AI on sampc takes over when they fall short; ai_first skips the rules. " +
+			"image_urls holds the scanned page; fetch it after saving like any other.",
+		Method: http.MethodPost, Path: "/recipes/paperless/{document}/import", Tags: tags,
+		DefaultStatus: http.StatusOK, // nothing is created
+	}, recipesPaperlessImport)
+
 	Register(api, withUploadLimits(huma.Operation{
 		OperationID: "recipes-image-upload",
 		Summary:     "Add a picture to a recipe",
@@ -238,15 +266,70 @@ func recipesDelete(ctx context.Context, in *struct {
 }
 
 func recipesImport(ctx context.Context, in *recipeURLInput) (*singleBody[recipes.Recipe], error) {
-	a, err := authFromCtx(ctx)
-	if err != nil {
+	// Only members may make the server fetch pages.
+	if err := requireRecipeMember(ctx); err != nil {
 		return nil, err
 	}
-	// Only members may make the server fetch pages.
-	if can, _ := (&recipes.Recipe{}).CanCreate(nil, a); !can {
-		return nil, huma.Error403Forbidden("forbidden")
-	}
 	r, err := recipes.Import(ctx, in.Body.URL)
+	if err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &singleBody[recipes.Recipe]{Body: r}, nil
+}
+
+// requireRecipeMember stops anyone else making the server fetch pages or
+// read Paperless.
+func requireRecipeMember(ctx context.Context) error {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return err
+	}
+	if can, _ := (&recipes.Recipe{}).CanCreate(nil, a); !can {
+		return huma.Error403Forbidden("forbidden")
+	}
+	return nil
+}
+
+type recipePaperlessListBody struct {
+	Body *recipes.PaperlessDocuments
+}
+
+func recipesPaperlessList(ctx context.Context, in *struct {
+	Q string `query:"q" maxLength:"250" doc:"Words to search the scans' text for."`
+}) (*recipePaperlessListBody, error) {
+	if err := requireRecipeMember(ctx); err != nil {
+		return nil, err
+	}
+	docs, err := recipes.ListPaperless(ctx, in.Q)
+	if err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &recipePaperlessListBody{Body: docs}, nil
+}
+
+func recipesPaperlessThumb(ctx context.Context, in *struct {
+	DocumentID int64 `path:"document"`
+}) (*recipeImageResponse, error) {
+	if err := requireRecipeMember(ctx); err != nil {
+		return nil, err
+	}
+	data, contentType, err := recipes.PaperlessThumbnail(ctx, in.DocumentID)
+	if err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &recipeImageResponse{ContentType: contentType, CacheControl: "private, max-age=3600", Body: data}, nil
+}
+
+func recipesPaperlessImport(ctx context.Context, in *struct {
+	DocumentID int64 `path:"document"`
+	Body       struct {
+		AIFirst bool `json:"ai_first,omitempty" doc:"Go straight to the AI instead of trying the simple rules first."`
+	}
+}) (*singleBody[recipes.Recipe], error) {
+	if err := requireRecipeMember(ctx); err != nil {
+		return nil, err
+	}
+	r, err := recipes.ImportPaperless(ctx, in.DocumentID, in.Body.AIFirst)
 	if err != nil {
 		return nil, translateDomainError(err)
 	}
@@ -304,8 +387,8 @@ func recipesImageFetch(ctx context.Context, in *struct {
 	if err != nil {
 		return nil, err
 	}
-	if can, _ := (&recipes.Recipe{}).CanCreate(nil, a); !can {
-		return nil, huma.Error403Forbidden("forbidden")
+	if err := requireRecipeMember(ctx); err != nil {
+		return nil, err
 	}
 	// Downloaded before the session opens, so a slow site doesn't hold the
 	// database (SQLite allows one writer at a time).

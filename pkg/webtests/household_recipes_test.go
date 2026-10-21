@@ -71,6 +71,16 @@ func fakeScraperAndImages(t *testing.T) *httptest.Server {
 		case "/parse":
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{"ingredients":[{"text":"3 eggs","quantity":3,"unit":"","name":"eggs","note":"from the scraper"}]}`))
+		case "/paperless/documents":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"documents":[{"id":7,"title":"Beef pie","created":"2026-01-02"}],"ai_available":false}`))
+		case "/paperless/documents/7/thumb":
+			w.Header().Set("Content-Type", "image/webp")
+			_, _ = w.Write([]byte("webp"))
+		case "/paperless/documents/7/import":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"title":"Beef pie","ingredients":[{"group":"","text":"1 kg beef","quantity":1,"unit":"kg","name":"beef","note":""}],
+				"steps":["Bake."],"image_urls":["paperless:documents/7/image"],"import_method":"rules","import_complete":false}`))
 		case "/pancakes.png":
 			w.Header().Set("Content-Type", "image/png")
 			_, _ = w.Write(testPNG(t))
@@ -172,6 +182,19 @@ func TestHouseholdRecipes_ImportAndImages(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
 	rec = humaRequest(t, e, http.MethodGet, fmt.Sprintf("%s/images/%d", path, ids[0]), "", token, "")
 	assert.Equal(t, http.StatusNotFound, rec.Code, rec.Body.String())
+
+	// Paperless: list, thumbnail, import preview.
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/recipes/paperless?q=pie", "", token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, "Beef pie", decode[recipes.PaperlessDocuments](t, rec.Body.Bytes()).Documents[0].Title)
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/recipes/paperless/7/thumb", "", token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, "image/webp", rec.Header().Get("Content-Type"))
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/recipes/paperless/7/import", `{}`, token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	scan := decode[recipes.Recipe](t, rec.Body.Bytes())
+	assert.Equal(t, "rules", scan.ImportMethod)
+	assert.False(t, scan.ImportComplete)
 
 	// An unknown recipe is a 404.
 	rec = humaRequest(t, e, http.MethodGet, "/api/v2/recipes/99999", "", token, "")

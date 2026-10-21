@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -45,9 +46,11 @@ func ScraperURL() string {
 
 // How long to wait for the scraper. A recipe page can be slow to load;
 // parsing lines takes well under a second.
+// The AI on sampc may have to load its model first, so imports get minutes.
 const (
-	importTimeout = 45 * time.Second
+	importTimeout = 5 * time.Minute
 	parseTimeout  = 10 * time.Second
+	listTimeout   = 30 * time.Second
 )
 
 // postScraper sends body as JSON to the scraper and decodes the answer into
@@ -58,21 +61,33 @@ func postScraper(ctx context.Context, path string, timeout time.Duration, body, 
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ScraperURL()+path, bytes.NewReader(data))
+	answer, _, err := callScraper(ctx, http.MethodPost, path, timeout, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	return json.Unmarshal(answer, out)
+}
+
+// callScraper makes one request to the scraper and returns the answer's
+// bytes and content type.
+func callScraper(ctx context.Context, method, path string, timeout time.Duration, body io.Reader) ([]byte, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, method, ScraperURL()+path, body)
+	if err != nil {
+		return nil, "", err
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return ErrScraperUnavailable{}
+		return nil, "", ErrScraperUnavailable{}
 	}
 	defer resp.Body.Close()
-	answer, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
+	answer, err := io.ReadAll(io.LimitReader(resp.Body, importedImageMax+1))
 	if err != nil {
-		return ErrScraperUnavailable{}
+		return nil, "", ErrScraperUnavailable{}
 	}
 	if resp.StatusCode != http.StatusOK {
 		// FastAPI puts the reason in "detail".
@@ -81,11 +96,11 @@ func postScraper(ctx context.Context, path string, timeout time.Duration, body, 
 		}
 		_ = json.Unmarshal(answer, &problem)
 		if reason, ok := problem.Detail.(string); ok && reason != "" {
-			return ErrImportFailed{Reason: reason}
+			return nil, "", ErrImportFailed{Reason: reason}
 		}
-		return ErrImportFailed{Reason: fmt.Sprintf("The importer answered %d.", resp.StatusCode)}
+		return nil, "", ErrImportFailed{Reason: fmt.Sprintf("The importer answered %d.", resp.StatusCode)}
 	}
-	return json.Unmarshal(answer, out)
+	return answer, resp.Header.Get("Content-Type"), nil
 }
 
 // Import fetches a recipe page through the scraper and returns it unsaved,
@@ -100,6 +115,11 @@ func Import(ctx context.Context, pageURL string) (*Recipe, error) {
 	if err := postScraper(ctx, "/scrape", importTimeout, map[string]string{"url": pageURL}, r); err != nil {
 		return nil, err
 	}
+	return finishImport(r)
+}
+
+// finishImport tidies an import preview the way a save would.
+func finishImport(r *Recipe) (*Recipe, error) {
 	if r.ImageURLs == nil {
 		r.ImageURLs = []string{}
 	}
@@ -148,3 +168,53 @@ func ParseIngredients(ctx context.Context, ingredients []*RecipeIngredient) {
 		ing.Quantity, ing.Unit, ing.Name, ing.Note = p.Quantity, p.Unit, p.Name, p.Note
 	}
 }
+
+// PaperlessDocument is a recipe scan in Paperless-ngx.
+type PaperlessDocument struct {
+	ID      int64  `json:"id"`
+	Title   string `json:"title"`
+	Created string `json:"created" doc:"When the document was created, as Paperless gives it."`
+}
+
+// PaperlessDocuments is the list of recipe scans.
+type PaperlessDocuments struct {
+	Documents   []*PaperlessDocument `json:"documents" doc:"Documents with the recipe tag, newest first."`
+	AIAvailable bool                 `json:"ai_available" doc:"Whether imports can use the AI."`
+}
+
+// ListPaperless returns the recipe scans in Paperless, optionally searched.
+func ListPaperless(ctx context.Context, search string) (*PaperlessDocuments, error) {
+	answer, _, err := callScraper(ctx, http.MethodGet, "/paperless/documents?q="+url.QueryEscape(search), listTimeout, nil)
+	if err != nil {
+		return nil, err
+	}
+	docs := &PaperlessDocuments{}
+	if err := json.Unmarshal(answer, docs); err != nil {
+		return nil, err
+	}
+	if docs.Documents == nil {
+		docs.Documents = []*PaperlessDocument{}
+	}
+	return docs, nil
+}
+
+// PaperlessThumbnail returns a scan's small preview and its content type.
+func PaperlessThumbnail(ctx context.Context, docID int64) ([]byte, string, error) {
+	return callScraper(ctx, http.MethodGet, fmt.Sprintf("/paperless/documents/%d/thumb", docID), listTimeout, nil)
+}
+
+// ImportPaperless reads a scan as a recipe and returns it unsaved. The
+// scraper tries simple rules first and the AI when they fall short; aiFirst
+// skips the rules (the app's "try the AI" button).
+func ImportPaperless(ctx context.Context, docID int64, aiFirst bool) (*Recipe, error) {
+	r := &Recipe{}
+	path := fmt.Sprintf("/paperless/documents/%d/import?ai_first=%t", docID, aiFirst)
+	if err := postScraper(ctx, path, importTimeout, struct{}{}, r); err != nil {
+		return nil, err
+	}
+	return finishImport(r)
+}
+
+// paperlessImage matches the picture address a scan's import gives:
+// the page is fetched from the scraper, which has the Paperless token.
+var paperlessImage = regexp.MustCompile(`^paperless:documents/(\d+)/image$`)

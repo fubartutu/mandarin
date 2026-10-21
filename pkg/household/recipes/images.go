@@ -40,6 +40,10 @@ import (
 // Any household member can make the server fetch any address. That's fine
 // for a household server, but it's why this needs a login.
 func DownloadImage(ctx context.Context, imageURL string) ([]byte, error) {
+	if m := paperlessImage.FindStringSubmatch(strings.TrimSpace(imageURL)); m != nil {
+		data, _, err := callScraper(ctx, http.MethodGet, "/paperless/documents/"+m[1]+"/image", importTimeout, nil)
+		return data, err
+	}
 	u, err := url.Parse(strings.TrimSpace(imageURL))
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		return nil, ErrImportFailed{Reason: "That isn't a web address."}

@@ -16,7 +16,7 @@ RUN pip install -r requirements.txt
 RUN python -m nltk.downloader -d /usr/local/share/nltk_data averaged_perceptron_tagger_eng \
     && python -c "from ingredient_parser import parse_ingredient; parse_ingredient('1 cup flour')"
 
-COPY app.py ingredients.py ./
+COPY *.py ./
 
 RUN useradd --system --no-create-home scraper
 USER scraper

@@ -2,25 +2,36 @@
 
 POST /scrape {"url": ...}   fetches a recipe page and returns the recipe
 POST /parse  {"lines": [...]} splits ingredient lines into amount and name
+GET  /paperless/documents?q=  recipe scans in Paperless-ngx
+GET  /paperless/documents/{id}/thumb   Paperless's small preview
+GET  /paperless/documents/{id}/image   the first page as a JPEG
+POST /paperless/documents/{id}/import?ai=  a scan as a recipe
 GET  /health
 
 Only the Mandarin server talks to it, over the Docker network; it has no
-login of its own, so don't publish its port.
+login of its own, so don't publish its port. Settings: see settings.py.
 
-How a page is read: recipe-scrapers has site-specific code for a few hundred
-sites, and otherwise reads the schema.org Recipe data that most recipe blogs
-publish for search engines. An AI fallback for pages with neither is planned.
+How a web page is read: recipe-scrapers has site-specific code for a few
+hundred sites, and otherwise reads the schema.org Recipe data that most
+recipe blogs publish for search engines. A page with neither goes to the AI
+(ai.py) when it's set up. A scan's OCR text goes through simple rules
+(text_recipe.py) first, and to the AI when they can't make sense of it.
 """
 
 import re
 from urllib.parse import urlparse
 
+from bs4 import BeautifulSoup
 from curl_cffi import requests
 from curl_cffi.requests.exceptions import RequestException
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel, Field
 from recipe_scrapers import scrape_html
 
+import ai
+import paperless
+import settings
+import text_recipe
 from ingredients import parse_line
 
 MAX_PAGE_BYTES = 5 * 1024 * 1024
@@ -132,18 +143,62 @@ def health():
     return {"ok": True}
 
 
+def _page_text(html: str) -> str:
+    """The readable text of a page, for the AI: no scripts, menus or footers."""
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup(["script", "style", "noscript", "nav", "header", "footer", "aside", "form", "svg"]):
+        tag.decompose()
+    main = soup.find("article") or soup.find("main") or soup.body or soup
+    lines = (line.strip() for line in main.get_text("\n").splitlines())
+    return "\n".join(line for line in lines if line)
+
+
+def _finish(draft: dict, source_url: str, image_urls: list[str], method: str) -> dict:
+    """A draft from text_recipe or ai as an import answer, with each
+    ingredient line split into amount and name."""
+    ingredients = []
+    for group, lines in draft["ingredient_groups"]:
+        for text in lines:
+            line = parse_line(text)
+            if line["text"]:
+                line["group"] = group
+                ingredients.append(line)
+    return {
+        "title": draft["title"][:250],
+        "source_url": source_url,
+        "description": draft.get("description", ""),
+        "servings": draft.get("servings", 0.0),
+        "yields": draft.get("yields", "")[:100],
+        "prep_minutes": draft.get("prep_minutes", 0),
+        "cook_minutes": draft.get("cook_minutes", 0),
+        "total_minutes": draft.get("total_minutes", 0),
+        "ingredients": ingredients[:MAX_LINES],
+        "steps": draft.get("steps", []),
+        "notes": draft.get("notes", ""),
+        "tags": draft.get("tags", []),
+        "image_urls": image_urls,
+        "import_method": method,
+        "import_complete": bool(draft.get("complete")),
+        "ai_available": settings.ai_enabled(),
+    }
+
+
 @app.post("/scrape")
 def scrape(request: ScrapeRequest):
     html, final_url = _fetch(request.url.strip())
     try:
         scraper = scrape_html(html, org_url=final_url, supported_only=False)
-    except Exception as e:  # noqa: BLE001 - "no recipe here" comes in several types
-        raise HTTPException(422, "No recipe found on that page.") from e
+        title = _try(scraper.title, "")
+        ingredients = _ingredients(scraper)
+    except Exception:  # noqa: BLE001 - "no recipe here" comes in several types
+        title, ingredients = "", []
 
-    title = _try(scraper.title, "")
-    ingredients = _ingredients(scraper)
     if not title or not ingredients:
-        raise HTTPException(422, "No recipe found on that page.")
+        # No recipe data on the page: let the AI read it, if there is one.
+        if not settings.ai_enabled():
+            raise HTTPException(422, "No recipe found on that page.")
+        draft = ai.extract(_page_text(html))
+        return _finish(draft, final_url, [], "ai")
 
     yields = str(_try(scraper.yields, ""))
     steps = [s.strip() for s in _try(scraper.instructions_list, []) if s and s.strip()]
@@ -160,7 +215,50 @@ def scrape(request: ScrapeRequest):
         "steps": steps,
         "tags": _tags(scraper),
         "image_urls": _images(scraper),
+        "import_method": "schema",
+        "import_complete": True,
+        "ai_available": settings.ai_enabled(),
     }
+
+
+# ---- Paperless-ngx ----
+
+
+@app.get("/paperless/documents")
+def paperless_documents(q: str = ""):
+    return {"documents": paperless.list_documents(q), "ai_available": settings.ai_enabled()}
+
+
+@app.get("/paperless/documents/{doc_id}/thumb")
+def paperless_thumb(doc_id: int):
+    data, content_type = paperless.thumbnail(doc_id)
+    return Response(data, media_type=content_type)
+
+
+@app.get("/paperless/documents/{doc_id}/image")
+def paperless_image(doc_id: int):
+    return Response(paperless.page_image(doc_id), media_type="image/jpeg")
+
+
+@app.post("/paperless/documents/{doc_id}/import")
+def paperless_import(doc_id: int, ai_first: bool = False):
+    """Rules first; the AI when they don't find a whole recipe (or when asked).
+    If the AI can't be reached, the rules' attempt is still returned to fix by hand."""
+    doc = paperless.get_document(doc_id)
+    if not doc["content"].strip():
+        raise HTTPException(422, "Paperless has no text for that document. Is OCR finished?")
+    image = [f"paperless:documents/{doc_id}/image"]
+
+    draft = None if ai_first else text_recipe.parse_text(doc["content"], doc["title"])
+    if (draft is None or not draft["complete"]) and settings.ai_enabled():
+        try:
+            return _finish(ai.extract(doc["content"]), doc["url"], image, "ai")
+        except HTTPException:
+            if draft is None:
+                raise
+    if draft is None:
+        raise HTTPException(503, "The AI isn't set up. Add OLLAMA_URL and OLLAMA_MODEL to the scraper.")
+    return _finish(draft, doc["url"], image, "rules")
 
 
 @app.post("/parse")
