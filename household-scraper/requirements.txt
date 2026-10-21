@@ -1,0 +1,6 @@
+# Runtime dependencies, pinned. Update them together and re-run the tests.
+curl_cffi==0.16.3
+fastapi==0.156.4
+ingredient-parser-nlp==2.9.1
+recipe-scrapers==15.13.0
+uvicorn==0.54.0
