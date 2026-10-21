@@ -6,8 +6,8 @@ import { useConfigStore } from '@/stores/config'
 import { useColorScheme } from '@/composables/useColorScheme'
 
 // FORK: Mandarin logo (no pride variant, so both point at it)
-import LogoFull from '@/household/assets/logo-full.svg?component'
-import LogoFullPride from '@/household/assets/logo-full.svg?component'
+import LogoFull from '@/household/components/MandarinLogo.vue'
+import LogoFullPride from '@/household/components/MandarinLogo.vue'
 import {APP_NAME} from '@/household/branding'
 import {MILLISECONDS_A_HOUR} from '@/constants/date'
 

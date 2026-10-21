@@ -67,7 +67,7 @@
 </template>
 
 <script lang="ts" setup>
-import Logo from '@/household/assets/mark.svg?component' // FORK: Mandarin mark instead of the llama
+import Logo from '@/household/components/MandarinMark.vue' // FORK: Mandarin mark instead of the llama
 import ApiConfig from '@/components/misc/ApiConfig.vue'
 import Message from '@/components/misc/Message.vue'
 import CustomTransition from '@/components/misc/CustomTransition.vue'

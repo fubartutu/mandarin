@@ -83,7 +83,9 @@ another package), so in practice:
   Vikunja's llama pictures are swapped out by FORK lines (Ready, NoAuthWrapper, ShowTasks,
   MigrationHandler). Home-screen and tab icons live in `public/images/household`, rendered by
   `node scripts/household-icons.mjs`; index.html, vite.config.ts and useTimeTrackingFavicon.ts
-  point there. Inline SVG components need unique gradient ids per file (svgo is off).
+  point there. The logo and mark drawn in the page are Vue components
+  (`household/components/MandarinLogo.vue`, `MandarinMark.vue`) using `useId()` for gradient ids:
+  the logo is drawn twice, and shared ids made it vanish when the first copy was hidden.
   English text that says "Vikunja" is overridden in `household/i18n/en.json` ("Powered by
   Vikunja" stays as credit). `household/branding.test.ts` fails when an upstream merge adds or
   changes such a string: add the override it names.
