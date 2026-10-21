@@ -84,6 +84,9 @@ another package), so in practice:
   MigrationHandler). Home-screen and tab icons live in `public/images/household`, rendered by
   `node scripts/household-icons.mjs`; index.html, vite.config.ts and useTimeTrackingFavicon.ts
   point there. Inline SVG components need unique gradient ids per file (svgo is off).
+  English text that says "Vikunja" is overridden in `household/i18n/en.json` ("Powered by
+  Vikunja" stays as credit). `household/branding.test.ts` fails when an upstream merge adds or
+  changes such a string: add the override it names.
 - After changing a v2 route or model, run `mage generate:frontend-client` and commit
   `frontend/src/client/generated`. On merge conflicts there, regenerate; never hand-merge.
 
