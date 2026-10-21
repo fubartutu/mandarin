@@ -26,6 +26,7 @@ import (
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/files"
+	"code.vikunja.io/api/pkg/household/backup"   // FORK: Mandarin nightly backups
 	"code.vikunja.io/api/pkg/household/shopping" // FORK: Mandarin shopping seeding
 	"code.vikunja.io/api/pkg/i18n"
 	"code.vikunja.io/api/pkg/license"
@@ -153,6 +154,7 @@ func FullInit() {
 	openid.RegisterEmptyOpenIDTeamCleanupCron()
 	openid.RegisterProviderAvailabilityCron()
 	models.RegisterAPITokenExpiryCheckCron()
+	backup.RegisterCron() // FORK: Mandarin nightly backups (MANDARIN_BACKUP_DIR)
 
 	// Initialize WebSocket hub
 	ws.InitHub()

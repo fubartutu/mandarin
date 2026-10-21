@@ -79,6 +79,10 @@ another package), so in practice:
   `client/queryClient.ts` and `sw.ts` delegate to `household/offline.ts` and `household/sw.ts`.
   Upstream's `sw.ts` precached twice, and the empty second copy wiped the cache on activate. That
   line is disabled (FORK); keep it disabled after merges, or the app won't open offline.
+- **Backups:** `pkg/household/backup` (FORK line in `pkg/initialize/init.go`): nightly
+  `VACUUM INTO` copy of the SQLite database plus the files folder, as `mandarin-YYYY-MM-DD.tar.gz`
+  in `MANDARIN_BACKUP_DIR`, pruned after `MANDARIN_BACKUP_KEEP_DAYS` (14). Times follow
+  `service.timezone`. Don't VACUUM through `db.NewSession()`: it opens a transaction.
 - **Branding:** the mandarin mark and illustrations are SVGs in `frontend/src/household/assets`;
   Vikunja's llama pictures are swapped out by FORK lines (Ready, NoAuthWrapper, ShowTasks,
   MigrationHandler). Home-screen and tab icons live in `public/images/household`, rendered by
