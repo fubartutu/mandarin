@@ -13,6 +13,14 @@
 			>{{ sync.pendingCount.value }}</span>
 		</RouterLink>
 	</li>
+	<li>
+		<RouterLink :to="{name: 'recipes'}">
+			<span class="menu-item-icon icon">
+				<Icon icon="book-open" />
+			</span>
+			{{ $t('household.recipes.title') }}
+		</RouterLink>
+	</li>
 </template>
 
 <script setup lang="ts">

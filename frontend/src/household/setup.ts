@@ -6,11 +6,13 @@ import {library} from '@fortawesome/fontawesome-svg-core'
 import {
 	faArrowsRotate,
 	faBasketShopping,
+	faBookOpen,
 	faCamera,
 	faChevronDown,
 	faChevronRight,
 	faCircleCheck,
 	faCloud,
+	faLightbulb,
 	faStore,
 	faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons'
@@ -22,8 +24,8 @@ import householdEn from './i18n/en.json'
 import {registerOfflineStart} from './offline'
 
 library.add(
-	faArrowsRotate, faBasketShopping, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud, faStore,
-	faTriangleExclamation, faCircle,
+	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
+	faLightbulb, faStore, faTriangleExclamation, faCircle,
 )
 
 // Other languages fall back to English for these keys (fallbackLocale).

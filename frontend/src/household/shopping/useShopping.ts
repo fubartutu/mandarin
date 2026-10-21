@@ -7,20 +7,6 @@ import {computed, toValue, type MaybeRefOrGetter} from 'vue'
 import type {ShoppingCategoryResponse, ShoppingItemResponse} from './queries'
 import {useShoppingSync} from './sync/useShoppingSync'
 
-/**
- * An unticked item already on the list that's the same as a new one: same
- * name (ignoring case), amount and no note. The server merges such adds made
- * on two phones offline; on one phone we don't make them in the first place.
- */
-export function findDuplicate(
-	items: ShoppingItemResponse[],
-	item: Pick<ShoppingItemResponse, 'list_id' | 'name' | 'quantity' | 'unit'>,
-): ShoppingItemResponse | undefined {
-	const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
-	return items.find(i => i.list_id === item.list_id && !i.done && same(i.name, item.name) &&
-		i.quantity === item.quantity && same(i.unit, item.unit) && i.note.trim() === '')
-}
-
 export interface ItemGroup {
 	categoryId: number // 0 = uncategorised
 	title: string

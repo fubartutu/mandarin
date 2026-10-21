@@ -102,5 +102,6 @@ export function registerOfflineStart(router: Router) {
  * badge already says the app is offline. Elsewhere they show as usual.
  */
 export function isQuietOfflineError(e: unknown): boolean {
-	return window.location.pathname.includes('/shopping') && isUnreachable(e)
+	const path = window.location.pathname
+	return (path.includes('/shopping') || path.includes('/recipes')) && isUnreachable(e)
 }

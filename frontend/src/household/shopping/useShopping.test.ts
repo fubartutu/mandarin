@@ -1,7 +1,8 @@
 import {describe, expect, it} from 'vitest'
 
 import {normalizeItem} from './queries'
-import {findDuplicate, groupItems} from './useShopping'
+import {findDuplicate} from './adding'
+import {groupItems} from './useShopping'
 
 const categories = [
 	{id: 1, title: 'Fruit & Veg', position: 1},

@@ -65,6 +65,13 @@ another package), so in practice:
   call `events.DispatchPending(ctx, s)` after commit, so open apps get the websocket "changed" push.
   An add identical to an unticked item is merged into it (`merge.go`); its uid becomes an alias
   that `ApplySyncOps` resolves, so look items up by resolved uid in new op types.
+- **Recipes:** `pkg/household/recipes` (online-only; ingredients, steps, tags and image ids are
+  JSON columns on `recipes`), routes in `household_recipes.go`, frontend `frontend/src/household/recipes`.
+  Web import and ingredient parsing go to the scraper container, `household-scraper/` (Python,
+  FastAPI, recipe-scrapers, ingredient-parser-nlp; tests: `pytest` there), reached at
+  `MANDARIN_SCRAPER_URL` (default `http://mandarin-scraper:8000`). Saving never depends on it: the
+  Go simple parser fills in when it's down. Calls to it (and image downloads) happen before the DB
+  session opens. "Add to list" goes through the shopping sync engine (`shopping/adding.ts`).
 - **Offline start:** small FORK hooks in `stores/auth.ts`, `stores/base.ts`, `Ready.vue`,
   `client/queryClient.ts` and `sw.ts` delegate to `household/offline.ts` and `household/sw.ts`.
   Upstream's `sw.ts` precached twice, and the empty second copy wiped the cache on activate. That

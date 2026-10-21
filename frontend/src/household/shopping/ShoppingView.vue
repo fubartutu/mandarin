@@ -154,12 +154,11 @@ import {
 	useRenameShoppingListMutation,
 	type ShoppingItemResponse,
 } from './queries'
-import {findCatalogEntry} from './autocomplete'
+import {findDuplicate, prepareNewItem} from './adding'
 import type {ParsedItem} from './quantity'
 import {createOp, deleteOp, notStockedOp, updateOp} from './sync/model'
 import {useShoppingOnline, useShoppingSync} from './sync/useShoppingSync'
 import {
-	findDuplicate,
 	groupItems,
 	itemsForShop,
 	useShoppingData,
@@ -233,20 +232,7 @@ function notStockedHint(item: ShoppingItemResponse): string | undefined {
 // phone at once, sent to the server when there's signal.
 
 function addItem(item: ParsedItem & {category_id: number}) {
-	// Fill blanks from the catalogue the way the server will, so the item
-	// appears in the right group straight away instead of jumping there.
-	const known = findCatalogEntry(catalog.value, item.name)
-	const categoryId = categories.value.some(c => c.id === item.category_id)
-		? item.category_id
-		: known?.category_id ?? 0
-	const keepLast = known && item.quantity === 0 && item.unit === ''
-	const newItem = {
-		name: known?.name ?? item.name,
-		quantity: keepLast ? known.quantity : item.quantity,
-		unit: keepLast ? known.unit : item.unit,
-		list_id: activeListId.value,
-		category_id: categoryId,
-	}
+	const newItem = prepareNewItem(item, activeListId.value, catalog.value, categories.value)
 	const duplicate = findDuplicate(items.value, newItem)
 	if (duplicate) {
 		success({message: t('household.shopping.alreadyOnList', {name: duplicate.name})})

@@ -1290,6 +1290,18 @@ export type PaginatedProjectView = {
     total_pages?: number;
 };
 
+export type PaginatedRecipe = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<Recipe> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedSession = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1918,6 +1930,199 @@ export type Reaction = {
      * The reaction itself: any UTF text up to 20 characters, e.g. an emoji.
      */
     value?: string;
+};
+
+export type Recipe = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    cook_minutes?: number;
+    /**
+     * When this recipe was added.
+     */
+    readonly created?: string;
+    /**
+     * The member who added this recipe.
+     */
+    readonly created_by?: User;
+    /**
+     * A short introduction.
+     */
+    description?: string;
+    /**
+     * The unique, numeric id of this recipe.
+     */
+    readonly id?: number;
+    /**
+     * The recipe's pictures, first is the main one. Manage them under /recipes/{id}/images.
+     */
+    readonly image_ids?: Array<number> | null;
+    /**
+     * Import previews only: pictures found on the page. After saving, fetch the wanted ones with POST /recipes/{id}/images/fetch.
+     */
+    readonly image_urls?: Array<string> | null;
+    /**
+     * In order. Each line's amount and name are worked out by the server from its text.
+     */
+    ingredients?: Array<RecipeIngredient> | null;
+    /**
+     * The household's own notes, e.g. what to change next time.
+     */
+    notes?: string;
+    prep_minutes?: number;
+    /**
+     * How many people the amounts are for; 0 when unknown. Used to scale ingredients.
+     */
+    servings?: number;
+    /**
+     * Where the recipe came from; empty for one typed in.
+     */
+    source_url?: string;
+    /**
+     * The method, one step per entry, in order.
+     */
+    steps?: Array<string> | null;
+    /**
+     * E.g. Mains, Italian.
+     */
+    tags?: Array<string> | null;
+    /**
+     * The recipe's name.
+     */
+    title?: string;
+    total_minutes?: number;
+    /**
+     * When this recipe was last changed.
+     */
+    readonly updated?: string;
+    /**
+     * What the recipe makes, as the source puts it, e.g. 16 cookies.
+     */
+    yields?: string;
+};
+
+export type RecipeIngredient = {
+    /**
+     * The heading this line sits under, e.g. Sauce; empty for none.
+     */
+    group?: string;
+    /**
+     * What to buy, e.g. plain flour.
+     */
+    readonly name?: string;
+    /**
+     * Preparation and comments, e.g. sifted.
+     */
+    readonly note?: string;
+    /**
+     * The amount to shop for, e.g. 250 (metric preferred; the top of a range). 0 when there's none.
+     */
+    readonly quantity?: number;
+    /**
+     * The line as written, e.g. 2 cups (250g) plain flour, sifted.
+     */
+    text?: string;
+    /**
+     * E.g. g, tbsp, cans; empty for a plain count.
+     */
+    readonly unit?: string;
+};
+
+export type RecipeReadBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    cook_minutes?: number;
+    /**
+     * When this recipe was added.
+     */
+    readonly created?: string;
+    /**
+     * The member who added this recipe.
+     */
+    readonly created_by?: User;
+    /**
+     * A short introduction.
+     */
+    description?: string;
+    /**
+     * The unique, numeric id of this recipe.
+     */
+    readonly id?: number;
+    /**
+     * The recipe's pictures, first is the main one. Manage them under /recipes/{id}/images.
+     */
+    readonly image_ids?: Array<number> | null;
+    /**
+     * Import previews only: pictures found on the page. After saving, fetch the wanted ones with POST /recipes/{id}/images/fetch.
+     */
+    readonly image_urls?: Array<string> | null;
+    /**
+     * In order. Each line's amount and name are worked out by the server from its text.
+     */
+    ingredients?: Array<RecipeIngredient> | null;
+    /**
+     * The caller's permission on this recipe; always 2 (admin) for household members.
+     */
+    readonly max_permission?: number;
+    /**
+     * The household's own notes, e.g. what to change next time.
+     */
+    notes?: string;
+    prep_minutes?: number;
+    /**
+     * How many people the amounts are for; 0 when unknown. Used to scale ingredients.
+     */
+    servings?: number;
+    /**
+     * Where the recipe came from; empty for one typed in.
+     */
+    source_url?: string;
+    /**
+     * The method, one step per entry, in order.
+     */
+    steps?: Array<string> | null;
+    /**
+     * E.g. Mains, Italian.
+     */
+    tags?: Array<string> | null;
+    /**
+     * The recipe's name.
+     */
+    title?: string;
+    total_minutes?: number;
+    /**
+     * When this recipe was last changed.
+     */
+    readonly updated?: string;
+    /**
+     * What the recipe makes, as the source puts it, e.g. 16 cookies.
+     */
+    yields?: string;
+};
+
+export type RecipeUrlInputBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The web address.
+     */
+    url?: string;
+};
+
+export type RecipesImageFetchRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The web address.
+     */
+    url?: string;
 };
 
 export type RegisterUserRequest = {
@@ -4799,6 +5004,14 @@ export type PaginatedProjectViewWritable = {
     total_pages?: number;
 };
 
+export type PaginatedRecipeWritable = {
+    items?: Array<RecipeWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedSessionWritable = {
     items?: Array<unknown> | null;
     page?: number;
@@ -5137,6 +5350,115 @@ export type ReactionWritable = {
      * The reaction itself: any UTF text up to 20 characters, e.g. an emoji.
      */
     value?: string;
+};
+
+export type RecipeWritable = {
+    cook_minutes?: number;
+    /**
+     * A short introduction.
+     */
+    description?: string;
+    /**
+     * In order. Each line's amount and name are worked out by the server from its text.
+     */
+    ingredients?: Array<RecipeIngredientWritable> | null;
+    /**
+     * The household's own notes, e.g. what to change next time.
+     */
+    notes?: string;
+    prep_minutes?: number;
+    /**
+     * How many people the amounts are for; 0 when unknown. Used to scale ingredients.
+     */
+    servings?: number;
+    /**
+     * Where the recipe came from; empty for one typed in.
+     */
+    source_url?: string;
+    /**
+     * The method, one step per entry, in order.
+     */
+    steps?: Array<string> | null;
+    /**
+     * E.g. Mains, Italian.
+     */
+    tags?: Array<string> | null;
+    /**
+     * The recipe's name.
+     */
+    title?: string;
+    total_minutes?: number;
+    /**
+     * What the recipe makes, as the source puts it, e.g. 16 cookies.
+     */
+    yields?: string;
+};
+
+export type RecipeIngredientWritable = {
+    /**
+     * The heading this line sits under, e.g. Sauce; empty for none.
+     */
+    group?: string;
+    /**
+     * The line as written, e.g. 2 cups (250g) plain flour, sifted.
+     */
+    text?: string;
+};
+
+export type RecipeReadBodyWritable = {
+    cook_minutes?: number;
+    /**
+     * A short introduction.
+     */
+    description?: string;
+    /**
+     * In order. Each line's amount and name are worked out by the server from its text.
+     */
+    ingredients?: Array<RecipeIngredientWritable> | null;
+    /**
+     * The household's own notes, e.g. what to change next time.
+     */
+    notes?: string;
+    prep_minutes?: number;
+    /**
+     * How many people the amounts are for; 0 when unknown. Used to scale ingredients.
+     */
+    servings?: number;
+    /**
+     * Where the recipe came from; empty for one typed in.
+     */
+    source_url?: string;
+    /**
+     * The method, one step per entry, in order.
+     */
+    steps?: Array<string> | null;
+    /**
+     * E.g. Mains, Italian.
+     */
+    tags?: Array<string> | null;
+    /**
+     * The recipe's name.
+     */
+    title?: string;
+    total_minutes?: number;
+    /**
+     * What the recipe makes, as the source puts it, e.g. 16 cookies.
+     */
+    yields?: string;
+};
+
+export type RecipeUrlInputBodyWritable = {
+    /**
+     * The web address.
+     */
+    url?: string;
+};
+
+export type RecipesImageFetchRequestWritable = {
+    /**
+     * The web address.
+     */
+    url?: string;
 };
 
 export type RegisterUserRequestWritable = {
@@ -9616,6 +9938,363 @@ export type WebhooksUpdateResponses = {
 };
 
 export type WebhooksUpdateResponse = WebhooksUpdateResponses[keyof WebhooksUpdateResponses];
+
+export type RecipesListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/recipes';
+};
+
+export type RecipesListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesListError = RecipesListErrors[keyof RecipesListErrors];
+
+export type RecipesListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedRecipe;
+};
+
+export type RecipesListResponse = RecipesListResponses[keyof RecipesListResponses];
+
+export type RecipesCreateData = {
+    body: RecipeWritable;
+    path?: never;
+    query?: never;
+    url: '/recipes';
+};
+
+export type RecipesCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesCreateError = RecipesCreateErrors[keyof RecipesCreateErrors];
+
+export type RecipesCreateResponses = {
+    /**
+     * Created
+     */
+    201: Recipe;
+};
+
+export type RecipesCreateResponse = RecipesCreateResponses[keyof RecipesCreateResponses];
+
+export type RecipesImportData = {
+    body: RecipeUrlInputBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/recipes/import';
+};
+
+export type RecipesImportErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesImportError = RecipesImportErrors[keyof RecipesImportErrors];
+
+export type RecipesImportResponses = {
+    /**
+     * OK
+     */
+    200: Recipe;
+};
+
+export type RecipesImportResponse = RecipesImportResponses[keyof RecipesImportResponses];
+
+export type RecipesDeleteData = {
+    body?: never;
+    path: {
+        recipe: number;
+    };
+    query?: never;
+    url: '/recipes/{recipe}';
+};
+
+export type RecipesDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesDeleteError = RecipesDeleteErrors[keyof RecipesDeleteErrors];
+
+export type RecipesDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type RecipesDeleteResponse = RecipesDeleteResponses[keyof RecipesDeleteResponses];
+
+export type RecipesReadData = {
+    body?: never;
+    headers?: {
+        /**
+         * Succeeds if the server's resource matches one of the passed values.
+         */
+        'If-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource matches none of the passed values. On writes, the special value * may be used to match any existing value.
+         */
+        'If-None-Match'?: Array<string> | null;
+        /**
+         * Succeeds if the server's resource date is more recent than the passed date.
+         */
+        'If-Modified-Since'?: string;
+        /**
+         * Succeeds if the server's resource date is older or the same as the passed date.
+         */
+        'If-Unmodified-Since'?: string;
+    };
+    path: {
+        recipe: number;
+    };
+    query?: never;
+    url: '/recipes/{recipe}';
+};
+
+export type RecipesReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesReadError = RecipesReadErrors[keyof RecipesReadErrors];
+
+export type RecipesReadResponses = {
+    /**
+     * OK
+     */
+    200: RecipeReadBody;
+};
+
+export type RecipesReadResponse = RecipesReadResponses[keyof RecipesReadResponses];
+
+export type PatchRecipesReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        recipe: number;
+    };
+    query?: never;
+    url: '/recipes/{recipe}';
+};
+
+export type PatchRecipesReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchRecipesReadError = PatchRecipesReadErrors[keyof PatchRecipesReadErrors];
+
+export type PatchRecipesReadResponses = {
+    /**
+     * OK
+     */
+    200: Recipe;
+};
+
+export type PatchRecipesReadResponse = PatchRecipesReadResponses[keyof PatchRecipesReadResponses];
+
+export type RecipesUpdateData = {
+    body: RecipeReadBodyWritable;
+    path: {
+        recipe: number;
+    };
+    query?: never;
+    url: '/recipes/{recipe}';
+};
+
+export type RecipesUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesUpdateError = RecipesUpdateErrors[keyof RecipesUpdateErrors];
+
+export type RecipesUpdateResponses = {
+    /**
+     * OK
+     */
+    200: Recipe;
+};
+
+export type RecipesUpdateResponse = RecipesUpdateResponses[keyof RecipesUpdateResponses];
+
+export type RecipesImageUploadData = {
+    body: {
+        /**
+         * The picture. PNG, JPEG, GIF, TIFF or BMP; shrunk to fit 1600px and stored as JPEG.
+         */
+        image: Blob | File;
+    };
+    path: {
+        recipe: number;
+    };
+    query?: never;
+    url: '/recipes/{recipe}/images';
+};
+
+export type RecipesImageUploadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesImageUploadError = RecipesImageUploadErrors[keyof RecipesImageUploadErrors];
+
+export type RecipesImageUploadResponses = {
+    /**
+     * OK
+     */
+    200: Recipe;
+};
+
+export type RecipesImageUploadResponse = RecipesImageUploadResponses[keyof RecipesImageUploadResponses];
+
+export type RecipesImageFetchData = {
+    body: RecipesImageFetchRequestWritable;
+    path: {
+        recipe: number;
+    };
+    query?: never;
+    url: '/recipes/{recipe}/images/fetch';
+};
+
+export type RecipesImageFetchErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesImageFetchError = RecipesImageFetchErrors[keyof RecipesImageFetchErrors];
+
+export type RecipesImageFetchResponses = {
+    /**
+     * OK
+     */
+    200: Recipe;
+};
+
+export type RecipesImageFetchResponse = RecipesImageFetchResponses[keyof RecipesImageFetchResponses];
+
+export type RecipesImageDeleteData = {
+    body?: never;
+    path: {
+        recipe: number;
+        image: number;
+    };
+    query?: never;
+    url: '/recipes/{recipe}/images/{image}';
+};
+
+export type RecipesImageDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesImageDeleteError = RecipesImageDeleteErrors[keyof RecipesImageDeleteErrors];
+
+export type RecipesImageDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type RecipesImageDeleteResponse = RecipesImageDeleteResponses[keyof RecipesImageDeleteResponses];
+
+export type RecipesImageGetData = {
+    body?: never;
+    path: {
+        recipe: number;
+        image: number;
+    };
+    query?: never;
+    url: '/recipes/{recipe}/images/{image}';
+};
+
+export type RecipesImageGetErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesImageGetError = RecipesImageGetErrors[keyof RecipesImageGetErrors];
+
+export type RecipesImageGetResponses = {
+    /**
+     * The picture as JPEG.
+     */
+    200: Blob | File;
+};
+
+export type RecipesImageGetResponse = RecipesImageGetResponses[keyof RecipesImageGetResponses];
+
+export type RecipesImageMainData = {
+    body?: never;
+    path: {
+        recipe: number;
+        image: number;
+    };
+    query?: never;
+    url: '/recipes/{recipe}/images/{image}/main';
+};
+
+export type RecipesImageMainErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type RecipesImageMainError = RecipesImageMainErrors[keyof RecipesImageMainErrors];
+
+export type RecipesImageMainResponses = {
+    /**
+     * OK
+     */
+    200: Recipe;
+};
+
+export type RecipesImageMainResponse = RecipesImageMainResponses[keyof RecipesImageMainResponses];
 
 export type AuthRegisterData = {
     body: RegisterUserRequestWritable;
