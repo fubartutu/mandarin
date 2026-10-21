@@ -50,11 +50,12 @@ export interface RecipeResponse {
 	import_method: string
 	import_complete: boolean
 	ai_available: boolean
+	import_note: string // why the AI wasn't used, when the rules fell short
 }
 
 /** What the editor sends: the server works out amounts from each line's text. */
 export type RecipeDraft = Omit<RecipeResponse,
-	'id' | 'image_ids' | 'image_urls' | 'ingredients' | 'import_method' | 'import_complete' | 'ai_available'> & {
+	'id' | 'image_ids' | 'image_urls' | 'ingredients' | 'import_method' | 'import_complete' | 'ai_available' | 'import_note'> & {
 	ingredients: Pick<IngredientLine, 'group' | 'text'>[]
 }
 
@@ -89,6 +90,7 @@ export function normalizeRecipe(r: Recipe): RecipeResponse {
 		import_method: r.import_method ?? '',
 		import_complete: r.import_complete ?? false,
 		ai_available: r.ai_available ?? false,
+		import_note: r.import_note ?? '',
 	}
 }
 

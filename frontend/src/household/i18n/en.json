@@ -166,7 +166,7 @@
 				"schema": "Imported. Check it over below, then save.",
 				"rules": "Read from the scan. Check it over below, then save.",
 				"ai": "Read by the AI. Check it over carefully, then save.",
-				"incomplete": "Couldn't read the whole recipe from this. Fill in what's missing, or try the AI."
+				"incomplete": "Couldn't read the whole recipe with the simple rules. Fill in what's missing, or try the AI."
 			},
 			"source": {
 				"web": "Web page",

@@ -1999,6 +1999,10 @@ export type Recipe = {
      */
     readonly import_method?: string;
     /**
+     * Import previews only: why the AI wasn't used when the rules fell short, e.g. a refused API key.
+     */
+    readonly import_note?: string;
+    /**
      * In order. Each line's amount and name are worked out by the server from its text.
      */
     ingredients?: Array<RecipeIngredient> | null;
@@ -2107,6 +2111,10 @@ export type RecipeReadBody = {
      * Import previews only: schema (the page's recipe data), rules (simple rules on a scan's text) or ai.
      */
     readonly import_method?: string;
+    /**
+     * Import previews only: why the AI wasn't used when the rules fell short, e.g. a refused API key.
+     */
+    readonly import_note?: string;
     /**
      * In order. Each line's amount and name are worked out by the server from its text.
      */

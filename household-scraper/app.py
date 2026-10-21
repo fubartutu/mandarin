@@ -18,6 +18,7 @@ recipe blogs publish for search engines. A page with neither goes to the AI
 (text_recipe.py) first, and to the AI when they can't make sense of it.
 """
 
+import logging
 import re
 from urllib.parse import urlparse
 
@@ -42,6 +43,8 @@ MAX_LINES = 300
 BROWSER = "chrome"
 
 app = FastAPI(title="Mandarin recipe scraper")
+# uvicorn's logger, so messages land in `docker logs mandarin-scraper`.
+log = logging.getLogger("uvicorn.error")
 
 
 class ScrapeRequest(BaseModel):
@@ -179,6 +182,7 @@ def _finish(draft: dict, source_url: str, image_urls: list[str], method: str) ->
         "image_urls": image_urls,
         "import_method": method,
         "import_complete": bool(draft.get("complete")),
+        "import_note": "",
         "ai_available": settings.ai_enabled(),
     }
 
@@ -250,15 +254,28 @@ def paperless_import(doc_id: int, ai_first: bool = False):
     image = [f"paperless:documents/{doc_id}/image"]
 
     draft = None if ai_first else text_recipe.parse_text(doc["content"], doc["title"])
-    if (draft is None or not draft["complete"]) and settings.ai_enabled():
-        try:
-            return _finish(ai.extract(doc["content"]), doc["url"], image, "ai")
-        except HTTPException:
-            if draft is None:
-                raise
+    note = ""
+    if draft is None or not draft["complete"]:
+        if not settings.ai_enabled():
+            note = "The AI isn't set up, so only the simple rules were tried."
+        else:
+            try:
+                return _finish(ai.extract(doc["content"]), doc["url"], image, "ai")
+            except HTTPException as e:
+                log.warning("AI import of Paperless document %d failed: %s", doc_id, e.detail)
+                if draft is None:
+                    raise
+                note = f"The AI couldn't read it: {e.detail}"
+            except Exception as e:  # a bug or an odd answer: still give the rules' attempt
+                log.exception("AI import of Paperless document %d failed", doc_id)
+                if draft is None:
+                    raise HTTPException(502, "The AI's answer couldn't be used.") from e
+                note = "The AI's answer couldn't be used."
     if draft is None:
         raise HTTPException(503, "The AI isn't set up. Add AI_API_KEY and AI_MODEL (or OLLAMA_URL and OLLAMA_MODEL) to the scraper.")
-    return _finish(draft, doc["url"], image, "rules")
+    result = _finish(draft, doc["url"], image, "rules")
+    result["import_note"] = note
+    return result
 
 
 @app.post("/parse")

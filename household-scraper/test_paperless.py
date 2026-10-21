@@ -125,11 +125,22 @@ def test_a_messy_page_without_ai_still_gives_the_rules_attempt(client):
     assert recipe["import_method"] == "rules"
     assert not recipe["import_complete"]
     assert not recipe["ai_available"]
+    assert "isn't set up" in recipe["import_note"]
 
 
 def test_ai_on_request_needs_the_ai(client):
     response = client.post("/paperless/documents/7/import?ai_first=true")
     assert response.status_code == 503
+
+
+def test_a_failed_ai_says_why_and_keeps_the_rules_attempt(client, monkeypatch):
+    monkeypatch.setenv("AI_API_KEY", "sk-ant-wrong")
+    monkeypatch.setenv("AI_MODEL", "claude-model")
+    monkeypatch.setattr(ai, "_api_client", lambda: httpx.Client(
+        base_url="https://api.anthropic.com", transport=httpx.MockTransport(lambda r: httpx.Response(401))))
+    recipe = client.post("/paperless/documents/8/import").json()
+    assert recipe["import_method"] == "rules"
+    assert recipe["import_note"] == "The AI couldn't read it: The AI service refused the API key."
 
 
 def test_sampc_off(client, monkeypatch):

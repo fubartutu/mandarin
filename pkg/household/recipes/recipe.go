@@ -76,6 +76,7 @@ type Recipe struct {
 	ImportMethod   string `xorm:"-" json:"import_method,omitempty" readOnly:"true" doc:"Import previews only: schema (the page's recipe data), rules (simple rules on a scan's text) or ai."`
 	ImportComplete bool   `xorm:"-" json:"import_complete,omitempty" readOnly:"true" doc:"Import previews only: false when the rules found no whole recipe and it needs checking closely."`
 	AIAvailable    bool   `xorm:"-" json:"ai_available,omitempty" readOnly:"true" doc:"Import previews only: whether the scraper has an AI model set up."`
+	ImportNote     string `xorm:"-" json:"import_note,omitempty" readOnly:"true" doc:"Import previews only: why the AI wasn't used when the rules fell short, e.g. a refused API key."`
 
 	CreatedByID int64      `xorm:"bigint not null default 0" json:"-"`
 	CreatedBy   *user.User `xorm:"-" json:"created_by" readOnly:"true" doc:"The member who added this recipe."`

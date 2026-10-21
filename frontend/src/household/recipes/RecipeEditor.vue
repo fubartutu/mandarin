@@ -77,7 +77,11 @@
 				class="import-status"
 				:class="importInfo.complete ? 'is-success' : 'is-warning'"
 			>
-				<span>{{ $t(`household.recipes.importedBy.${importInfo.complete ? importInfo.method : 'incomplete'}`) }}</span>
+				<span>
+					{{ $t(`household.recipes.importedBy.${importInfo.complete ? importInfo.method : 'incomplete'}`) }}
+					<!-- e.g. "The AI couldn't read it: the API key was refused." -->
+					<template v-if="importInfo.note"><br>{{ importInfo.note }}</template>
+				</span>
 				<XButton
 					v-if="importInfo.scanId && importInfo.method !== 'ai' && importInfo.aiAvailable"
 					variant="secondary"
@@ -432,13 +436,13 @@ const foundImages = ref<string[]>([])
 const pickedImages = ref<string[]>([])
 
 // How the last import was read, for the line under the import box.
-const importInfo = ref<{method: string, complete: boolean, aiAvailable: boolean, scanId: number} | null>(null)
+const importInfo = ref<{method: string, complete: boolean, aiAvailable: boolean, note: string, scanId: number} | null>(null)
 
 function useImported(r: RecipeResponse, scanId = 0) {
 	fill(r)
 	foundImages.value = r.image_urls
 	pickedImages.value = r.image_urls.slice(0, 1)
-	importInfo.value = {method: r.import_method, complete: r.import_complete, aiAvailable: r.ai_available, scanId}
+	importInfo.value = {method: r.import_method, complete: r.import_complete, aiAvailable: r.ai_available, note: r.import_note, scanId}
 }
 
 async function runImport() {
