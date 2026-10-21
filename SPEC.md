@@ -109,7 +109,18 @@ A household recipe database whose web import gets the exact recipe: ingredients 
 2. Fall back to the recipe-scrapers library for sites needing site-specific handling.
 3. Last resort: an AI model extracts the recipe; it also splits each ingredient into quantity, unit and name. Can run locally on sampc's GPU.
 
-Proposed: the import shows a preview to correct before saving.
+Every import shows a preview to correct before saving.
+
+### Paper recipes from Paperless-ngx
+
+Paper recipes (mostly printed: cookbook pages, magazine cut-outs) are scanned into the Paperless-ngx instance already running on the server. Mandarin imports them on demand.
+
+- **Tag:** recipe scans get a `recipe` tag in Paperless.
+- **Picker:** Add recipe → From Paperless lists the tagged documents with thumbnails; picking one starts an import.
+- **Extraction:** the scraper container reads the document's OCR text through the Paperless API (address and API token in its settings) and turns it into a recipe: simple rules first (Ingredients/Method headings, lines starting with an amount), the AI model on sampc when the layout is messier. Ingredients are split into amounts the same way as web imports.
+- **Preview:** the same check-and-fix screen as a web import.
+- **Picture and link:** the scanned page becomes the recipe's picture, and the recipe links back to the Paperless document.
+- **AI model:** runs on sampc's GPU (e.g. Ollama), shared with Sam's Whisper setup. When sampc is off, imports fall back to the simple rules.
 
 ## Platforms and look
 
@@ -141,7 +152,8 @@ Groceries come first; each phase ends with something usable on the phones.
 3. **Catalogue and shop groups:** pre-loaded catalogue, autocomplete, Aldi + Supabarn group with tick-once behaviour, not-stocked flag, item photos.
 4. **Offline-first sync:** local database, outbox, live updates, sync badge, conflict log. Ends with a dead-zone test in the supermarket.
 5. **Recipes:** recipe database, scraper container, add ingredients to the shopping list.
-6. **Polish:** offline-readable tasks, theming, any trial feedback.
+6. **Paper and AI import:** import printed recipes from Paperless-ngx; AI extraction on sampc for scans and for web pages without recipe data.
+7. **Polish:** offline-readable tasks, theming, any trial feedback.
 
 ## Out of scope and later
 
