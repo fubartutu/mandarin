@@ -5,9 +5,11 @@ PAPERLESS_TOKEN       an API token (Paperless: your profile → API auth token)
 PAPERLESS_TAG         the tag on recipe scans; default "recipe"
 PAPERLESS_PUBLIC_URL  Paperless as your browser reaches it, for the link on a
                       recipe; defaults to PAPERLESS_URL
-AI_API_KEY            a key for an OpenAI-compatible API (OpenAI, OpenRouter, …)
+AI_API_KEY            an Anthropic key (sk-ant-…), or a key for an OpenAI-compatible
+                      API (OpenAI, OpenRouter, …)
 AI_MODEL              the model to ask, e.g. a small, cheap one
-AI_API_URL            the API's address; default https://api.openai.com/v1
+AI_API_URL            the API's address; default https://api.anthropic.com for an
+                      Anthropic key, else https://api.openai.com/v1
 OLLAMA_URL            Ollama on sampc, e.g. http://192.168.1.20:11434
 OLLAMA_MODEL          the model to use, e.g. one you've pulled with `ollama pull`
 
@@ -43,12 +45,18 @@ def paperless_enabled() -> bool:
     return bool(paperless_url() and paperless_token())
 
 
-def ai_api_url() -> str:
-    return env("AI_API_URL", "https://api.openai.com/v1").rstrip("/")
-
-
 def ai_api_key() -> str:
     return env("AI_API_KEY")
+
+
+def ai_is_anthropic() -> bool:
+    """Anthropic's own API, told apart by its keys."""
+    return ai_api_key().startswith("sk-ant-")
+
+
+def ai_api_url() -> str:
+    default = "https://api.anthropic.com" if ai_is_anthropic() else "https://api.openai.com/v1"
+    return env("AI_API_URL", default).rstrip("/")
 
 
 def ai_model() -> str:

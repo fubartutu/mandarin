@@ -1,5 +1,5 @@
-"""Reads a recipe out of text with a language model: an OpenAI-compatible
-API when one is set up, else Ollama on sampc.
+"""Reads a recipe out of text with a language model: Anthropic's API or an
+OpenAI-compatible one when a key is set up, else Ollama on sampc.
 
 Used when the simple rules (text_recipe.py) can't make sense of a scan, and
 for web pages that publish no recipe data. The model only sorts the text into
@@ -68,12 +68,46 @@ def _ollama_client() -> httpx.Client:
 
 
 def _api_client() -> httpx.Client:
-    """A client for the OpenAI-compatible API. Tests replace this."""
-    return httpx.Client(
-        base_url=settings.ai_api_url(),
-        headers={"Authorization": f"Bearer {settings.ai_api_key()}"},
-        timeout=120,
-    )
+    """A client for the AI API (Anthropic or OpenAI-compatible). Tests replace this."""
+    if settings.ai_is_anthropic():
+        headers = {"x-api-key": settings.ai_api_key(), "anthropic-version": "2023-06-01"}
+    else:
+        headers = {"Authorization": f"Bearer {settings.ai_api_key()}"}
+    return httpx.Client(base_url=settings.ai_api_url(), headers=headers, timeout=120)
+
+
+def _api_error(response: httpx.Response) -> None:
+    """Turns an API's refusal into a message for the app."""
+    if response.status_code in (401, 403):
+        raise HTTPException(502, "The AI service refused the API key.")
+    if response.status_code in (429, 529):
+        raise HTTPException(503, "The AI service is busy or out of credit. Try again later.")
+    if response.status_code >= 400:
+        raise HTTPException(502, f"The AI service answered {response.status_code}. Check AI_MODEL.")
+
+
+def _ask_anthropic(prompt: str) -> str:
+    """The reply's JSON text from Anthropic's Messages API. The model must
+    call a "save_recipe" tool whose input follows the schema, which makes
+    the reply's shape reliable."""
+    body = {
+        "model": settings.ai_model(),
+        "max_tokens": 4096,
+        "tools": [{"name": "save_recipe", "description": "Save the recipe found in the text.", "input_schema": SCHEMA}],
+        "tool_choice": {"type": "tool", "name": "save_recipe"},
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    try:
+        with _api_client() as client:
+            response = client.post("/v1/messages", json=body)
+    except httpx.HTTPError as e:
+        raise HTTPException(503, "Couldn't reach the AI service.") from e
+    _api_error(response)
+    try:
+        call = next(block for block in response.json()["content"] if block.get("type") == "tool_use")
+        return json.dumps(call["input"])
+    except (KeyError, StopIteration, ValueError, TypeError, AttributeError) as e:
+        raise HTTPException(502, "The AI's answer couldn't be read.") from e
 
 
 def _ask_api(prompt: str) -> str:
@@ -88,12 +122,7 @@ def _ask_api(prompt: str) -> str:
             response = client.post("/chat/completions", json=body)
     except httpx.HTTPError as e:
         raise HTTPException(503, "Couldn't reach the AI service.") from e
-    if response.status_code in (401, 403):
-        raise HTTPException(502, "The AI service refused the API key.")
-    if response.status_code == 429:
-        raise HTTPException(503, "The AI service is busy or out of credit. Try again later.")
-    if response.status_code >= 400:
-        raise HTTPException(502, f"The AI service answered {response.status_code}. Check AI_MODEL.")
+    _api_error(response)
     try:
         return response.json()["choices"][0]["message"]["content"]
     except (KeyError, IndexError, ValueError, TypeError) as e:
@@ -126,7 +155,7 @@ def extract(text: str) -> dict:
     """A recipe draft in the same shape as text_recipe.parse_text."""
     prompt = PROMPT + text[:MAX_TEXT]
     if settings.api_enabled():
-        reply = _ask_api(prompt)
+        reply = _ask_anthropic(prompt) if settings.ai_is_anthropic() else _ask_api(prompt)
     elif settings.ollama_enabled():
         reply = _ask_ollama(prompt)
     else:

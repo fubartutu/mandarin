@@ -57,7 +57,9 @@ def fake_ollama(request: httpx.Request) -> httpx.Response:
 
 
 def fake_api(request: httpx.Request) -> httpx.Response:
-    """Like OpenAI's Chat Completions."""
+    """Like OpenAI's Chat Completions, or Anthropic's Messages."""
+    if request.url.host == "api.anthropic.com":
+        return fake_anthropic(request)
     assert request.url.path == "/v1/chat/completions"
     if request.headers["Authorization"] != "Bearer good-key":
         return httpx.Response(401, json={"error": {"message": "bad key"}})
@@ -81,8 +83,8 @@ def client(monkeypatch):
     monkeypatch.setattr(ai, "_ollama_client", lambda: httpx.Client(
         base_url="http://sampc:11434", transport=httpx.MockTransport(fake_ollama)))
     monkeypatch.setattr(ai, "_api_client", lambda: httpx.Client(
-        base_url="https://api.example.com/v1", transport=httpx.MockTransport(fake_api),
-        headers={"Authorization": f"Bearer {settings.ai_api_key()}"}))
+        base_url=settings.ai_api_url(), transport=httpx.MockTransport(fake_api),
+        headers={"Authorization": f"Bearer {settings.ai_api_key()}", "x-api-key": settings.ai_api_key()}))
     for name in ("AI_API_KEY", "AI_MODEL", "OLLAMA_URL", "OLLAMA_MODEL"):
         monkeypatch.delenv(name, raising=False)
     return TestClient(scraper_app.app)
@@ -164,6 +166,28 @@ def test_web_page_without_recipe_data_goes_to_the_ai(monkeypatch):
     recipe = TestClient(scraper_app.app).post("/scrape", json={"url": "https://blog.example.com/slice"}).json()
     assert recipe["import_method"] == "ai"
     assert recipe["title"] == "Grandma's slice"
+
+
+def fake_anthropic(request: httpx.Request) -> httpx.Response:
+    assert request.url.path == "/v1/messages"
+    assert request.headers["x-api-key"] == "sk-ant-good"
+    body = json.loads(request.content)
+    assert body["tool_choice"] == {"type": "tool", "name": "save_recipe"}
+    assert body["tools"][0]["input_schema"]["properties"]["steps"]["type"] == "array"
+    answer = {**AI_ANSWER, "title": "Grandma's slice (Claude)"}
+    return httpx.Response(200, json={"content": [
+        {"type": "text", "text": "Saving it."},
+        {"type": "tool_use", "id": "t1", "name": "save_recipe", "input": answer},
+    ]})
+
+
+def test_an_anthropic_key_uses_claude(client, monkeypatch):
+    monkeypatch.setenv("AI_API_KEY", "sk-ant-good")
+    monkeypatch.setenv("AI_MODEL", "claude-model")
+    assert settings.ai_api_url() == "https://api.anthropic.com"
+    recipe = client.post("/paperless/documents/8/import").json()
+    assert recipe["import_method"] == "ai"
+    assert recipe["title"] == "Grandma's slice (Claude)"
 
 
 def test_the_api_is_used_when_set_up(client, monkeypatch):
