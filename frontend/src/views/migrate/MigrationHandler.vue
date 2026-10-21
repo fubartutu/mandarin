@@ -149,7 +149,7 @@ export default {
 import {computed, nextTick, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 
-import Logo from '@/assets/logo.svg?component'
+import Logo from '@/household/assets/mark.svg?component' // FORK: Mandarin mark instead of the llama
 import Message from '@/components/misc/Message.vue'
 import MigrationCredentialsForm, {type PlankaCredentials} from './MigrationCredentialsForm.vue'
 

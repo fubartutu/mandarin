@@ -79,6 +79,11 @@ another package), so in practice:
   `client/queryClient.ts` and `sw.ts` delegate to `household/offline.ts` and `household/sw.ts`.
   Upstream's `sw.ts` precached twice, and the empty second copy wiped the cache on activate. That
   line is disabled (FORK); keep it disabled after merges, or the app won't open offline.
+- **Branding:** the mandarin mark and illustrations are SVGs in `frontend/src/household/assets`;
+  Vikunja's llama pictures are swapped out by FORK lines (Ready, NoAuthWrapper, ShowTasks,
+  MigrationHandler). Home-screen and tab icons live in `public/images/household`, rendered by
+  `node scripts/household-icons.mjs`; index.html, vite.config.ts and useTimeTrackingFavicon.ts
+  point there. Inline SVG components need unique gradient ids per file (svgo is off).
 - After changing a v2 route or model, run `mage generate:frontend-client` and commit
   `frontend/src/client/generated`. On merge conflicts there, regenerate; never hand-merge.
 

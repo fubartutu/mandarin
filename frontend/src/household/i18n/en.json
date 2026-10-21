@@ -177,5 +177,8 @@
 				"none": "No scans tagged \"{tag}\" in Paperless."
 			}
 		}
+	},
+	"ready": {
+		"loading": "Mandarin is loading…"
 	}
 }

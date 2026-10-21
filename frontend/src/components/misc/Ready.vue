@@ -67,7 +67,7 @@
 </template>
 
 <script lang="ts" setup>
-import Logo from '@/assets/logo.svg?component'
+import Logo from '@/household/assets/mark.svg?component' // FORK: Mandarin mark instead of the llama
 import ApiConfig from '@/components/misc/ApiConfig.vue'
 import Message from '@/components/misc/Message.vue'
 import CustomTransition from '@/components/misc/CustomTransition.vue'
@@ -118,7 +118,7 @@ const baseStore = useBaseStore()
 }
 
 .offline {
-	background: url('@/assets/llama-nightscape.jpg') no-repeat center;
+	background: url('@/household/assets/offline-night.svg') no-repeat center; // FORK: Mandarin picture
 	background-size: cover;
 	block-size: 100vh;
 }

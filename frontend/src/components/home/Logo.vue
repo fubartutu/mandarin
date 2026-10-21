@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useConfigStore } from '@/stores/config'
 import { useColorScheme } from '@/composables/useColorScheme'
 
-// FORK: Mandarin logo placeholder (no pride variant yet, so both point at it)
+// FORK: Mandarin logo (no pride variant, so both point at it)
 import LogoFull from '@/household/assets/logo-full.svg?component'
 import LogoFullPride from '@/household/assets/logo-full.svg?component'
 import {APP_NAME} from '@/household/branding'

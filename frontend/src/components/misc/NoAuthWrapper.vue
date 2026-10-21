@@ -84,8 +84,9 @@ useTitle(() => title.value)
 
 <style lang="scss" scoped>
 .no-auth-wrapper {
-	background: var(--site-background) url("@/assets/llama.svg?url") no-repeat
-		fixed bottom left;
+	// FORK: Mandarin branch instead of the llama
+	background: var(--site-background) url("@/household/assets/login-corner.svg?url") no-repeat
+		fixed bottom left / min(32rem, 60vw);
 	min-block-size: 100vh;
 	display: flex;
 	flex-direction: column;
@@ -122,7 +123,7 @@ useTitle(() => title.value)
 	}
 
 	@media screen and (min-width: $tablet) {
-		background: url("@/assets/no-auth-image.jpg") no-repeat bottom/cover;
+		background: url("@/household/assets/login-side.svg") no-repeat bottom/cover; // FORK: Mandarin picture
 		position: relative;
 
 		&.has-message {
