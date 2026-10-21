@@ -53,6 +53,7 @@ func GetTables() []any {
 		&ShoppingNotStocked{},
 		&ShoppingChange{},
 		&ShoppingConflict{},
+		&ShoppingItemAlias{},
 	}
 }
 

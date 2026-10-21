@@ -50,7 +50,7 @@ func TestAddShoppingSync20261021120000(t *testing.T) {
 	assert.Contains(t, indexNames(t, x, "shopping_items"), "uid")
 
 	rows := []map[string]any{}
-	require.NoError(t, x.Table("shopping_items").Cols("uid").Find(&rows))
+	require.NoError(t, x.Table("shopping_items").Cols("uid").OrderBy("id").Find(&rows)) // Milk first
 	require.Len(t, rows, 2)
 	assert.Len(t, rows[0]["uid"], 36, "existing items got a uid")
 	assert.NotEqual(t, rows[0]["uid"], rows[1]["uid"])

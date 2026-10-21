@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest'
 
 import {normalizeItem} from './queries'
-import {groupItems} from './useShopping'
+import {findDuplicate, groupItems} from './useShopping'
 
 const categories = [
 	{id: 1, title: 'Fruit & Veg', position: 1},
@@ -54,5 +54,25 @@ describe('groupItems', () => {
 		], categories, 'Other')
 
 		expect(groups[0].items.map(i => i.name)).toEqual(['A', 'B', 'C'])
+	})
+})
+
+describe('findDuplicate', () => {
+	const items = [
+		item(1, 'Milk', {quantity: 2, unit: 'L'}),
+		item(2, 'Bread', {done: true}),
+		item(3, 'Eggs', {note: 'free range'}),
+	]
+	const add = (name: string, quantity = 0, unit = '') => ({list_id: 1, name, quantity, unit})
+
+	it('finds an unticked item with the same name and amount', () => {
+		expect(findDuplicate(items, add(' milk ', 2, 'l'))?.id).toBe(1)
+	})
+
+	it('ignores other amounts, ticked items, items with a note and other lists', () => {
+		expect(findDuplicate(items, add('Milk', 1, 'L'))).toBeUndefined()
+		expect(findDuplicate(items, add('Bread'))).toBeUndefined()
+		expect(findDuplicate(items, add('Eggs'))).toBeUndefined()
+		expect(findDuplicate(items, {...add('Milk', 2, 'L'), list_id: 2})).toBeUndefined()
 	})
 })

@@ -118,6 +118,12 @@ func ApplySyncOps(s *xorm.Session, a web.Auth, ops []ShoppingSyncOp) ([]*Shoppin
 		// A phone with its clock ahead mustn't win every future conflict.
 		at := time.UnixMilli(min(op.At, now.UnixMilli()))
 		var err error
+		if op.Type != OpItemCreate {
+			// An edit to an add that was merged acts on the merged item.
+			if op.ItemUID, err = resolveUID(s, op.ItemUID); err != nil {
+				return nil, err
+			}
+		}
 		switch op.Type {
 		case OpItemCreate:
 			err = syncCreate(s, u, op, at)
@@ -221,8 +227,11 @@ func syncCreate(s *xorm.Session, u *user.User, op *ShoppingSyncOp, at time.Time)
 	if err := op.Set.validate(); err != nil {
 		return err
 	}
-	// Already applied, or added and removed again before this arrived.
+	// Already applied (or merged), or added and removed again before this arrived.
 	if _, exists, err := getItemByUID(s, op.ItemUID); err != nil || exists {
+		return err
+	}
+	if merged, err := resolveUID(s, op.ItemUID); err != nil || merged != op.ItemUID {
 		return err
 	}
 	if deleted, err := itemDeleted(s, op.ItemUID); err != nil || deleted {
@@ -239,6 +248,14 @@ func syncCreate(s *xorm.Session, u *user.User, op *ShoppingSyncOp, at time.Time)
 	var err error
 	if item.CategoryID, err = knownCategory(s, item.CategoryID); err != nil {
 		return err
+	}
+	// Someone else added the same thing while this phone was offline.
+	duplicate, err := findDuplicate(s, item)
+	if err != nil {
+		return err
+	}
+	if duplicate != nil {
+		return mergeInto(s, op.ItemUID, duplicate)
 	}
 	return item.insert(s, u, at)
 }

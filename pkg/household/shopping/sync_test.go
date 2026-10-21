@@ -307,3 +307,55 @@ func TestPullChanges(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestSyncMergesDuplicates(t *testing.T) {
+	milk := func(listID int64, uid string, minute int) ShoppingSyncOp {
+		op := createOp(listID, uid, "Milk", minute)
+		op.Set.Quantity, op.Set.Unit = ptr(2.0), ptr("L")
+		return op
+	}
+	countMilk := func(t *testing.T, s *xorm.Session) int64 {
+		t.Helper()
+		count, err := s.Where("LOWER(name) = ?", "milk").Count(&ShoppingItem{})
+		require.NoError(t, err)
+		return count
+	}
+
+	t.Run("an identical add is folded into the item already there", func(t *testing.T) {
+		s := setup(t)
+		list := groceries(t, s)
+		first, second := uuid.NewString(), uuid.NewString()
+		apply(t, s, milk(list.ID, first, 0))
+		secondAdd := milk(list.ID, second, 1)
+		secondAdd.Set.Name = ptr(" milk ") // case and spaces don't matter
+		apply(t, s, secondAdd, secondAdd)
+		assert.Equal(t, int64(1), countMilk(t, s))
+
+		// The second phone's later edits use its own uid and reach the merged item.
+		note := ShoppingSyncOp{ID: uuid.NewString(), Type: OpItemUpdate, At: ms(2), ItemUID: second,
+			Set: &ShoppingItemFields{Note: ptr("lactose free")}, Before: &ShoppingItemFields{Note: ptr("")}}
+		apply(t, s, note, tickOp(second, true, 3))
+		item := itemByUID(t, s, first)
+		assert.Equal(t, "lactose free", item.Note)
+		assert.True(t, item.Done)
+
+		apply(t, s, ShoppingSyncOp{ID: uuid.NewString(), Type: OpItemDelete, At: ms(4), ItemUID: second})
+		assert.Equal(t, int64(0), countMilk(t, s))
+	})
+	t.Run("different amounts, notes, ticked items and other lists stay separate", func(t *testing.T) {
+		s := setup(t)
+		list := groceries(t, s)
+		other := &ShoppingList{Title: "Kmart"}
+		require.NoError(t, other.Create(s, user1))
+
+		ticked := uuid.NewString()
+		apply(t, s, milk(list.ID, ticked, 0), tickOp(ticked, true, 1))
+		apply(t, s, milk(list.ID, uuid.NewString(), 2)) // the ticked one doesn't count
+		oneLitre := milk(list.ID, uuid.NewString(), 3)
+		oneLitre.Set.Quantity = ptr(1.0)
+		withNote := milk(list.ID, uuid.NewString(), 4)
+		withNote.Set.Note = ptr("for the cake")
+		apply(t, s, oneLitre, withNote, milk(other.ID, uuid.NewString(), 5))
+		assert.Equal(t, int64(5), countMilk(t, s))
+	})
+}

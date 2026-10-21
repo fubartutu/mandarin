@@ -63,6 +63,8 @@ another package), so in practice:
   `recordChange` (or `recordItemChange`) in the same transaction, or phones never see it. Item edits
   must keep `FieldTimes` up to date (latest change wins per field). Custom handlers that write must
   call `events.DispatchPending(ctx, s)` after commit, so open apps get the websocket "changed" push.
+  An add identical to an unticked item is merged into it (`merge.go`); its uid becomes an alias
+  that `ApplySyncOps` resolves, so look items up by resolved uid in new op types.
 - **Offline start:** small FORK hooks in `stores/auth.ts`, `stores/base.ts`, `Ready.vue`,
   `client/queryClient.ts` and `sw.ts` delegate to `household/offline.ts` and `household/sw.ts`.
   Upstream's `sw.ts` precached twice, and the empty second copy wiped the cache on activate. That

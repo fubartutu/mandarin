@@ -139,6 +139,7 @@ import {useStorage} from '@vueuse/core'
 
 import BaseButton from '@/components/base/BaseButton.vue'
 import {useTitle} from '@/composables/useTitle'
+import {success} from '@/message'
 
 import AddItemBar from './components/AddItemBar.vue'
 import CategoryGroup from './components/CategoryGroup.vue'
@@ -158,6 +159,7 @@ import type {ParsedItem} from './quantity'
 import {createOp, deleteOp, notStockedOp, updateOp} from './sync/model'
 import {useShoppingOnline, useShoppingSync} from './sync/useShoppingSync'
 import {
+	findDuplicate,
 	groupItems,
 	itemsForShop,
 	useShoppingData,
@@ -238,13 +240,19 @@ function addItem(item: ParsedItem & {category_id: number}) {
 		? item.category_id
 		: known?.category_id ?? 0
 	const keepLast = known && item.quantity === 0 && item.unit === ''
-	sync.change(createOp({
+	const newItem = {
 		name: known?.name ?? item.name,
 		quantity: keepLast ? known.quantity : item.quantity,
 		unit: keepLast ? known.unit : item.unit,
 		list_id: activeListId.value,
 		category_id: categoryId,
-	}))
+	}
+	const duplicate = findDuplicate(items.value, newItem)
+	if (duplicate) {
+		success({message: t('household.shopping.alreadyOnList', {name: duplicate.name})})
+		return
+	}
+	sync.change(createOp(newItem))
 }
 
 function toggleItem(item: ShoppingItemResponse) {

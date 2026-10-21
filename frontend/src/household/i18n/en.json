@@ -14,6 +14,7 @@
 			"category": "Category",
 			"noCategory": "No category",
 			"empty": "Nothing to buy. Add something above.",
+			"alreadyOnList": "{name} is already on the list.",
 			"ticked": "Ticked",
 			"clearTicked": "Clear ticked",
 			"tick": "Tick off {name}",

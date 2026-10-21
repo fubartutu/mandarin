@@ -69,7 +69,7 @@ func setup(t *testing.T) *xorm.Session {
 	s := db.NewSession()
 	t.Cleanup(func() { s.Close() })
 
-	for _, table := range []string{"shopping_items", "shopping_lists", "shopping_categories", "shopping_shops", "shopping_catalog_items", "shopping_not_stocked", "shopping_changes", "shopping_conflicts"} {
+	for _, table := range []string{"shopping_items", "shopping_lists", "shopping_categories", "shopping_shops", "shopping_catalog_items", "shopping_not_stocked", "shopping_changes", "shopping_conflicts", "shopping_item_aliases"} {
 		_, err := s.Exec("DELETE FROM " + table)
 		require.NoError(t, err)
 	}
