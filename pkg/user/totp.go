@@ -91,8 +91,12 @@ func GetTOTPForUser(s *xorm.Session, user *User) (t *TOTP, err error) {
 	return
 }
 
-// EnrollTOTP creates a new TOTP entry for the user - it does not enable it yet.
-func EnrollTOTP(s *xorm.Session, user *User) (t *TOTP, err error) {
+// EnrollTOTP creates a new TOTP entry for the user once their password checks out - it does not enable it yet.
+func EnrollTOTP(s *xorm.Session, user *User, password string) (t *TOTP, err error) {
+	if err = CheckReauthPassword(user, password); err != nil {
+		return
+	}
+
 	isEnrolled, err := s.Where("user_id = ?", user.ID).Exist(&TOTP{})
 	if err != nil {
 		return
@@ -119,9 +123,13 @@ func EnrollTOTP(s *xorm.Session, user *User) (t *TOTP, err error) {
 	return
 }
 
-// EnableTOTP enables totp for a user. The provided passcode is used to verify the user has a working totp setup.
-func EnableTOTP(s *xorm.Session, passcode *TOTPPasscode) (err error) {
-	t, err := ValidateTOTPPasscode(s, passcode)
+// EnableTOTP enables totp for a user once their password checks out. The passcode verifies the user has a working totp setup.
+func EnableTOTP(s *xorm.Session, u *User, password, passcode string) (err error) {
+	if err = CheckReauthPassword(u, password); err != nil {
+		return
+	}
+
+	t, err := ValidateTOTPPasscode(s, &TOTPPasscode{User: u, Passcode: passcode})
 	if err != nil {
 		return
 	}
@@ -139,6 +147,30 @@ func DisableTOTP(s *xorm.Session, user *User) (err error) {
 		Where("user_id = ?", user.ID).
 		Delete(&TOTP{})
 	return
+}
+
+// Needs a passcode so a stolen session plus the password can't strip the second factor. Rolls s back on failure.
+func DisableTOTPWithReauth(s *xorm.Session, u *User, password, passcode string) error {
+	err := ThrottleReauth(u.ID, func() error {
+		if err := CheckUserPassword(u, password); err != nil {
+			return err
+		}
+		if passcode == "" {
+			return ErrInvalidTOTPPasscode{}
+		}
+		_, err := ValidateTOTPPasscode(s, &TOTPPasscode{User: u, Passcode: passcode})
+		return err
+	})
+	if err != nil {
+		// Rolled back first: HandleFailedTOTPAuth needs its own write lock on SQLite.
+		_ = s.Rollback()
+		if passcode != "" && IsErrInvalidTOTPPasscode(err) {
+			HandleFailedTOTPAuth(u)
+		}
+		return err
+	}
+
+	return DisableTOTP(s, u)
 }
 
 // ValidateTOTPPasscode validated totp codes of users.
@@ -220,24 +252,10 @@ func HandleFailedTOTPAuth(user *User) {
 		return
 	}
 
-	a, _, err := keyvalue.Get(key)
+	attempts, _, err := keyvalue.GetInt64(key)
 	if err != nil {
 		log.Errorf("Could not get failed TOTP attempts for user %d: %s", user.ID, err)
 		return
-	}
-	// Redis backend returns the counter as a string; in-memory as int64.
-	attempts, ok := a.(int64)
-	if !ok {
-		attemptsStr, ok := a.(string)
-		if !ok {
-			log.Errorf("Unexpected type for failed TOTP attempts for user %d: %T", user.ID, a)
-			return
-		}
-		attempts, err = strconv.ParseInt(attemptsStr, 10, 64)
-		if err != nil {
-			log.Errorf("Could not convert failed TOTP attempts to int64 for user %d: %v, value: %s", user.ID, err, attemptsStr)
-			return
-		}
 	}
 
 	if attempts == 3 {

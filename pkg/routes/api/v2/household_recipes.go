@@ -375,7 +375,7 @@ func recipesImageUpload(ctx context.Context, in *recipeImageUploadInput) (*singl
 	src := in.RawBody.Data().Image
 	defer func() { _ = src.Close() }()
 	return changeRecipe(ctx, in.ID, func(s *xorm.Session, r *recipes.Recipe) error {
-		return r.AddImage(s, a, src)
+		return r.AddImage(ctx, s, a, src)
 	})
 }
 
@@ -397,7 +397,7 @@ func recipesImageFetch(ctx context.Context, in *struct {
 		return nil, translateDomainError(err)
 	}
 	return changeRecipe(ctx, in.ID, func(s *xorm.Session, r *recipes.Recipe) error {
-		return r.AddImage(s, a, bytes.NewReader(data))
+		return r.AddImage(ctx, s, a, bytes.NewReader(data))
 	})
 }
 

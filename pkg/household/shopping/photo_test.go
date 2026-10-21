@@ -49,7 +49,7 @@ func TestShoppingCatalog_Photo(t *testing.T) {
 	t.Run("stored shrunk, as JPEG, and flagged on items", func(t *testing.T) {
 		s := setup(t)
 		entry := catalogEntry(t, s, "Vegemite")
-		require.NoError(t, entry.SetPhoto(s, user1, testPNG(t, 2000, 1000)))
+		require.NoError(t, entry.SetPhoto(t.Context(), s, user1, testPNG(t, 2000, 1000)))
 		assert.True(t, entry.HasPhoto)
 
 		data, err := (&ShoppingCatalogItem{ID: entry.ID}).Photo(s)
@@ -67,7 +67,7 @@ func TestShoppingCatalog_Photo(t *testing.T) {
 	t.Run("small photos aren't enlarged", func(t *testing.T) {
 		s := setup(t)
 		entry := catalogEntry(t, s, "Milk")
-		require.NoError(t, entry.SetPhoto(s, user1, testPNG(t, 300, 200)))
+		require.NoError(t, entry.SetPhoto(t.Context(), s, user1, testPNG(t, 300, 200)))
 		data, err := entry.Photo(s)
 		require.NoError(t, err)
 		cfg, err := jpeg.DecodeConfig(bytes.NewReader(data))
@@ -78,9 +78,9 @@ func TestShoppingCatalog_Photo(t *testing.T) {
 	t.Run("replacing a photo deletes the old file", func(t *testing.T) {
 		s := setup(t)
 		entry := catalogEntry(t, s, "Milk")
-		require.NoError(t, entry.SetPhoto(s, user1, testPNG(t, 50, 50)))
+		require.NoError(t, entry.SetPhoto(t.Context(), s, user1, testPNG(t, 50, 50)))
 		oldFileID := entry.PhotoFileID
-		require.NoError(t, entry.SetPhoto(s, user1, testPNG(t, 60, 60)))
+		require.NoError(t, entry.SetPhoto(t.Context(), s, user1, testPNG(t, 60, 60)))
 		assert.NotEqual(t, oldFileID, entry.PhotoFileID)
 
 		_, err := files.FileStat(&files.File{ID: oldFileID})
@@ -89,7 +89,7 @@ func TestShoppingCatalog_Photo(t *testing.T) {
 
 	t.Run("not an image", func(t *testing.T) {
 		s := setup(t)
-		err := catalogEntry(t, s, "Milk").SetPhoto(s, user1, strings.NewReader("definitely not a picture"))
+		err := catalogEntry(t, s, "Milk").SetPhoto(t.Context(), s, user1, strings.NewReader("definitely not a picture"))
 		require.ErrorIs(t, err, ErrNotAnImage{})
 	})
 
@@ -99,7 +99,7 @@ func TestShoppingCatalog_Photo(t *testing.T) {
 		_, err := entry.Photo(s)
 		require.ErrorIs(t, err, ErrNoPhoto{CatalogItemID: entry.ID})
 
-		require.NoError(t, entry.SetPhoto(s, user1, testPNG(t, 50, 50)))
+		require.NoError(t, entry.SetPhoto(t.Context(), s, user1, testPNG(t, 50, 50)))
 		require.NoError(t, entry.DeletePhoto(s))
 		assert.False(t, entry.HasPhoto)
 		_, err = entry.Photo(s)

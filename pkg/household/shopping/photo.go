@@ -17,6 +17,7 @@
 package shopping
 
 import (
+	"context"
 	"errors"
 	"io"
 
@@ -33,12 +34,12 @@ const photoMaxEdge = 1024
 
 // SetPhoto stores src as the entry's photo, replacing any earlier one.
 // Callers must check CanUpdate first.
-func (c *ShoppingCatalogItem) SetPhoto(s *xorm.Session, a web.Auth, src io.Reader) error {
+func (c *ShoppingCatalogItem) SetPhoto(ctx context.Context, s *xorm.Session, a web.Auth, src io.Reader) error {
 	stored, err := getCatalogItem(s, c.ID)
 	if err != nil {
 		return err
 	}
-	f, err := household.StoreJPEG(s, a, src, photoMaxEdge, "shopping-item.jpg")
+	f, err := household.StoreJPEG(ctx, s, a, src, photoMaxEdge, "shopping-item.jpg")
 	if errors.Is(err, household.ErrNotAnImage) {
 		return ErrNotAnImage{}
 	}

@@ -93,6 +93,9 @@ another package), so in practice:
   English text that says "Vikunja" is overridden in `household/i18n/en.json` ("Powered by
   Vikunja" stays as credit). `household/branding.test.ts` fails when an upstream merge adds or
   changes such a string: add the override it names.
+- **API-token permissions:** since upstream v2.7.1, start-up panics if two routes would share a
+  token permission key. A new household resource with both a list and a read-one route must be
+  added to `crudResources` in `pkg/models/api_routes.go` (FORK block). The household webtests catch it.
 - After changing a v2 route or model, run `mage generate:frontend-client` and commit
   `frontend/src/client/generated`. On merge conflicts there, regenerate; never hand-merge.
 

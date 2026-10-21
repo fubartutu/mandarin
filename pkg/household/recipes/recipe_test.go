@@ -122,11 +122,11 @@ func TestRecipeImages(t *testing.T) {
 	r := addRecipe(t, s, "Toast", "2 slices bread")
 
 	for range maxImages {
-		require.NoError(t, r.AddImage(s, user1, bytes.NewReader(testPNG(t))))
+		require.NoError(t, r.AddImage(t.Context(), s, user1, bytes.NewReader(testPNG(t))))
 	}
 	require.Len(t, r.ImageIDs, maxImages)
-	require.ErrorAs(t, r.AddImage(s, user1, bytes.NewReader(testPNG(t))), &ErrTooManyImages{})
-	require.ErrorAs(t, (&Recipe{ID: r.ID}).AddImage(s, user1, bytes.NewReader([]byte("nope"))), &ErrTooManyImages{})
+	require.ErrorAs(t, r.AddImage(t.Context(), s, user1, bytes.NewReader(testPNG(t))), &ErrTooManyImages{})
+	require.ErrorAs(t, (&Recipe{ID: r.ID}).AddImage(t.Context(), s, user1, bytes.NewReader([]byte("nope"))), &ErrTooManyImages{})
 
 	data, err := r.Image(r.ImageIDs[0])
 	require.NoError(t, err)
@@ -153,5 +153,5 @@ func TestRecipeImages(t *testing.T) {
 func TestRecipeImageRejectsNonImages(t *testing.T) {
 	s := setup(t)
 	r := addRecipe(t, s, "Toast", "2 slices bread")
-	assert.ErrorAs(t, r.AddImage(s, user1, bytes.NewReader([]byte("not an image"))), &ErrNotAnImage{})
+	assert.ErrorAs(t, r.AddImage(t.Context(), s, user1, bytes.NewReader([]byte("not an image"))), &ErrNotAnImage{})
 }

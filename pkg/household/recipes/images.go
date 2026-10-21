@@ -76,7 +76,7 @@ func DownloadImage(ctx context.Context, imageURL string) ([]byte, error) {
 
 // AddImage stores src (shrunk to fit 1600px, as JPEG) as the recipe's last
 // image. Callers must check CanUpdate first.
-func (r *Recipe) AddImage(s *xorm.Session, a web.Auth, src io.Reader) error {
+func (r *Recipe) AddImage(ctx context.Context, s *xorm.Session, a web.Auth, src io.Reader) error {
 	stored, err := getRecipe(s, r.ID)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (r *Recipe) AddImage(s *xorm.Session, a web.Auth, src io.Reader) error {
 	if len(stored.ImageIDs) >= maxImages {
 		return ErrTooManyImages{}
 	}
-	f, err := household.StoreJPEG(s, a, src, imageMaxEdge, "recipe.jpg")
+	f, err := household.StoreJPEG(ctx, s, a, src, imageMaxEdge, "recipe.jpg")
 	if errors.Is(err, household.ErrNotAnImage) {
 		return ErrNotAnImage{}
 	}

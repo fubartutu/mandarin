@@ -1109,6 +1109,10 @@ export type MigrationMigrateBody = {
      * The OAuth code obtained after authorizing against the auth url.
      */
     code?: string;
+    /**
+     * The state the service handed back to the callback. It is single-use, expires after 10 minutes and only works for the user who requested the auth url.
+     */
+    state?: string;
 };
 
 export type MigrationStartedBodyBody = {
@@ -3957,6 +3961,10 @@ export type TotpDisableBodyBody = {
      * The current user's password, required to disable totp.
      */
     password?: string;
+    /**
+     * A current passcode from the user's authenticator, required to disable totp.
+     */
+    totp_passcode?: string;
 };
 
 export type TotpEnableBodyBody = {
@@ -3968,6 +3976,21 @@ export type TotpEnableBodyBody = {
      * The current totp passcode, used to confirm the authenticator is set up correctly.
      */
     passcode?: string;
+    /**
+     * The current user's password, required to enable totp.
+     */
+    password?: string;
+};
+
+export type TotpEnrollBodyBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The current user's password, required to enroll into totp.
+     */
+    password?: string;
 };
 
 export type User = {
@@ -4473,7 +4496,7 @@ export type Webhook = {
      */
     readonly id?: number;
     /**
-     * The id of the project this webhook target belongs to. Set from the URL, not the body.
+     * The id of the project this webhook target belongs to.
      */
     readonly project_id?: number;
     /**
@@ -4485,7 +4508,7 @@ export type Webhook = {
      */
     readonly updated?: string;
     /**
-     * The id of the user if this is a user-level webhook (mutually exclusive with project_id).
+     * The id of the user if this is a user-level webhook (mutually exclusive with project_id). Set from the route, not the body.
      */
     readonly user_id?: number;
 };
@@ -4977,6 +5000,10 @@ export type MigrationMigrateBodyWritable = {
      * The OAuth code obtained after authorizing against the auth url.
      */
     code?: string;
+    /**
+     * The state the service handed back to the callback. It is single-use, expires after 10 minutes and only works for the user who requested the auth url.
+     */
+    state?: string;
 };
 
 export type OverviewWritable = {
@@ -6158,6 +6185,10 @@ export type TotpDisableBodyBodyWritable = {
      * The current user's password, required to disable totp.
      */
     password?: string;
+    /**
+     * A current passcode from the user's authenticator, required to disable totp.
+     */
+    totp_passcode?: string;
 };
 
 export type TotpEnableBodyBodyWritable = {
@@ -6165,6 +6196,17 @@ export type TotpEnableBodyBodyWritable = {
      * The current totp passcode, used to confirm the authenticator is set up correctly.
      */
     passcode?: string;
+    /**
+     * The current user's password, required to enable totp.
+     */
+    password?: string;
+};
+
+export type TotpEnrollBodyBodyWritable = {
+    /**
+     * The current user's password, required to enroll into totp.
+     */
+    password?: string;
 };
 
 export type UserWritable = {
@@ -6994,7 +7036,7 @@ export type AvatarGetData = {
     };
     query?: {
         /**
-         * Desired avatar edge length in pixels. Clamped to the server's configured maximum if larger; providers that render fixed-size images may ignore it.
+         * Desired avatar edge length in pixels. Rounded up to 16, 32, 48, 64, 128, 256, 512 or 1024 and capped at the server's configured maximum; providers that render fixed-size images may ignore it.
          */
         size?: number;
     };
@@ -14429,7 +14471,7 @@ export type TotpEnableResponses = {
 export type TotpEnableResponse = TotpEnableResponses[keyof TotpEnableResponses];
 
 export type TotpEnrollData = {
-    body?: never;
+    body: TotpEnrollBodyBodyWritable;
     path?: never;
     query?: never;
     url: '/user/settings/totp/enroll';

@@ -193,6 +193,11 @@ func (u *User) IsBot() bool {
 	return u.BotOwnerID > 0
 }
 
+// OwnsAvatarFile is false for the default avatar file, which every new account shares.
+func (u *User) OwnsAvatarFile() bool {
+	return u.AvatarFileID != 0 && u.AvatarFileID != config.DefaultSettingsAvatarFileID.GetInt64()
+}
+
 // TableName returns the table name for users
 func (*User) TableName() string {
 	return "users"
@@ -268,6 +273,49 @@ func GetUserByID(s *xorm.Session, id int64) (user *User, err error) {
 
 	u := *raw
 	return &u, finishLoadedUser(&u)
+}
+
+// Unlike GetUserByID, also refuses accounts awaiting email confirmation, which is how admins freeze one.
+func GetUserByIDForAuth(s *xorm.Session, id int64) (*User, error) {
+	u, err := GetUserByID(s, id)
+	if err != nil {
+		return u, err
+	}
+	return u, checkUserAndBotOwnerCanAuthenticate(s, u)
+}
+
+func GetUserByUsernameForAuth(s *xorm.Session, username string) (*User, error) {
+	u, err := GetUserByUsername(s, username)
+	if err != nil {
+		return u, err
+	}
+	return u, checkUserAndBotOwnerCanAuthenticate(s, u)
+}
+
+// Disabling an owner doesn't touch their bots' status, so a bot inherits the owner's gate.
+func checkUserAndBotOwnerCanAuthenticate(s *xorm.Session, u *User) error {
+	if err := CheckUserCanAuthenticate(u); err != nil || !u.IsBot() {
+		return err
+	}
+	_, err := GetUserByIDForAuth(s, u.BotOwnerID)
+	return err
+}
+
+func CheckUserCanAuthenticate(u *User) error {
+	switch u.Status {
+	case StatusEmailConfirmationRequired:
+		return ErrEmailNotConfirmed{UserID: u.ID}
+	case StatusDisabled:
+		return &ErrAccountDisabled{UserID: u.ID}
+	case StatusAccountLocked:
+		return &ErrAccountLocked{UserID: u.ID}
+	case StatusActive:
+	}
+	return nil
+}
+
+func IsErrUserCannotAuthenticate(err error) bool {
+	return IsErrUserStatusError(err) || IsErrEmailNotConfirmed(err)
 }
 
 // GetUserByUsername gets a user from its username. This is an extra function to be able to add an extra error check.
@@ -458,24 +506,10 @@ func handleFailedPassword(ctx context.Context, user *User) {
 		return
 	}
 
-	a, _, err := keyvalue.Get(key)
+	attempts, _, err := keyvalue.GetInt64(key)
 	if err != nil {
 		log.Errorf("Could not get failed password attempts for user %d: %s", user.ID, err)
 		return
-	}
-	attempts, ok := a.(int64)
-	if !ok {
-		attemptsStr, ok := a.(string)
-		if !ok {
-			log.Errorf("Unexpected type for failed password attempts: %v", a)
-			return
-		}
-		var err error
-		attempts, err = strconv.ParseInt(attemptsStr, 10, 64)
-		if err != nil {
-			log.Errorf("Could not convert failed password attempts to int64: %v, value: %s", err, attemptsStr)
-			return
-		}
 	}
 	if attempts != 3 {
 		return
@@ -755,7 +789,10 @@ func SetUserStatus(s *xorm.Session, user *User, status Status) (err error) {
 	_, err = s.Where("id = ?", user.ID).
 		Cols("status").
 		Update(&User{Status: status})
-	return
+	if err != nil {
+		return err
+	}
+	return InvalidateSessionAuthCacheOnCommit(s, user.ID)
 }
 
 // GuardLastAdmin refuses demoting or deleting the last reachable admin; only active, non-deletion-scheduled admins count since the rest cannot log in.
@@ -825,5 +862,8 @@ func (u *User) SetStatus(s *xorm.Session, status Status) (err error) {
 		Where("id = ?", u.ID).
 		Cols("status").
 		Update(u)
-	return
+	if err != nil {
+		return err
+	}
+	return InvalidateSessionAuthCacheOnCommit(s, u.ID)
 }

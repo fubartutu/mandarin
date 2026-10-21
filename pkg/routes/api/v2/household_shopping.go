@@ -788,7 +788,7 @@ func shoppingCatalogPhotoUpload(ctx context.Context, in *shoppingPhotoUploadInpu
 
 	src := in.RawBody.Data().Photo
 	defer func() { _ = src.Close() }()
-	if err := entry.SetPhoto(s, a, src); err != nil {
+	if err := entry.SetPhoto(ctx, s, a, src); err != nil {
 		_ = s.Rollback()
 		return nil, translateDomainError(err)
 	}

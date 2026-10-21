@@ -1137,31 +1137,6 @@ func (err ErrInvalidPreviewSize) HTTPError() web.HTTPError {
 	}
 }
 
-// ErrTaskAttachmentPreviewBusy represents an error where a preview waited too long for other previews to finish generating.
-type ErrTaskAttachmentPreviewBusy struct{}
-
-// IsErrTaskAttachmentPreviewBusy checks if an error is ErrTaskAttachmentPreviewBusy.
-func IsErrTaskAttachmentPreviewBusy(err error) bool {
-	var busy ErrTaskAttachmentPreviewBusy
-	return errors.As(err, &busy)
-}
-
-func (err ErrTaskAttachmentPreviewBusy) Error() string {
-	return "Timed out waiting for capacity to generate a task attachment preview"
-}
-
-// ErrCodeTaskAttachmentPreviewBusy holds the unique world-error code of this error
-const ErrCodeTaskAttachmentPreviewBusy = 4037
-
-// HTTPError holds the http error description
-func (err ErrTaskAttachmentPreviewBusy) HTTPError() web.HTTPError {
-	return web.HTTPError{
-		HTTPCode: http.StatusServiceUnavailable,
-		Code:     ErrCodeTaskAttachmentPreviewBusy,
-		Message:  "The server is busy generating other previews, please try again later.",
-	}
-}
-
 // ErrInvalidSortParam represents an error where the provided sort param is invalid
 type ErrInvalidSortParam struct {
 	SortBy string
@@ -2191,6 +2166,30 @@ func (err ErrTaskAlreadyExistsInBucket) HTTPError() web.HTTPError {
 		HTTPCode: http.StatusBadRequest,
 		Code:     ErrCodeTaskAlreadyExistsInBucket,
 		Message:  "This task already exists in a bucket for this project view.",
+	}
+}
+
+type ErrTooManyBuckets struct {
+	ProjectViewID int64
+	Max           int
+}
+
+func IsErrTooManyBuckets(err error) bool {
+	_, ok := err.(ErrTooManyBuckets)
+	return ok
+}
+
+func (err ErrTooManyBuckets) Error() string {
+	return fmt.Sprintf("Project view has too many buckets [ProjectViewID: %d, Max: %d]", err.ProjectViewID, err.Max)
+}
+
+const ErrCodeTooManyBuckets = 10007
+
+func (err ErrTooManyBuckets) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusPreconditionFailed,
+		Code:     ErrCodeTooManyBuckets,
+		Message:  fmt.Sprintf("A project view can have at most %d buckets.", err.Max),
 	}
 }
 

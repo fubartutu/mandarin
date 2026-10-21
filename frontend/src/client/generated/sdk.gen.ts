@@ -805,7 +805,7 @@ export const migrationCsvStatus = <ThrowOnError extends boolean = true>(options?
 /**
  * Get the auth url for microsoft-todo
  *
- * Returns the OAuth url the user needs to authenticate against. The code obtained there is passed back to the migrate endpoint.
+ * Returns the OAuth url the user needs to authenticate against. The url embeds a fresh state bound to the authenticated user; the code and state obtained there are passed back to the migrate endpoint.
  */
 export const migrationMicrosoftTodoAuth = <ThrowOnError extends boolean = true>(options?: Options<MigrationMicrosoftTodoAuthData, ThrowOnError>): RequestResult<MigrationMicrosoftTodoAuthResponses, MigrationMicrosoftTodoAuthErrors, ThrowOnError> => (options?.client ?? client).get<MigrationMicrosoftTodoAuthResponses, MigrationMicrosoftTodoAuthErrors, ThrowOnError>({
     security: [{
@@ -824,7 +824,7 @@ export const migrationMicrosoftTodoAuth = <ThrowOnError extends boolean = true>(
 /**
  * Migrate from microsoft-todo
  *
- * Starts a migration of the authenticated user's data from this service into Vikunja. The migration runs asynchronously; this returns once it has been queued. Refuses with 412 if a migration for this service is already running.
+ * Starts a migration of the authenticated user's data from this service into Vikunja. The migration runs asynchronously; this returns once it has been queued. Refuses with 400 if the state is missing, expired, already used or was issued to another user, and with 412 if a migration for this service is already running.
  */
 export const migrationMicrosoftTodoMigrate = <ThrowOnError extends boolean = true>(options: Options<MigrationMicrosoftTodoMigrateData, ThrowOnError>): RequestResult<MigrationMicrosoftTodoMigrateResponses, MigrationMicrosoftTodoMigrateErrors, ThrowOnError> => (options.client ?? client).post<MigrationMicrosoftTodoMigrateResponses, MigrationMicrosoftTodoMigrateErrors, ThrowOnError>({
     security: [{
@@ -951,7 +951,7 @@ export const migrationTicktickStatus = <ThrowOnError extends boolean = true>(opt
 /**
  * Get the auth url for todoist
  *
- * Returns the OAuth url the user needs to authenticate against. The code obtained there is passed back to the migrate endpoint.
+ * Returns the OAuth url the user needs to authenticate against. The url embeds a fresh state bound to the authenticated user; the code and state obtained there are passed back to the migrate endpoint.
  */
 export const migrationTodoistAuth = <ThrowOnError extends boolean = true>(options?: Options<MigrationTodoistAuthData, ThrowOnError>): RequestResult<MigrationTodoistAuthResponses, MigrationTodoistAuthErrors, ThrowOnError> => (options?.client ?? client).get<MigrationTodoistAuthResponses, MigrationTodoistAuthErrors, ThrowOnError>({
     security: [{
@@ -970,7 +970,7 @@ export const migrationTodoistAuth = <ThrowOnError extends boolean = true>(option
 /**
  * Migrate from todoist
  *
- * Starts a migration of the authenticated user's data from this service into Vikunja. The migration runs asynchronously; this returns once it has been queued. Refuses with 412 if a migration for this service is already running.
+ * Starts a migration of the authenticated user's data from this service into Vikunja. The migration runs asynchronously; this returns once it has been queued. Refuses with 400 if the state is missing, expired, already used or was issued to another user, and with 412 if a migration for this service is already running.
  */
 export const migrationTodoistMigrate = <ThrowOnError extends boolean = true>(options: Options<MigrationTodoistMigrateData, ThrowOnError>): RequestResult<MigrationTodoistMigrateResponses, MigrationTodoistMigrateErrors, ThrowOnError> => (options.client ?? client).post<MigrationTodoistMigrateResponses, MigrationTodoistMigrateErrors, ThrowOnError>({
     security: [{
@@ -1012,7 +1012,7 @@ export const migrationTodoistStatus = <ThrowOnError extends boolean = true>(opti
 /**
  * Get the auth url for trello
  *
- * Returns the OAuth url the user needs to authenticate against. The code obtained there is passed back to the migrate endpoint.
+ * Returns the OAuth url the user needs to authenticate against. The url embeds a fresh state bound to the authenticated user; the code and state obtained there are passed back to the migrate endpoint.
  */
 export const migrationTrelloAuth = <ThrowOnError extends boolean = true>(options?: Options<MigrationTrelloAuthData, ThrowOnError>): RequestResult<MigrationTrelloAuthResponses, MigrationTrelloAuthErrors, ThrowOnError> => (options?.client ?? client).get<MigrationTrelloAuthResponses, MigrationTrelloAuthErrors, ThrowOnError>({
     security: [{
@@ -1031,7 +1031,7 @@ export const migrationTrelloAuth = <ThrowOnError extends boolean = true>(options
 /**
  * Migrate from trello
  *
- * Starts a migration of the authenticated user's data from this service into Vikunja. The migration runs asynchronously; this returns once it has been queued. Refuses with 412 if a migration for this service is already running.
+ * Starts a migration of the authenticated user's data from this service into Vikunja. The migration runs asynchronously; this returns once it has been queued. Refuses with 400 if the state is missing, expired, already used or was issued to another user, and with 412 if a migration for this service is already running.
  */
 export const migrationTrelloMigrate = <ThrowOnError extends boolean = true>(options: Options<MigrationTrelloMigrateData, ThrowOnError>): RequestResult<MigrationTrelloMigrateResponses, MigrationTrelloMigrateErrors, ThrowOnError> => (options.client ?? client).post<MigrationTrelloMigrateResponses, MigrationTrelloMigrateErrors, ThrowOnError>({
     security: [{
@@ -1517,7 +1517,7 @@ export const projectsBackgroundUnsplashSet = <ThrowOnError extends boolean = tru
 /**
  * Upload a project background
  *
- * Uploads an image via multipart/form-data under the "background" field and sets it as the project's background. Requires write access to the project. The image is resized server-side and stored as JPEG; it replaces any previous background (idempotent replace, hence PUT). Returns the updated project.
+ * Uploads an image via multipart/form-data under the "background" field and sets it as the project's background. Requires write access to the project. The image is resized server-side and stored as JPEG; it replaces any previous background (idempotent replace, hence PUT). Returns the updated project. A file that is not a decodable image of a supported format fails with 400, an image over the pixel limit fails with 400 and code 4032, and the request fails with 503 and code 4037 when the server is too busy decoding other images.
  */
 export const projectsBackgroundUpload = <ThrowOnError extends boolean = true>(options: Options<ProjectsBackgroundUploadData, ThrowOnError>): RequestResult<ProjectsBackgroundUploadResponses, ProjectsBackgroundUploadErrors, ThrowOnError> => (options.client ?? client).put<ProjectsBackgroundUploadResponses, ProjectsBackgroundUploadErrors, ThrowOnError>({
     ...formDataBodySerializer,
@@ -2163,7 +2163,7 @@ export const projectViewTasksList = <ThrowOnError extends boolean = true>(option
 /**
  * List a project's webhooks
  *
- * Returns the webhook targets configured for the given project, paginated. Requires read access to the project. Secret and basic-auth credentials are never included.
+ * Returns the webhook targets configured for the given project, paginated. Requires write access to the project, because target URLs often carry the receiver's credential. Secret and basic-auth credentials are never included.
  */
 export const webhooksList = <ThrowOnError extends boolean = true>(options: Options<WebhooksListData, ThrowOnError>): RequestResult<WebhooksListResponses, WebhooksListErrors, ThrowOnError> => (options.client ?? client).get<WebhooksListResponses, WebhooksListErrors, ThrowOnError>({
     security: [{
@@ -4821,7 +4821,7 @@ export const sessionsDelete = <ThrowOnError extends boolean = true>(options: Opt
 /**
  * Upload your avatar
  *
- * Uploads an image as the authenticated user's avatar and switches their avatar provider to "upload". The image is validated to be an image, resized server-side, and stored as PNG. Replaces any previously uploaded avatar (idempotent replace, hence PUT).
+ * Uploads an image as the authenticated user's avatar and switches their avatar provider to "upload". The image is validated to be an image, resized server-side, and stored as PNG. Replaces any previously uploaded avatar (idempotent replace, hence PUT). An image the server cannot decode fails with 400, an image over the pixel limit fails with 400 and code 4032, and the request fails with 503 and code 4037 when the server is too busy decoding other images.
  */
 export const userAvatarUpload = <ThrowOnError extends boolean = true>(options: Options<UserAvatarUploadData, ThrowOnError>): RequestResult<UserAvatarUploadResponses, UserAvatarUploadErrors, ThrowOnError> => (options.client ?? client).put<UserAvatarUploadResponses, UserAvatarUploadErrors, ThrowOnError>({
     ...formDataBodySerializer,
@@ -5112,7 +5112,7 @@ export const totpGet = <ThrowOnError extends boolean = true>(options?: Options<T
 /**
  * Disable totp
  *
- * Removes all totp settings for the authenticated user. Requires the current password for confirmation. Local accounts only.
+ * Removes all totp settings for the authenticated user. Requires the current password and a current totp passcode. Wrong passwords and passcodes are throttled per user (429). Local accounts only.
  */
 export const totpDisable = <ThrowOnError extends boolean = true>(options: Options<TotpDisableData, ThrowOnError>): RequestResult<TotpDisableResponses, TotpDisableErrors, ThrowOnError> => (options.client ?? client).post<TotpDisableResponses, TotpDisableErrors, ThrowOnError>({
     security: [{
@@ -5135,7 +5135,7 @@ export const totpDisable = <ThrowOnError extends boolean = true>(options: Option
 /**
  * Enable totp
  *
- * Activates a previously enrolled totp setting by confirming a passcode. All existing sessions are invalidated. Local accounts only.
+ * Activates a previously enrolled totp setting by confirming a passcode. Requires the current password; wrong passwords are throttled per user (429). All existing sessions are invalidated. Local accounts only.
  */
 export const totpEnable = <ThrowOnError extends boolean = true>(options: Options<TotpEnableData, ThrowOnError>): RequestResult<TotpEnableResponses, TotpEnableErrors, ThrowOnError> => (options.client ?? client).post<TotpEnableResponses, TotpEnableErrors, ThrowOnError>({
     security: [{
@@ -5158,9 +5158,9 @@ export const totpEnable = <ThrowOnError extends boolean = true>(options: Options
 /**
  * Enroll into totp
  *
- * Creates the totp secret for the authenticated user. The setup must still be confirmed via the enable endpoint before it takes effect. Local accounts only.
+ * Creates the totp secret for the authenticated user. Requires the current password; wrong passwords are throttled per user (429). The setup must still be confirmed via the enable endpoint before it takes effect. Local accounts only.
  */
-export const totpEnroll = <ThrowOnError extends boolean = true>(options?: Options<TotpEnrollData, ThrowOnError>): RequestResult<TotpEnrollResponses, TotpEnrollErrors, ThrowOnError> => (options?.client ?? client).post<TotpEnrollResponses, TotpEnrollErrors, ThrowOnError>({
+export const totpEnroll = <ThrowOnError extends boolean = true>(options: Options<TotpEnrollData, ThrowOnError>): RequestResult<TotpEnrollResponses, TotpEnrollErrors, ThrowOnError> => (options.client ?? client).post<TotpEnrollResponses, TotpEnrollErrors, ThrowOnError>({
     security: [{
             key: 'JWTKeyAuth',
             scheme: 'bearer',
@@ -5171,7 +5171,11 @@ export const totpEnroll = <ThrowOnError extends boolean = true>(options?: Option
             type: 'http'
         }],
     url: '/user/settings/totp/enroll',
-    ...options
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
