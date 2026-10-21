@@ -93,6 +93,9 @@ another package), so in practice:
   English text that says "Vikunja" is overridden in `household/i18n/en.json` ("Powered by
   Vikunja" stays as credit). `household/branding.test.ts` fails when an upstream merge adds or
   changes such a string: add the override it names.
+- **Colours:** `household/theme.scss` (imported by `setup.ts`) overrides Vikunja's `--primary-*`
+  tokens with mandarin orange, checked for WCAG contrast in light and dark mode; `index.html` and
+  `vite.config.ts` carry the matching `theme-color` (FORK).
 - **API-token permissions:** since upstream v2.7.1, start-up panics if two routes would share a
   token permission key. A new household resource with both a list and a read-one route must be
   added to `crudResources` in `pkg/models/api_routes.go` (FORK block). The household webtests catch it.

@@ -174,7 +174,7 @@ function getBuildConfig(env: Record<string, string>) {
 					// FORK: Mandarin name for the home-screen app
 					name: 'Mandarin',
 					short_name: 'Mandarin',
-					theme_color: '#1973ff',
+					theme_color: '#d65d00', // FORK: Mandarin orange (status bar on Android)
 					// FORK: Mandarin icons (scripts/household-icons.mjs)
 					icons: [
 						{

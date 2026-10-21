@@ -22,6 +22,7 @@ import {faCircle} from '@fortawesome/free-regular-svg-icons'
 import {i18n} from '@/i18n'
 import router from '@/router'
 import householdEn from './i18n/en.json'
+import './theme.scss' // mandarin-orange colours
 import {registerOfflineStart} from './offline'
 
 library.add(

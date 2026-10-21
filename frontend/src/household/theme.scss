@@ -1,0 +1,30 @@
+// Mandarin's colours: Vikunja's blue swapped for mandarin orange. Only the
+// colour tokens change; styles/custom-properties/colors.scss defines them and
+// everything (buttons, links, focus rings, the active menu item) follows.
+//
+// html:root outranks Vikunja's :root, so the order the stylesheets load in
+// doesn't matter. Contrast (WCAG): as text on the page and with the white
+// text Vikunja always puts on buttons, both at least 4.5:1 in light mode.
+
+html:root {
+	--primary-h: 26deg;
+	--primary-s: 100%;
+	--primary-l: 36%; // #b85000: 5.0:1 under white text, 4.6:1 as text on the grey page
+	--primary-dark-l: 28%; // button hover
+	--primary-light-l: 95%;
+	--logo-text-color: hsl(25, 30%, 18%);
+}
+
+// Vikunja's dark theme sits under .dark and a screen media query; match it.
+html:root.dark {
+	@media screen {
+		// Brighter to read on the dark background (4.5:1), still dark enough
+		// for the white button text (3.9:1, better than Vikunja's own blue).
+		--primary-h: 26deg;
+		--primary-s: 100%;
+		--primary-l: 42%;
+		--primary-dark-l: 34%;
+		--switch-view-active-background: hsl(26, 100%, 36%);
+		--logo-text-color: var(--grey-700);
+	}
+}
