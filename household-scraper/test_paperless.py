@@ -11,6 +11,7 @@ from PIL import Image
 import ai
 import app as scraper_app
 import paperless
+import settings
 from test_text_recipe import COOKBOOK_PAGE
 
 MESSY_TEXT = "Grandma's slice\nmix butter sugar flour bake 20 min"
@@ -51,8 +52,22 @@ AI_ANSWER = {
 def fake_ollama(request: httpx.Request) -> httpx.Response:
     body = json.loads(request.content)
     assert body["model"] == "test-model"
-    assert body["format"]["required"] == ["title", "ingredient_groups", "steps"]
+    assert "title" in body["format"]["required"]
     return httpx.Response(200, json={"message": {"content": json.dumps(AI_ANSWER)}})
+
+
+def fake_api(request: httpx.Request) -> httpx.Response:
+    """Like OpenAI's Chat Completions."""
+    assert request.url.path == "/v1/chat/completions"
+    if request.headers["Authorization"] != "Bearer good-key":
+        return httpx.Response(401, json={"error": {"message": "bad key"}})
+    body = json.loads(request.content)
+    assert body["model"] == "api-model"
+    schema = body["response_format"]["json_schema"]
+    assert schema["strict"] is True
+    assert set(schema["schema"]["required"]) == set(schema["schema"]["properties"])  # strict mode needs all
+    answer = {**AI_ANSWER, "title": "Grandma's slice (API)"}
+    return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": json.dumps(answer)}}]})
 
 
 @pytest.fixture
@@ -63,8 +78,13 @@ def client(monkeypatch):
     monkeypatch.setattr(paperless, "_client", lambda: httpx.Client(
         base_url="http://paperless:8000", transport=httpx.MockTransport(fake_paperless),
         headers={"Authorization": "Token secret"}))
-    monkeypatch.setattr(ai, "_client", lambda: httpx.Client(
+    monkeypatch.setattr(ai, "_ollama_client", lambda: httpx.Client(
         base_url="http://sampc:11434", transport=httpx.MockTransport(fake_ollama)))
+    monkeypatch.setattr(ai, "_api_client", lambda: httpx.Client(
+        base_url="https://api.example.com/v1", transport=httpx.MockTransport(fake_api),
+        headers={"Authorization": f"Bearer {settings.ai_api_key()}"}))
+    for name in ("AI_API_KEY", "AI_MODEL", "OLLAMA_URL", "OLLAMA_MODEL"):
+        monkeypatch.delenv(name, raising=False)
     return TestClient(scraper_app.app)
 
 
@@ -116,7 +136,7 @@ def test_sampc_off(client, monkeypatch):
     def down(request):
         raise httpx.ConnectError("refused")
 
-    monkeypatch.setattr(ai, "_client", lambda: httpx.Client(base_url="http://sampc:11434", transport=httpx.MockTransport(down)))
+    monkeypatch.setattr(ai, "_ollama_client", lambda: httpx.Client(base_url="http://sampc:11434", transport=httpx.MockTransport(down)))
     response = client.post("/paperless/documents/7/import?ai_first=true")
     assert response.status_code == 503
     assert "sampc" in response.json()["detail"]
@@ -138,9 +158,26 @@ def test_not_set_up(monkeypatch):
 
 def test_web_page_without_recipe_data_goes_to_the_ai(monkeypatch):
     with_ai(monkeypatch)
-    monkeypatch.setattr(ai, "_client", lambda: httpx.Client(base_url="http://sampc:11434", transport=httpx.MockTransport(fake_ollama)))
+    monkeypatch.setattr(ai, "_ollama_client", lambda: httpx.Client(base_url="http://sampc:11434", transport=httpx.MockTransport(fake_ollama)))
     page = "<html><body><nav>Home</nav><article><h1>Grandma's slice</h1><p>125 g butter</p></article></body></html>"
     monkeypatch.setattr(scraper_app, "_fetch", lambda url: (page, url))
     recipe = TestClient(scraper_app.app).post("/scrape", json={"url": "https://blog.example.com/slice"}).json()
     assert recipe["import_method"] == "ai"
     assert recipe["title"] == "Grandma's slice"
+
+
+def test_the_api_is_used_when_set_up(client, monkeypatch):
+    with_ai(monkeypatch)  # Ollama too: the API wins
+    monkeypatch.setenv("AI_API_KEY", "good-key")
+    monkeypatch.setenv("AI_MODEL", "api-model")
+    recipe = client.post("/paperless/documents/8/import").json()
+    assert recipe["import_method"] == "ai"
+    assert recipe["title"] == "Grandma's slice (API)"
+
+
+def test_a_bad_api_key_says_so(client, monkeypatch):
+    monkeypatch.setenv("AI_API_KEY", "wrong")
+    monkeypatch.setenv("AI_MODEL", "api-model")
+    response = client.post("/paperless/documents/7/import?ai_first=true")
+    assert response.status_code == 502
+    assert "API key" in response.json()["detail"]

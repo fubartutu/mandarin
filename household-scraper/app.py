@@ -257,7 +257,7 @@ def paperless_import(doc_id: int, ai_first: bool = False):
             if draft is None:
                 raise
     if draft is None:
-        raise HTTPException(503, "The AI isn't set up. Add OLLAMA_URL and OLLAMA_MODEL to the scraper.")
+        raise HTTPException(503, "The AI isn't set up. Add AI_API_KEY and AI_MODEL (or OLLAMA_URL and OLLAMA_MODEL) to the scraper.")
     return _finish(draft, doc["url"], image, "rules")
 
 

@@ -1,4 +1,5 @@
-"""Reads a recipe out of text with a language model, through Ollama on sampc.
+"""Reads a recipe out of text with a language model: an OpenAI-compatible
+API when one is set up, else Ollama on sampc.
 
 Used when the simple rules (text_recipe.py) can't make sense of a scan, and
 for web pages that publish no recipe data. The model only sorts the text into
@@ -31,14 +32,18 @@ SCHEMA = {
                 "type": "object",
                 "properties": {"group": {"type": "string"}, "lines": {"type": "array", "items": {"type": "string"}}},
                 "required": ["group", "lines"],
+                "additionalProperties": False,
             },
         },
         "steps": {"type": "array", "items": {"type": "string"}},
         "notes": {"type": "string"},
         "tags": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["title", "ingredient_groups", "steps"],
+    "additionalProperties": False,
 }
+# OpenAI's strict structured outputs want every field required; the prompt
+# says what to put when the page doesn't give one.
+SCHEMA["required"] = list(SCHEMA["properties"])
 
 PROMPT = """Extract the recipe from the text below into JSON.
 
@@ -50,38 +55,85 @@ Rules:
 - tags: at most 3 short ones, like the course or cuisine.
 - notes: tips or variations printed with the recipe, else "".
 - Leave out anything that isn't part of this recipe (adverts, page numbers, other recipes).
+- Use "" or 0 for anything the text doesn't give.
 - If there is no recipe in the text, return an empty title.
 
 Text:
 """
 
 
-def _client() -> httpx.Client:
+def _ollama_client() -> httpx.Client:
     """A client for Ollama. Loading a model on sampc can take a while. Tests replace this."""
     return httpx.Client(base_url=settings.ollama_url(), timeout=240)
 
 
-def extract(text: str) -> dict:
-    """A recipe draft in the same shape as text_recipe.parse_text."""
-    if not settings.ai_enabled():
-        raise HTTPException(503, "The AI isn't set up. Add OLLAMA_URL and OLLAMA_MODEL to the scraper.")
+def _api_client() -> httpx.Client:
+    """A client for the OpenAI-compatible API. Tests replace this."""
+    return httpx.Client(
+        base_url=settings.ai_api_url(),
+        headers={"Authorization": f"Bearer {settings.ai_api_key()}"},
+        timeout=120,
+    )
+
+
+def _ask_api(prompt: str) -> str:
+    """The reply's JSON text from the Chat Completions API, in strict JSON-schema mode."""
+    body = {
+        "model": settings.ai_model(),
+        "messages": [{"role": "user", "content": prompt}],
+        "response_format": {"type": "json_schema", "json_schema": {"name": "recipe", "strict": True, "schema": SCHEMA}},
+    }
+    try:
+        with _api_client() as client:
+            response = client.post("/chat/completions", json=body)
+    except httpx.HTTPError as e:
+        raise HTTPException(503, "Couldn't reach the AI service.") from e
+    if response.status_code in (401, 403):
+        raise HTTPException(502, "The AI service refused the API key.")
+    if response.status_code == 429:
+        raise HTTPException(503, "The AI service is busy or out of credit. Try again later.")
+    if response.status_code >= 400:
+        raise HTTPException(502, f"The AI service answered {response.status_code}. Check AI_MODEL.")
+    try:
+        return response.json()["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, ValueError, TypeError) as e:
+        raise HTTPException(502, "The AI's answer couldn't be read.") from e
+
+
+def _ask_ollama(prompt: str) -> str:
+    """The reply's JSON text from Ollama, with its structured outputs."""
     body = {
         "model": settings.ollama_model(),
-        "messages": [{"role": "user", "content": PROMPT + text[:MAX_TEXT]}],
-        "format": SCHEMA,  # Ollama's structured outputs: the reply must match
+        "messages": [{"role": "user", "content": prompt}],
+        "format": SCHEMA,
         "stream": False,
         "options": {"temperature": 0},
     }
     try:
-        with _client() as client:
+        with _ollama_client() as client:
             response = client.post("/api/chat", json=body)
     except httpx.HTTPError as e:
         raise HTTPException(503, "Couldn't reach the AI on sampc. Is sampc switched on?") from e
     if response.status_code >= 400:
         raise HTTPException(502, f"The AI answered {response.status_code}. Is the model pulled on sampc?")
     try:
-        data = json.loads(response.json()["message"]["content"])
+        return response.json()["message"]["content"]
     except (KeyError, ValueError, TypeError) as e:
+        raise HTTPException(502, "The AI's answer couldn't be read.") from e
+
+
+def extract(text: str) -> dict:
+    """A recipe draft in the same shape as text_recipe.parse_text."""
+    prompt = PROMPT + text[:MAX_TEXT]
+    if settings.api_enabled():
+        reply = _ask_api(prompt)
+    elif settings.ollama_enabled():
+        reply = _ask_ollama(prompt)
+    else:
+        raise HTTPException(503, "The AI isn't set up. Add AI_API_KEY and AI_MODEL (or OLLAMA_URL and OLLAMA_MODEL) to the scraper.")
+    try:
+        data = json.loads(reply)
+    except (ValueError, TypeError) as e:
         raise HTTPException(502, "The AI's answer couldn't be read.") from e
     if not str(data.get("title") or "").strip():
         raise HTTPException(422, "The AI found no recipe in it.")
