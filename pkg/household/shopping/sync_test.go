@@ -359,3 +359,49 @@ func TestSyncMergesDuplicates(t *testing.T) {
 		assert.Equal(t, int64(5), countMilk(t, s))
 	})
 }
+
+func TestSyncShop(t *testing.T) {
+	t.Run("an item can be added for one shop and moved to another", func(t *testing.T) {
+		s := setup(t)
+		list := groceries(t, s)
+		aldi := addShop(t, s, list.ID, "Aldi")
+		supabarn := addShop(t, s, list.ID, "Supabarn")
+		uid := uuid.NewString()
+		op := createOp(list.ID, uid, "Brie", 5)
+		op.Set.ShopID = ptr(supabarn.ID)
+		apply(t, s, op)
+		assert.Equal(t, supabarn.ID, itemByUID(t, s, uid).ShopID)
+
+		apply(t, s, ShoppingSyncOp{ID: uuid.NewString(), Type: OpItemUpdate, At: ms(6), ItemUID: uid,
+			Set: &ShoppingItemFields{ShopID: ptr(aldi.ID)}, Before: &ShoppingItemFields{ShopID: ptr(supabarn.ID)}})
+		assert.Equal(t, aldi.ID, itemByUID(t, s, uid).ShopID)
+	})
+	t.Run("a shop of another list or deleted meanwhile becomes any shop", func(t *testing.T) {
+		s := setup(t)
+		kmart := &ShoppingList{Title: "Kmart"}
+		require.NoError(t, kmart.Create(s, user1))
+		other := addShop(t, s, kmart.ID, "Kmart Belconnen")
+		uid := uuid.NewString()
+		op := createOp(groceries(t, s).ID, uid, "Brie", 5)
+		op.Set.ShopID = ptr(other.ID)
+		apply(t, s, op)
+		assert.Zero(t, itemByUID(t, s, uid).ShopID)
+	})
+	t.Run("deleting the shop frees its items, and beats an older offline edit", func(t *testing.T) {
+		s := setup(t)
+		list := groceries(t, s)
+		supabarn := addShop(t, s, list.ID, "Supabarn")
+		uid := uuid.NewString()
+		op := createOp(list.ID, uid, "Brie", 5)
+		op.Set.ShopID = ptr(supabarn.ID)
+		apply(t, s, op)
+
+		require.NoError(t, (&ShoppingShop{ListID: list.ID, ID: supabarn.ID}).Delete(s, user1))
+		assert.Zero(t, itemByUID(t, s, uid).ShopID)
+
+		// A phone that was offline set the shop again before the delete.
+		apply(t, s, ShoppingSyncOp{ID: uuid.NewString(), Type: OpItemUpdate, At: ms(6), ItemUID: uid,
+			Set: &ShoppingItemFields{ShopID: ptr(supabarn.ID)}, Before: &ShoppingItemFields{ShopID: ptr(int64(0))}})
+		assert.Zero(t, itemByUID(t, s, uid).ShopID)
+	})
+}

@@ -43,6 +43,7 @@ type ShoppingItem struct { //nolint:revive // stutters, but the type name is the
 	// A pointer so "not done" is JSON null instead of a zero date.
 	DoneAt   *time.Time `xorm:"datetime null" json:"done_at" readOnly:"true" doc:"When the item was ticked off; null while not done. Set by the server."`
 	Position float64    `xorm:"double not null default 0" json:"position" doc:"Order within its category; lower comes first."`
+	ShopID   int64      `xorm:"bigint not null default 0 index" json:"shop_id" minimum:"0" doc:"The only shop to buy this at, e.g. a brand only Supabarn has: it's hidden on the other shops' tabs. 0 means any shop."`
 
 	CatalogItemID     int64   `xorm:"bigint not null default 0 index" json:"catalog_item_id" readOnly:"true" doc:"The catalogue entry this item was matched to by name. Set by the server."`
 	NotStockedShopIDs []int64 `xorm:"-" json:"not_stocked_shop_ids" readOnly:"true" doc:"Shops that don't stock this item (from its catalogue entry); hide it on those shops' tabs."`
@@ -124,6 +125,15 @@ func canWriteItem(s *xorm.Session, listID, id int64, a web.Auth) (bool, error) {
 	return true, nil
 }
 
+// checkShop rejects shop ids that aren't shops of listID; 0 (any) is fine.
+func checkShop(s *xorm.Session, listID, shopID int64) error {
+	if shopID == 0 {
+		return nil
+	}
+	_, err := getShop(s, listID, shopID)
+	return err
+}
+
 // checkCategory rejects category ids that don't exist; 0 (none) is fine.
 func checkCategory(s *xorm.Session, categoryID int64) error {
 	if categoryID == 0 {
@@ -153,6 +163,9 @@ func (i *ShoppingItem) Create(s *xorm.Session, a web.Auth) error {
 		return err
 	}
 	if err := checkCategory(s, i.CategoryID); err != nil {
+		return err
+	}
+	if err := checkShop(s, i.ListID, i.ShopID); err != nil {
 		return err
 	}
 	i.UID = uuid.NewString()
@@ -281,6 +294,9 @@ func (i *ShoppingItem) Update(s *xorm.Session, a web.Auth) error {
 	if err := checkCategory(s, i.CategoryID); err != nil {
 		return err
 	}
+	if err := checkShop(s, i.ListID, i.ShopID); err != nil {
+		return err
+	}
 	i.UID = stored.UID // read-only, so not in the body
 	now := time.Now()
 	i.setDoneAt(stored.Done, stored.DoneAt, now)
@@ -299,7 +315,7 @@ func (i *ShoppingItem) save(s *xorm.Session) error {
 		return err
 	}
 	_, err := s.ID(i.ID).
-		Cols("name", "quantity", "unit", "note", "category_id", "done", "done_at", "position", "catalog_item_id", "field_times").
+		Cols("name", "quantity", "unit", "note", "category_id", "done", "done_at", "position", "shop_id", "catalog_item_id", "field_times").
 		Update(i)
 	if err != nil {
 		return err

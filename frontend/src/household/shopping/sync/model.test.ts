@@ -81,6 +81,24 @@ describe('applyOp', () => {
 		expect(next.catalog.get(7)?.not_stocked_shop_ids).toEqual([4, 5])
 	})
 
+	it('adds an item for one shop, and moves it to any shop', () => {
+		const op = createOp({list_id: 1, name: 'Brie', quantity: 0, unit: '', category_id: 0, shop_id: 3})
+		expect(op.set?.shop_id).toBe(3)
+		const data = applyOp(emptyData(), op)
+		const brie = data.items.get(op.item_uid)!
+		expect(brie.shop_id).toBe(3)
+
+		const move = updateOp(brie, {shop_id: 0})!
+		expect(move.set).toEqual({shop_id: 0})
+		expect(move.before).toEqual({shop_id: 3})
+		expect(applyOp(data, move).items.get(op.item_uid)?.shop_id).toBe(0)
+	})
+
+	it('leaves the shop out of an add for any shop', () => {
+		const op = createOp({list_id: 1, name: 'Milk', quantity: 0, unit: '', category_id: 0})
+		expect(op.set).not.toHaveProperty('shop_id')
+	})
+
 	it("doesn't change the data it was given", () => {
 		const data = withMilk()
 		applyOp(data, deleteOp(milk))

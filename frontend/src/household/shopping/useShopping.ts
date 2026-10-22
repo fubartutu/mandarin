@@ -14,8 +14,18 @@ export interface ItemGroup {
 }
 
 /**
- * Splits a list's items into category groups (in category order, empty
- * groups left out, uncategorised last) and the ticked items.
+ * Categories in a shop's aisle order: the ones in order first, as listed,
+ * then the rest in the household order. An empty order changes nothing.
+ */
+export function inAisleOrder(categories: ShoppingCategoryResponse[], order: number[]): ShoppingCategoryResponse[] {
+	const rank = new Map(order.map((id, index) => [id, index]))
+	const listed = categories.filter(c => rank.has(c.id)).sort((a, b) => rank.get(a.id)! - rank.get(b.id)!)
+	return [...listed, ...categories.filter(c => !rank.has(c.id))]
+}
+
+/**
+ * Splits a list's items into category groups (in the order categories come
+ * in, empty groups left out, uncategorised last) and the ticked items.
  */
 export function groupItems(
 	items: ShoppingItemResponse[],
@@ -60,9 +70,14 @@ export function useShoppingData() {
 	}
 }
 
-/** Items a shop's tab shows: everything except what the shop doesn't stock. 0 = all shops. */
+/**
+ * Items a shop's tab shows: everything except what the shop doesn't stock
+ * and what's to be bought at another shop. 0 = the All tab.
+ */
 export function itemsForShop(items: ShoppingItemResponse[], shopId: number): ShoppingItemResponse[] {
-	return shopId === 0 ? items : items.filter(i => !i.not_stocked_shop_ids.includes(shopId))
+	return shopId === 0
+		? items
+		: items.filter(i => !i.not_stocked_shop_ids.includes(shopId) && (i.shop_id === 0 || i.shop_id === shopId))
 }
 
 export function useShoppingItems(listId: MaybeRefOrGetter<number>) {

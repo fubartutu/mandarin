@@ -107,4 +107,52 @@ func TestShoppingShop(t *testing.T) {
 			assert.Zero(t, count)
 		}
 	})
+
+	t.Run("the aisle order keeps known categories once each, in the order given", func(t *testing.T) {
+		s := setup(t)
+		listID := groceries(t, s).ID
+		aldi := addShop(t, s, listID, "Aldi")
+		categories := []*ShoppingCategory{}
+		require.NoError(t, s.OrderBy("position").Limit(3).Find(&categories))
+		a, b, c := categories[0].ID, categories[1].ID, categories[2].ID
+
+		update := &ShoppingShop{ListID: listID, ID: aldi.ID, Title: "Aldi", Position: aldi.Position,
+			CategoryOrder: []int64{c, 9999, a, c, b}}
+		require.NoError(t, update.Update(s, user1))
+		assert.Equal(t, []int64{c, a, b}, update.CategoryOrder)
+
+		read := &ShoppingList{ID: listID}
+		_, _, err := read.CanRead(s, user1)
+		require.NoError(t, err)
+		require.NoError(t, read.ReadOne(s, user1))
+		assert.Equal(t, []int64{c, a, b}, read.Shops[0].CategoryOrder)
+	})
+
+	t.Run("a shop from before aisle orders has an empty one", func(t *testing.T) {
+		s := setup(t)
+		listID := groceries(t, s).ID
+		aldi := addShop(t, s, listID, "Aldi")
+		_, err := s.Exec("UPDATE shopping_shops SET category_order = '' WHERE id = ?", aldi.ID)
+		require.NoError(t, err)
+		_, err = s.Exec("INSERT INTO shopping_shops (list_id, title, position, created, updated) VALUES (?, 'Supabarn', 9, ?, ?)", listID, "2026-10-22 10:00:00", "2026-10-22 10:00:00")
+		require.NoError(t, err)
+
+		result, _, _, err := (&ShoppingShop{ListID: listID}).ReadAll(s, user1, "", 0, 0)
+		require.NoError(t, err)
+		shops := result.([]*ShoppingShop)
+		require.Len(t, shops, 2)
+		for _, shop := range shops {
+			assert.Equal(t, []int64{}, shop.CategoryOrder, shop.Title)
+		}
+	})
+
+	t.Run("an item's shop must be one of its list's shops", func(t *testing.T) {
+		s := setup(t)
+		kmart := &ShoppingList{Title: "Kmart"}
+		require.NoError(t, kmart.Create(s, user1))
+		other := addShop(t, s, kmart.ID, "Kmart Belconnen")
+
+		item := &ShoppingItem{ListID: groceries(t, s).ID, Name: "Brie", ShopID: other.ID}
+		require.ErrorIs(t, item.Create(s, user1), ErrShopDoesNotExist{ShopID: other.ID})
+	})
 }

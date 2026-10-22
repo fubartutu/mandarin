@@ -488,7 +488,7 @@ func registerShoppingShopRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "shopping-shops-list",
 		Summary:     "List a shopping list's shops",
-		Description: "Shops are views of their list: each hides the items marked not stocked there. The list read already includes its shops.",
+		Description: "Shops are views of their list: each hides the items marked not stocked there and the items for another shop, and groups the rest in its own aisle order. The list read already includes its shops.",
 		Method:      http.MethodGet, Path: "/shopping/lists/{list}/shops", Tags: tags,
 	}, shoppingShopsList)
 	Register(api, huma.Operation{
@@ -506,13 +506,13 @@ func registerShoppingShopRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "shopping-shops-update",
 		Summary:     "Update a shop",
-		Description: "Replaces the title and position. Use PATCH for a partial update.",
+		Description: "Replaces the title, position and aisle order (category_order). Use PATCH for a partial update.",
 		Method:      http.MethodPut, Path: "/shopping/lists/{list}/shops/{shop}", Tags: tags,
 	}, shoppingShopsUpdate)
 	Register(api, huma.Operation{
 		OperationID: "shopping-shops-delete",
 		Summary:     "Delete a shop",
-		Description: "Also removes every not-stocked mark for the shop. The list's items are untouched.",
+		Description: "Also removes every not-stocked mark for the shop. Items that were only for this shop become items for any shop; none are deleted.",
 		Method:      http.MethodDelete, Path: "/shopping/lists/{list}/shops/{shop}", Tags: tags,
 	}, shoppingShopsDelete)
 }

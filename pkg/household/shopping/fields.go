@@ -30,9 +30,10 @@ const (
 	fieldCategory = "category_id"
 	fieldDone     = "done"
 	fieldPosition = "position"
+	fieldShop     = "shop_id"
 )
 
-var itemFields = []string{fieldName, fieldAmount, fieldNote, fieldCategory, fieldDone, fieldPosition}
+var itemFields = []string{fieldName, fieldAmount, fieldNote, fieldCategory, fieldDone, fieldPosition, fieldShop}
 
 // fieldStamp records when an item field last changed (Unix milliseconds,
 // as the phone's clock had it) and which member changed it.
@@ -96,6 +97,8 @@ func fieldValue(item *ShoppingItem, field string) any {
 		return item.Done
 	case fieldPosition:
 		return item.Position
+	case fieldShop:
+		return item.ShopID
 	}
 	return nil
 }
@@ -116,5 +119,7 @@ func setFieldValue(item *ShoppingItem, field string, value any) {
 		item.Done = value.(bool)
 	case fieldPosition:
 		item.Position = value.(float64)
+	case fieldShop:
+		item.ShopID = value.(int64)
 	}
 }

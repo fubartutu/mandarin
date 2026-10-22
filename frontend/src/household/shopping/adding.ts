@@ -11,6 +11,7 @@ export interface ItemInput {
 	quantity: number
 	unit: string
 	category_id?: number // 0 or missing: the catalogue's category
+	shop_id?: number // 0 or missing: any shop
 }
 
 /** A new item for listId, with blanks filled from the catalogue. */
@@ -32,6 +33,7 @@ export function prepareNewItem(
 		unit: keepLast ? known.unit : input.unit,
 		list_id: listId,
 		category_id: categoryId,
+		shop_id: input.shop_id ?? 0,
 	}
 }
 

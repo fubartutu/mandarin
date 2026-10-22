@@ -32,7 +32,8 @@
 				"save": "Save",
 				"delete": "Delete",
 				"cancel": "Cancel",
-				"notStockedAt": "Not stocked at"
+				"notStockedAt": "Not stocked at",
+				"shop": "Buy at"
 			},
 			"autoCategory": "Auto category",
 			"shops": {
@@ -40,15 +41,25 @@
 				"all": "All",
 				"manage": "Manage shops",
 				"addFirst": "Add shops",
-				"help": "Shops are tabs on this list. Each tab hides the items marked as not stocked there, and ticking an item ticks it everywhere.",
+				"help": "Shops are tabs on this list. Each tab hides the items not stocked there and the items for another shop, and puts the categories in the shop's aisle order. Ticking an item ticks it everywhere.",
 				"rename": "Rename {title}",
 				"delete": "Delete {title}",
 				"deleteConfirm": "Delete the shop \"{title}\"? Items stay on the list.",
 				"newPlaceholder": "Shop name, e.g. Aldi",
 				"add": "Add shop",
 				"done": "Done",
-				"hidden": "No items are hidden | 1 item isn't stocked at {shop} and is hidden | {count} items aren't stocked at {shop} and are hidden",
-				"notAt": "Not at {shops}"
+				"hidden": "No items are hidden | 1 item is for another shop or not stocked at {shop}, so it's hidden | {count} items are for other shops or not stocked at {shop}, so they're hidden",
+				"notAt": "Not at {shops}",
+				"only": "{shop} only",
+				"any": "Any shop",
+				"buyAt": "Shop to buy it at",
+				"aisleOrder": "Aisle order for {title}",
+				"aisleHelp": "Put the categories in the order you reach them in {title}. The All tab keeps the household order.",
+				"moveUp": "Move {title} up",
+				"moveDown": "Move {title} down",
+				"saveOrder": "Save order",
+				"resetOrder": "Use household order",
+				"cancel": "Cancel"
 			},
 			"photo": {
 				"label": "Photo",
@@ -90,7 +101,8 @@
 						"note": "Note on {name}",
 						"category_id": "Category of {name}",
 						"done": "Tick on {name}",
-						"position": "Order of {name}"
+						"position": "Order of {name}",
+						"shop_id": "Shop for {name}"
 					},
 					"ticked": "ticked",
 					"notTicked": "not ticked",

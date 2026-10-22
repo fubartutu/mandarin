@@ -42,6 +42,7 @@
 			<ConflictLog
 				:conflicts="sync.conflicts.value"
 				:categories="categories"
+				:shops="shops"
 				:seen-up-to="seenAtOpen"
 			/>
 		</section>
@@ -55,11 +56,12 @@ import {useStorage} from '@vueuse/core'
 
 import {formatDateSince} from '@/helpers/time/formatDate'
 import ConflictLog from './ConflictLog.vue'
-import type {ShoppingCategoryResponse} from '../queries'
+import type {ShoppingCategoryResponse, ShoppingShopResponse} from '../queries'
 import {useShoppingSync} from '../sync/useShoppingSync'
 
 defineProps<{
 	categories: ShoppingCategoryResponse[]
+	shops: ShoppingShopResponse[]
 }>()
 
 const {t} = useI18n({useScope: 'global'})

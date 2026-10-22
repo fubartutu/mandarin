@@ -42,12 +42,13 @@ import {useI18n} from 'vue-i18n'
 import type {User} from '@/client/generated'
 import {getDisplayName} from '@/helpers/user'
 import {formatDateSince} from '@/helpers/time/formatDate'
-import type {ShoppingCategoryResponse} from '../queries'
+import type {ShoppingCategoryResponse, ShoppingShopResponse} from '../queries'
 import type {ConflictEntry} from '../sync/model'
 
 const props = defineProps<{
 	conflicts: ConflictEntry[]
 	categories: ShoppingCategoryResponse[]
+	shops: ShoppingShopResponse[]
 	seenUpTo: number // conflicts with a higher id are highlighted as new
 }>()
 
@@ -60,6 +61,10 @@ function value(field: string, raw: string): string {
 	}
 	if (field === 'category_id') {
 		return props.categories.find(c => String(c.id) === raw)?.title ?? t('household.shopping.noCategory')
+	}
+	if (field === 'shop_id') {
+		const shop = props.shops.find(s => String(s.id) === raw)
+		return shop ? t('household.shopping.shops.only', {shop: shop.title}) : t('household.shopping.shops.any')
 	}
 	return raw === '' ? t('household.shopping.sync.conflicts.empty') : `"${raw}"`
 }

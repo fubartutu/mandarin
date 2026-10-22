@@ -3354,7 +3354,7 @@ export const shoppingItemsUpdate = <ThrowOnError extends boolean = true>(options
 /**
  * List a shopping list's shops
  *
- * Shops are views of their list: each hides the items marked not stocked there. The list read already includes its shops.
+ * Shops are views of their list: each hides the items marked not stocked there and the items for another shop, and groups the rest in its own aisle order. The list read already includes its shops.
  */
 export const shoppingShopsList = <ThrowOnError extends boolean = true>(options: Options<ShoppingShopsListData, ThrowOnError>): RequestResult<ShoppingShopsListResponses, ShoppingShopsListErrors, ThrowOnError> => (options.client ?? client).get<ShoppingShopsListResponses, ShoppingShopsListErrors, ThrowOnError>({
     security: [{
@@ -3396,7 +3396,7 @@ export const shoppingShopsCreate = <ThrowOnError extends boolean = true>(options
 /**
  * Delete a shop
  *
- * Also removes every not-stocked mark for the shop. The list's items are untouched.
+ * Also removes every not-stocked mark for the shop. Items that were only for this shop become items for any shop; none are deleted.
  */
 export const shoppingShopsDelete = <ThrowOnError extends boolean = true>(options: Options<ShoppingShopsDeleteData, ThrowOnError>): RequestResult<ShoppingShopsDeleteResponses, ShoppingShopsDeleteErrors, ThrowOnError> => (options.client ?? client).delete<ShoppingShopsDeleteResponses, ShoppingShopsDeleteErrors, ThrowOnError>({
     security: [{
@@ -3457,7 +3457,7 @@ export const patchShoppingShopsRead = <ThrowOnError extends boolean = true>(opti
 /**
  * Update a shop
  *
- * Replaces the title and position. Use PATCH for a partial update.
+ * Replaces the title, position and aisle order (category_order). Use PATCH for a partial update.
  */
 export const shoppingShopsUpdate = <ThrowOnError extends boolean = true>(options: Options<ShoppingShopsUpdateData, ThrowOnError>): RequestResult<ShoppingShopsUpdateResponses, ShoppingShopsUpdateErrors, ThrowOnError> => (options.client ?? client).put<ShoppingShopsUpdateResponses, ShoppingShopsUpdateErrors, ThrowOnError>({
     security: [{

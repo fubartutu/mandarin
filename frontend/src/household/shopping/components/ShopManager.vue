@@ -7,23 +7,41 @@
 			<li
 				v-for="shop in shops"
 				:key="shop.id"
-				class="shop"
 			>
-				<input
-					class="input is-small"
-					type="text"
-					maxlength="250"
-					:value="shop.title"
-					:aria-label="$t('household.shopping.shops.rename', {title: shop.title})"
-					@change="rename(shop, ($event.target as HTMLInputElement).value)"
-				>
-				<BaseButton
-					class="remove"
-					:aria-label="$t('household.shopping.shops.delete', {title: shop.title})"
-					@click="remove(shop)"
-				>
-					<Icon icon="trash-alt" />
-				</BaseButton>
+				<div class="shop">
+					<input
+						class="input is-small"
+						type="text"
+						maxlength="250"
+						:value="shop.title"
+						:aria-label="$t('household.shopping.shops.rename', {title: shop.title})"
+						@change="rename(shop, ($event.target as HTMLInputElement).value)"
+					>
+					<BaseButton
+						class="icon-button"
+						:class="{'is-active': ordering === shop.id}"
+						:aria-label="$t('household.shopping.shops.aisleOrder', {title: shop.title})"
+						:title="$t('household.shopping.shops.aisleOrder', {title: shop.title})"
+						:aria-expanded="ordering === shop.id"
+						@click="toggleOrdering(shop)"
+					>
+						<Icon icon="list-ol" />
+					</BaseButton>
+					<BaseButton
+						class="icon-button"
+						:aria-label="$t('household.shopping.shops.delete', {title: shop.title})"
+						@click="remove(shop)"
+					>
+						<Icon icon="trash-alt" />
+					</BaseButton>
+				</div>
+				<AisleOrder
+					v-if="ordering === shop.id"
+					:shop="shop"
+					:categories="categories"
+					@save="order => saveOrder(shop, order)"
+					@cancel="ordering = null"
+				/>
 			</li>
 		</ul>
 		<form
@@ -60,16 +78,19 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 
 import BaseButton from '@/components/base/BaseButton.vue'
+import AisleOrder from './AisleOrder.vue'
 import {
 	useCreateShopMutation,
 	useDeleteShopMutation,
-	useRenameShopMutation,
+	useUpdateShopMutation,
+	type ShoppingCategoryResponse,
 	type ShoppingShopResponse,
 } from '../queries'
 
 const props = defineProps<{
 	listId: number
 	shops: ShoppingShopResponse[]
+	categories: ShoppingCategoryResponse[]
 }>()
 
 const emit = defineEmits<{
@@ -79,8 +100,9 @@ const emit = defineEmits<{
 const {t} = useI18n({useScope: 'global'})
 const newTitle = ref('')
 const createShop = useCreateShopMutation()
-const renameShop = useRenameShopMutation()
+const updateShop = useUpdateShopMutation()
 const deleteShop = useDeleteShopMutation()
+const ordering = ref<number | null>(null) // the shop whose aisle order is open
 
 function add() {
 	const title = newTitle.value.trim()
@@ -93,8 +115,17 @@ function add() {
 function rename(shop: ShoppingShopResponse, value: string) {
 	const title = value.trim()
 	if (title !== '' && title !== shop.title) {
-		renameShop.mutate({...shop, title})
+		updateShop.mutate({...shop, title})
 	}
+}
+
+function toggleOrdering(shop: ShoppingShopResponse) {
+	ordering.value = ordering.value === shop.id ? null : shop.id
+}
+
+function saveOrder(shop: ShoppingShopResponse, order: number[]) {
+	ordering.value = null
+	updateShop.mutate({...shop, category_order: order})
 }
 
 function remove(shop: ShoppingShopResponse) {
@@ -141,8 +172,12 @@ function remove(shop: ShoppingShopResponse) {
 	flex-wrap: wrap;
 }
 
-.remove {
+.icon-button {
 	padding: .5rem;
 	color: var(--grey-500);
+
+	&.is-active {
+		color: var(--primary);
+	}
 }
 </style>

@@ -58,6 +58,7 @@ type ShoppingItemFields struct { //nolint:revive // stutters, but the type name 
 	CategoryID *int64   `json:"category_id,omitempty" doc:"0 for none. An unknown category becomes 0."`
 	Done       *bool    `json:"done,omitempty"`
 	Position   *float64 `json:"position,omitempty"`
+	ShopID     *int64   `json:"shop_id,omitempty" doc:"The only shop to buy it at; 0 for any shop. A shop that isn't on the item's list becomes 0."`
 }
 
 // ShoppingSyncOp is one change made on a phone.
@@ -201,6 +202,9 @@ func (f *ShoppingItemFields) values() map[string]any {
 	if f.Position != nil {
 		v[fieldPosition] = *f.Position
 	}
+	if f.ShopID != nil {
+		v[fieldShop] = *f.ShopID
+	}
 	return v
 }
 
@@ -211,6 +215,19 @@ func knownCategory(s *xorm.Session, id int64) (int64, error) {
 		return 0, nil
 	}
 	exists, err := s.Where("id = ?", id).Exist(&ShoppingCategory{})
+	if err != nil || !exists {
+		return 0, err
+	}
+	return id, nil
+}
+
+// knownShop turns a shop that was deleted meanwhile (or belongs to another
+// list) into 0, so the item still arrives, just for any shop.
+func knownShop(s *xorm.Session, listID, id int64) (int64, error) {
+	if id == 0 {
+		return 0, nil
+	}
+	exists, err := s.Where("id = ? AND list_id = ?", id, listID).Exist(&ShoppingShop{})
 	if err != nil || !exists {
 		return 0, err
 	}
@@ -249,6 +266,9 @@ func syncCreate(s *xorm.Session, u *user.User, op *ShoppingSyncOp, at time.Time)
 	if item.CategoryID, err = knownCategory(s, item.CategoryID); err != nil {
 		return err
 	}
+	if item.ShopID, err = knownShop(s, item.ListID, item.ShopID); err != nil {
+		return err
+	}
 	// Someone else added the same thing while this phone was offline.
 	duplicate, err := findDuplicate(s, item)
 	if err != nil {
@@ -282,8 +302,13 @@ func syncUpdate(s *xorm.Session, u *user.User, op *ShoppingSyncOp, at time.Time)
 	changed := false
 
 	for field, value := range op.Set.values() {
-		if field == fieldCategory {
+		switch field {
+		case fieldCategory:
 			if value, err = knownCategory(s, value.(int64)); err != nil {
+				return err
+			}
+		case fieldShop:
+			if value, err = knownShop(s, stored.ListID, value.(int64)); err != nil {
 				return err
 			}
 		}

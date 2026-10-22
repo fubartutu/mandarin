@@ -177,6 +177,7 @@ function withFields(item: ShoppingItemResponse, set: ItemFields, at: number, dat
 	if (set.note !== undefined) next.note = set.note
 	if (set.category_id !== undefined) next.category_id = set.category_id
 	if (set.position !== undefined) next.position = set.position
+	if (set.shop_id !== undefined) next.shop_id = set.shop_id
 	if (set.done !== undefined && set.done !== item.done) {
 		next.done = set.done
 		next.done_at = set.done ? new Date(at).toISOString() : undefined
@@ -236,7 +237,8 @@ function newId(): string {
 }
 export {newId as newUid}
 
-export type NewItem = Pick<ShoppingItemResponse, 'list_id' | 'name' | 'quantity' | 'unit' | 'category_id'>
+export type NewItem = Pick<ShoppingItemResponse, 'list_id' | 'name' | 'quantity' | 'unit' | 'category_id'> &
+	Partial<Pick<ShoppingItemResponse, 'shop_id'>> // missing or 0: any shop
 
 export function createOp(item: NewItem, at = Date.now()): SyncOp {
 	return {
@@ -246,11 +248,14 @@ export function createOp(item: NewItem, at = Date.now()): SyncOp {
 		item_uid: newId(),
 		item_name: item.name,
 		list_id: item.list_id,
-		set: {name: item.name, quantity: item.quantity, unit: item.unit, category_id: item.category_id},
+		set: {
+			name: item.name, quantity: item.quantity, unit: item.unit, category_id: item.category_id,
+			...(item.shop_id ? {shop_id: item.shop_id} : {}),
+		},
 	}
 }
 
-type Editable = Pick<ShoppingItemResponse, 'name' | 'quantity' | 'unit' | 'note' | 'category_id' | 'done' | 'position'>
+type Editable = Pick<ShoppingItemResponse, 'name' | 'quantity' | 'unit' | 'note' | 'category_id' | 'done' | 'position' | 'shop_id'>
 
 /**
  * An update op with just the fields that differ, plus their old values
@@ -260,7 +265,7 @@ type Editable = Pick<ShoppingItemResponse, 'name' | 'quantity' | 'unit' | 'note'
 export function updateOp(item: ShoppingItemResponse, changes: Partial<Editable>, at = Date.now()): SyncOp | null {
 	const set: ItemFields = {}
 	const before: ItemFields = {}
-	const simple = ['name', 'note', 'category_id', 'done', 'position'] as const
+	const simple = ['name', 'note', 'category_id', 'done', 'position', 'shop_id'] as const
 	for (const field of simple) {
 		const value = changes[field]
 		if (value !== undefined && value !== item[field]) {

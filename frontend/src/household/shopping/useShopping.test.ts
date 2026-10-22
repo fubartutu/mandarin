@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest'
 
 import {normalizeItem} from './queries'
 import {findDuplicate} from './adding'
-import {groupItems} from './useShopping'
+import {groupItems, inAisleOrder, itemsForShop} from './useShopping'
 
 const categories = [
 	{id: 1, title: 'Fruit & Veg', position: 1},
@@ -55,6 +55,44 @@ describe('groupItems', () => {
 		], categories, 'Other')
 
 		expect(groups[0].items.map(i => i.name)).toEqual(['A', 'B', 'C'])
+	})
+})
+
+describe('inAisleOrder', () => {
+	it('puts the listed categories first, then the rest in household order', () => {
+		const four = [...categories, {id: 4, title: 'Bakery', position: 4}]
+		expect(inAisleOrder(four, [3, 1]).map(c => c.id)).toEqual([3, 1, 2, 4])
+	})
+
+	it('ignores categories that no longer exist, and an empty order changes nothing', () => {
+		expect(inAisleOrder(categories, [99, 2]).map(c => c.id)).toEqual([2, 1, 3])
+		expect(inAisleOrder(categories, []).map(c => c.id)).toEqual([1, 2, 3])
+	})
+
+	it('groups a shop tab in its aisle order', () => {
+		const {groups} = groupItems([
+			item(1, 'Milk', {category_id: 2}),
+			item(2, 'Apples', {category_id: 1}),
+		], inAisleOrder(categories, [2, 1]), 'Other')
+		expect(groups.map(g => g.title)).toEqual(['Dairy', 'Fruit & Veg'])
+	})
+})
+
+describe('itemsForShop', () => {
+	const items = [
+		item(1, 'Milk'),
+		item(2, 'Brie', {shop_id: 20}),
+		item(3, 'Vegemite', {not_stocked_shop_ids: [20]}),
+	]
+	const names = (shopId: number) => itemsForShop(items, shopId).map(i => i.name)
+
+	it('shows everything on All', () => {
+		expect(names(0)).toEqual(['Milk', 'Brie', 'Vegemite'])
+	})
+
+	it("hides other shops' items and what a shop doesn't stock", () => {
+		expect(names(10)).toEqual(['Milk', 'Vegemite'])
+		expect(names(20)).toEqual(['Milk', 'Brie'])
 	})
 })
 

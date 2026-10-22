@@ -54,6 +54,26 @@
 						</select>
 					</div>
 				</label>
+				<label
+					v-if="shops.length > 0"
+					class="field shop"
+				>
+					<span class="label">{{ $t('household.shopping.edit.shop') }}</span>
+					<div class="select is-fullwidth">
+						<select v-model="draft.shop_id">
+							<option :value="0">
+								{{ $t('household.shopping.shops.any') }}
+							</option>
+							<option
+								v-for="shop in shops"
+								:key="shop.id"
+								:value="shop.id"
+							>
+								{{ $t('household.shopping.shops.only', {shop: shop.title}) }}
+							</option>
+						</select>
+					</div>
+				</label>
 				<label class="field note">
 					<span class="label">{{ $t('household.shopping.edit.note') }}</span>
 					<input
@@ -219,7 +239,7 @@ const notStocked = ref<number[]>([...props.item.not_stocked_shop_ids])
 	grid-template-columns: 1fr 1fr;
 	gap: .5rem .75rem;
 
-	.name, .note, .category, .not-stocked, .photo {
+	.name, .note, .category, .shop, .not-stocked, .photo {
 		grid-column: 1 / -1;
 	}
 

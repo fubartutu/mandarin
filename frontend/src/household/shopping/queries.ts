@@ -32,21 +32,29 @@ import {syncShopping} from './sync/useShoppingSync'
 // The generated types mark every field optional. These are what the UI works
 // with: the fields the backend always sends are required.
 
-export type ShoppingShopResponse = Required<Pick<ShoppingShop, 'id' | 'list_id' | 'title' | 'position'>>
+export type ShoppingShopResponse = Required<Pick<ShoppingShop, 'id' | 'list_id' | 'title' | 'position'>> & {
+	category_order: number[] // aisle order; empty means the household order
+}
 export type ShoppingListResponse = Required<Pick<ShoppingList, 'id' | 'title' | 'position'>> & {
 	shops: ShoppingShopResponse[]
 }
 export type ShoppingCategoryResponse = Required<Pick<ShoppingCategory, 'id' | 'title' | 'position'>>
 export type ShoppingItemResponse = Required<Pick<ShoppingItem,
 	'id' | 'uid' | 'list_id' | 'name' | 'quantity' | 'unit' | 'note' | 'category_id' | 'done' | 'position' |
-	'catalog_item_id' | 'has_photo'>> &
+	'shop_id' | 'catalog_item_id' | 'has_photo'>> &
 	Pick<ShoppingItem, 'done_at' | 'created_by'> & {not_stocked_shop_ids: number[]}
 export type CatalogEntry = Required<Pick<ShoppingCatalogItem,
 	'id' | 'name' | 'category_id' | 'quantity' | 'unit' | 'times_added' | 'has_photo' | 'photo_id'>> &
 	Pick<ShoppingCatalogItem, 'last_added'> & {not_stocked_shop_ids: number[]}
 
 export function normalizeShop(shop: ShoppingShop): ShoppingShopResponse {
-	return {id: shop.id ?? 0, list_id: shop.list_id ?? 0, title: shop.title ?? '', position: shop.position ?? 0}
+	return {
+		id: shop.id ?? 0,
+		list_id: shop.list_id ?? 0,
+		title: shop.title ?? '',
+		position: shop.position ?? 0,
+		category_order: shop.category_order ?? [],
+	}
 }
 
 export function normalizeList(list: ShoppingList): ShoppingListResponse {
@@ -89,6 +97,7 @@ export function normalizeItem(item: ShoppingItem): ShoppingItemResponse {
 		category_id: item.category_id ?? 0,
 		done: item.done ?? false,
 		position: item.position ?? 0,
+		shop_id: item.shop_id ?? 0,
 		catalog_item_id: item.catalog_item_id ?? 0,
 		has_photo: item.has_photo ?? false,
 		not_stocked_shop_ids: item.not_stocked_shop_ids ?? [],
@@ -183,7 +192,8 @@ export function useCreateShopMutation() {
 	return useMutation(createShopMutationOptions())
 }
 
-export function renameShopMutationOptions() {
+/** Saves a shop's title and aisle order. */
+export function updateShopMutationOptions() {
 	return contextMutationOptions({
 		mutationFn: async (shop: ShoppingShopResponse) =>
 			normalizeShop((await shoppingShopsUpdate({path: {list: shop.list_id, shop: shop.id}, body: shop})).data),
@@ -191,8 +201,8 @@ export function renameShopMutationOptions() {
 	})
 }
 
-export function useRenameShopMutation() {
-	return useMutation(renameShopMutationOptions())
+export function useUpdateShopMutation() {
+	return useMutation(updateShopMutationOptions())
 }
 
 export function deleteShopMutationOptions() {

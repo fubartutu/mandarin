@@ -10,7 +10,7 @@ const add = (name: string, quantity = 0, unit = '') => ({list_id: 1, name, quant
 describe('prepareNewItem', () => {
 	it('takes the catalogue name, category and last amount when none is given', () => {
 		expect(prepareNewItem({name: 'plain flour', quantity: 0, unit: ''}, 1, catalog, categories))
-			.toEqual({list_id: 1, name: 'Plain flour', quantity: 1, unit: 'kg', category_id: 4})
+			.toEqual({list_id: 1, name: 'Plain flour', quantity: 1, unit: 'kg', shop_id: 0, category_id: 4})
 	})
 
 	it('keeps an amount that was given', () => {

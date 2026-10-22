@@ -43,6 +43,7 @@
 			v-if="managing"
 			:list-id="listId"
 			:shops="shops"
+			:categories="categories"
 			@close="managing = false"
 		/>
 	</div>
@@ -54,13 +55,14 @@ import {ref} from 'vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import {useShoppingOnline} from '../sync/useShoppingSync'
 import ShopManager from './ShopManager.vue'
-import type {ShoppingShopResponse} from '../queries'
+import type {ShoppingCategoryResponse, ShoppingShopResponse} from '../queries'
 
 // v-model on this component: modelValue is the selected shop id (0 = all),
 // and the update:modelValue event sends a new one back to the parent.
 defineProps<{
 	listId: number
 	shops: ShoppingShopResponse[]
+	categories: ShoppingCategoryResponse[]
 	modelValue: number
 }>()
 

@@ -65,6 +65,10 @@ another package), so in practice:
   call `events.DispatchPending(ctx, s)` after commit, so open apps get the websocket "changed" push.
   An add identical to an unticked item is merged into it (`merge.go`); its uid becomes an alias
   that `ApplySyncOps` resolves, so look items up by resolved uid in new op types.
+- **Shops:** a shop is a tab (view) on its list, not a list of its own. An item's `shop_id` (0 = any)
+  is a synced field like `category_id` (unknown shops become 0; deleting a shop frees its items).
+  A shop's `category_order` (aisle order, JSON on `shopping_shops`) arrives with its list; the
+  frontend applies it with `inAisleOrder`, unlisted categories following in household order.
 - **Recipes:** `pkg/household/recipes` (online-only; ingredients, steps, tags and image ids are
   JSON columns on `recipes`), routes in `household_recipes.go`, frontend `frontend/src/household/recipes`.
   Web import and ingredient parsing go to the scraper container, `household-scraper/` (Python,

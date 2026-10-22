@@ -66,6 +66,26 @@
 				</option>
 			</select>
 		</div>
+		<div
+			v-if="shops.length > 0"
+			class="select"
+		>
+			<select
+				v-model="shopId"
+				:aria-label="$t('household.shopping.shops.buyAt')"
+			>
+				<option :value="0">
+					{{ $t('household.shopping.shops.any') }}
+				</option>
+				<option
+					v-for="shop in shops"
+					:key="shop.id"
+					:value="shop.id"
+				>
+					{{ $t('household.shopping.shops.only', {shop: shop.title}) }}
+				</option>
+			</select>
+		</div>
 		<XButton
 			type="submit"
 			icon="plus"
@@ -81,21 +101,23 @@ import {computed, ref, useTemplateRef} from 'vue'
 
 import {suggestCatalogEntries} from '../autocomplete'
 import {formatQuantity, parseItemInput, type ParsedItem} from '../quantity'
-import type {CatalogEntry, ShoppingCategoryResponse} from '../queries'
+import type {CatalogEntry, ShoppingCategoryResponse, ShoppingShopResponse} from '../queries'
 
 const props = defineProps<{
 	categories: ShoppingCategoryResponse[]
+	shops: ShoppingShopResponse[]
 	catalog: CatalogEntry[]
 	// Names already open on the list; not suggested again.
 	onList: string[]
 }>()
 
 const emit = defineEmits<{
-	add: [item: ParsedItem & {category_id: number}]
+	add: [item: ParsedItem & {category_id: number, shop_id: number}]
 }>()
 
 const text = ref('')
 const categoryId = ref(0) // 0 = let the catalogue decide
+const shopId = ref(0) // 0 = any shop
 const focused = ref(false)
 const highlighted = ref(-1)
 const input = useTemplateRef<HTMLInputElement>('input')
@@ -121,9 +143,11 @@ function move(step: number) {
 
 function add(name: string) {
 	const {quantity, unit} = parsed.value
-	emit('add', {name, quantity, unit, category_id: categoryId.value})
+	emit('add', {name, quantity, unit, category_id: categoryId.value, shop_id: shopId.value})
 	text.value = ''
+	// Both go back to automatic, so the next item isn't quietly tied to a shop.
 	categoryId.value = 0
+	shopId.value = 0
 	highlighted.value = -1
 	// Keep the keyboard up for the next item.
 	input.value?.focus()

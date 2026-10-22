@@ -22,7 +22,10 @@
 					<h1 class="title">
 						{{ activeList.title }}
 					</h1>
-					<SyncBadge :categories="categories" />
+					<SyncBadge
+						:categories="categories"
+						:shops="allShops"
+					/>
 				</div>
 				<div class="list-actions">
 					<BaseButton
@@ -50,10 +53,12 @@
 				v-model="activeShopId"
 				:list-id="activeList.id"
 				:shops="activeList.shops"
+				:categories="categories"
 			/>
 
 			<AddItemBar
 				:categories="categories"
+				:shops="activeList.shops"
 				:catalog="catalog"
 				:on-list="openNames"
 				@add="addItem"
@@ -96,7 +101,7 @@
 						<ItemRow
 							v-else
 							:item="item"
-							:hint="notStockedHint(item)"
+							:hint="shopHint(item)"
 							@toggle="toggleItem(item)"
 							@edit="editingUid = item.uid"
 						/>
@@ -160,6 +165,7 @@ import {createOp, deleteOp, notStockedOp, updateOp} from './sync/model'
 import {useShoppingOnline, useShoppingSync} from './sync/useShoppingSync'
 import {
 	groupItems,
+	inAisleOrder,
 	itemsForShop,
 	useShoppingData,
 	useShoppingItems,
@@ -215,14 +221,22 @@ const activeShopId = computed({
 const {items} = useShoppingItems(activeListId)
 const shopItems = computed(() => itemsForShop(items.value, activeShopId.value))
 const hiddenCount = computed(() => items.value.filter(i => !i.done).length - shopItems.value.filter(i => !i.done).length)
-const grouped = computed(() => groupItems(shopItems.value, categories.value, t('household.shopping.noCategory')))
+// A shop's tab follows its aisle order; All keeps the household order.
+const tabCategories = computed(() => inAisleOrder(categories.value, activeShop.value?.category_order ?? []))
+const grouped = computed(() => groupItems(shopItems.value, tabCategories.value, t('household.shopping.noCategory')))
 const openNames = computed(() => items.value.filter(i => !i.done).map(i => i.name))
 const editingUid = ref<string | null>(null)
 
-// On the All tab, say which shops don't stock an item.
-function notStockedHint(item: ShoppingItemResponse): string | undefined {
-	if (activeShopId.value !== 0 || item.not_stocked_shop_ids.length === 0) return undefined
-	const titles = (activeList.value?.shops ?? [])
+// Every shop of every list, for the conflict log.
+const allShops = computed(() => lists.value.flatMap(l => l.shops))
+
+// On the All tab, say which shop an item is for, or which shops don't stock it.
+function shopHint(item: ShoppingItemResponse): string | undefined {
+	if (activeShopId.value !== 0) return undefined
+	const shops = activeList.value?.shops ?? []
+	const only = shops.find(shop => shop.id === item.shop_id)
+	if (only) return t('household.shopping.shops.only', {shop: only.title})
+	const titles = shops
 		.filter(shop => item.not_stocked_shop_ids.includes(shop.id))
 		.map(shop => shop.title)
 	return titles.length ? t('household.shopping.shops.notAt', {shops: titles.join(', ')}) : undefined
@@ -231,7 +245,7 @@ function notStockedHint(item: ShoppingItemResponse): string | undefined {
 // Every change goes through the sync engine: on screen and saved on the
 // phone at once, sent to the server when there's signal.
 
-function addItem(item: ParsedItem & {category_id: number}) {
+function addItem(item: ParsedItem & {category_id: number, shop_id: number}) {
 	const newItem = prepareNewItem(item, activeListId.value, catalog.value, categories.value)
 	const duplicate = findDuplicate(items.value, newItem)
 	if (duplicate) {

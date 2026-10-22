@@ -2739,6 +2739,10 @@ export type ShoppingItem = {
      */
     quantity?: number;
     /**
+     * The only shop to buy this at, e.g. a brand only Supabarn has: it's hidden on the other shops' tabs. 0 means any shop.
+     */
+    shop_id?: number;
+    /**
      * The item's id across devices: a UUID made by the app that added it. Sync uses it; the numeric id is for these REST endpoints.
      */
     readonly uid?: string;
@@ -2771,6 +2775,10 @@ export type ShoppingItemFields = {
      * 0 or more; sent together with unit.
      */
     quantity?: number;
+    /**
+     * The only shop to buy it at; 0 for any shop. A shop that isn't on the item's list becomes 0.
+     */
+    shop_id?: number;
     /**
      * Up to 50 characters; sent together with quantity.
      */
@@ -2842,6 +2850,10 @@ export type ShoppingItemReadBody = {
      * How many or how much, read together with unit. 0 means no quantity.
      */
     quantity?: number;
+    /**
+     * The only shop to buy this at, e.g. a brand only Supabarn has: it's hidden on the other shops' tabs. 0 means any shop.
+     */
+    shop_id?: number;
     /**
      * The item's id across devices: a UUID made by the app that added it. Sync uses it; the numeric id is for these REST endpoints.
      */
@@ -2936,6 +2948,10 @@ export type ShoppingShop = {
      */
     readonly $schema?: string;
     /**
+     * Category ids in the order the shop's aisles come; its tab groups items this way. Categories not in it follow in the household order. Unknown ids and repeats are dropped.
+     */
+    category_order?: Array<number> | null;
+    /**
      * When this shop was added.
      */
     readonly created?: string;
@@ -2966,6 +2982,10 @@ export type ShoppingShopReadBody = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
+    /**
+     * Category ids in the order the shop's aisles come; its tab groups items this way. Categories not in it follow in the household order. Unknown ids and repeats are dropped.
+     */
+    category_order?: Array<number> | null;
     /**
      * When this shop was added.
      */
@@ -5912,6 +5932,10 @@ export type ShoppingItemWritable = {
      */
     quantity?: number;
     /**
+     * The only shop to buy this at, e.g. a brand only Supabarn has: it's hidden on the other shops' tabs. 0 means any shop.
+     */
+    shop_id?: number;
+    /**
      * Unit for quantity, e.g. g, kg, L, packs. Empty for a plain count.
      */
     unit?: string;
@@ -5943,6 +5967,10 @@ export type ShoppingItemReadBodyWritable = {
      */
     quantity?: number;
     /**
+     * The only shop to buy this at, e.g. a brand only Supabarn has: it's hidden on the other shops' tabs. 0 means any shop.
+     */
+    shop_id?: number;
+    /**
      * Unit for quantity, e.g. g, kg, L, packs. Empty for a plain count.
      */
     unit?: string;
@@ -5972,6 +6000,10 @@ export type ShoppingListReadBodyWritable = {
 
 export type ShoppingShopWritable = {
     /**
+     * Category ids in the order the shop's aisles come; its tab groups items this way. Categories not in it follow in the household order. Unknown ids and repeats are dropped.
+     */
+    category_order?: Array<number> | null;
+    /**
      * Order of the shop's tab; lower comes first.
      */
     position?: number;
@@ -5982,6 +6014,10 @@ export type ShoppingShopWritable = {
 };
 
 export type ShoppingShopReadBodyWritable = {
+    /**
+     * Category ids in the order the shop's aisles come; its tab groups items this way. Categories not in it follow in the household order. Unknown ids and repeats are dropped.
+     */
+    category_order?: Array<number> | null;
     /**
      * Order of the shop's tab; lower comes first.
      */
