@@ -54,7 +54,7 @@ A new shopping module with a ShopShop-style list: one line per item, a big tick 
 
 - Each item has a name and an optional **quantity + unit** (2, 500 g, 1 L, 3 packs) and an optional note.
 - Tap to tick; ticked items grey out and drop to the bottom, with a button to clear them.
-- Items are grouped by **category** (Produce, Dairy, Frozen…), each group collapsible. One category order is used for every shop.
+- Items are grouped by **category** (Produce, Dairy, Frozen…), each group collapsible. The All tab uses the household's category order; each shop's tab uses that shop's aisle order.
 - Not just groceries: shoes, school supplies and other family shopping go on lists too.
 
 ### Shops and shop groups
@@ -63,6 +63,8 @@ A new shopping module with a ShopShop-style list: one line per item, a big tick 
 - Adding an item to a group puts it on every shop list in that group.
 - Ticking an item at one shop ticks it off the others in the group ("bought it already").
 - An item can be marked **not stocked** at a shop, so it is never added to that shop's list.
+- An item can be given a **shop** when it's added (or later, when editing it): "only at Supabarn". It shows on All, labelled with the shop, and on that shop's tab, and is hidden at the other shops. Left blank, it goes to every shop as before.
+- Each shop has its own **aisle order**: the order its categories come in as you walk the shop. Set in the shop manager; categories it doesn't list follow in the household order. Changing it needs signal; the order is kept on the phone, so it works offline.
 
 ### Adding items
 
@@ -178,10 +180,11 @@ Groceries come first; each phase ends with something usable on the phones.
 6. **Paper and AI import:** import printed recipes from Paperless-ngx; AI extraction on sampc for scans and for web pages without recipe data.
 7. **Polish:** offline-readable tasks, theming, any trial feedback.
 8. **Push notifications and Obsidian:** task reminders and the daily overdue summary on the phones, opt-in shopping list summaries, quiet hours; then the Obsidian plugin (tasks, note → task, recipes as notes).
+9. **Shops, part 2:** an optional shop per item (chosen when adding or editing), and a per-shop aisle order for categories.
 
 ## Out of scope and later
 
-**Not included:** finances or expense tracking (from KitchenOwl), multiple households, per-shop aisle ordering.
+**Not included:** finances or expense tracking (from KitchenOwl), multiple households.
 
 **Later:**
 
