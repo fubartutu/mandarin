@@ -122,6 +122,19 @@ Paper recipes (mostly printed: cookbook pages, magazine cut-outs) are scanned in
 - **Picture and link:** the scanned page becomes the recipe's picture, and the recipe links back to the Paperless document.
 - **AI model:** runs on sampc's GPU (e.g. Ollama), shared with Sam's Whisper setup. When sampc is off, imports fall back to the simple rules.
 
+## Push notifications
+
+Notifications on the phones' home-screen app (and laptop browsers) through Web Push, which iPhone and iPad support for home-screen apps since iOS/iPadOS 16.4, and Android and desktop browsers always have. Vikunja has none: reminders only go by email.
+
+- **Turning it on:** Settings → Notifications → "Turn on for this device". The permission prompt has to come from a tap (an iOS rule). Each device is listed and can be removed. A "Send a test" button checks it works.
+- **Task reminders:** a push at each reminder's time, saying the task and when it's due. Tapping opens the task.
+- **Daily overdue summary:** once a day at the time already set for the overdue email, a single push listing overdue tasks ("3 overdue: car rego, …").
+- **Shopping list changes:** off unless turned on for a list. Changes the other person makes are batched: one push once they've stopped for about 10 minutes ("Alex added milk, eggs and 3 more to Groceries"). Never for your own changes.
+- **Quiet hours (10pm–7am, on by default):** shopping summaries wait until 7am. Reminders and the overdue summary come at the times you set.
+- **Per person:** each person picks which of these push, and keeps email reminders as well if wanted (each event: push, email, or both).
+- **How it works:** the server has its own key pair (VAPID), made on first start and kept with the database. Each device's push address is stored per user and forgotten when the push service says it's gone. Pushes go from the server to Apple's or Google's push service directly, so Cloudflare Zero Trust isn't involved. Tapping a notification opens the app as usual.
+- **Limits:** iPhone and iPad only deliver to the app added to the home screen, not to Safari tabs. Phones may delay pushes in low-power mode.
+
 ## Platforms and look
 
 A web app installed to the home screen on both phones (no app stores), plus the full website on laptop and tablet.
@@ -154,6 +167,7 @@ Groceries come first; each phase ends with something usable on the phones.
 5. **Recipes:** recipe database, scraper container, add ingredients to the shopping list.
 6. **Paper and AI import:** import printed recipes from Paperless-ngx; AI extraction on sampc for scans and for web pages without recipe data.
 7. **Polish:** offline-readable tasks, theming, any trial feedback.
+8. **Push notifications:** task reminders and the daily overdue summary on the phones, opt-in shopping list summaries, quiet hours.
 
 ## Out of scope and later
 
@@ -173,5 +187,5 @@ Groceries come first; each phase ends with something usable on the phones.
 - [ ] Local dev setup on the laptop, or build on GitHub and deploy straight to ZimaOS?
 - [ ] Meal planning and cooking mode: wanted, and in which phase?
 - [ ] Backups: nightly to a folder on the server, or off the box (e.g. the Synology NAS)?
-- [ ] Notifications when the other person changes a shared list: always, never, or per list?
+- [x] Notifications when the other person changes a shared list: per list, off by default, batched (Phase 8).
 - [ ] Vikunja trial: reverse-proxy issue still to resolve.
