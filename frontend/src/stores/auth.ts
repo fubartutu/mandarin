@@ -29,6 +29,7 @@ import {
 import {MILLISECONDS_A_SECOND} from '@/constants/date'
 import {serverNowSeconds} from '@/helpers/serverClock'
 import {isUnreachable, keepSessionOffline, renewWithinStartTimeout, withinStartTimeout} from '@/household/offline' // FORK: Mandarin offline start
+import {clearOfflineApiCache} from '@/household/offlineTasks' // FORK: tasks kept for offline reading
 import {useWebSocket} from '@/composables/useWebSocket'
 import {redirectToLastVisited} from '@/composables/useRedirectToLastVisited'
 import {setModuleLoading} from '@/stores/helper'
@@ -608,6 +609,7 @@ export const useAuthStore = defineStore('auth', () => {
 		}
 
 		removeToken()
+		await clearOfflineApiCache() // FORK: delete tasks kept for offline reading
 		const loggedInVia = getLoggedInVia()
 		lastUserInfoRefresh.value = null
 		setAuthenticated(false)

@@ -75,6 +75,11 @@ another package), so in practice:
   Paperless-ngx scans and the AI (Anthropic or an OpenAI-compatible API via AI_API_KEY/AI_MODEL, else Ollama on sampc) are scraper-side only (`paperless.py`,
   `text_recipe.py` rules, `ai.py`; settings in `settings.py`); Mandarin proxies them under
   `/recipes/paperless`, and a scan's page picture is `paperless:documents/<id>/image`.
+- **Offline tasks (read-only):** `registerOfflineApi()` in `household/sw.ts` keeps every JSON
+  GET answer from /api/v1 and /api/v2 (NetworkFirst, 8 s, 500 entries) in the `mandarin-api`
+  cache, served without signal. Deleted on logout (FORK in `stores/auth.ts`) and when another user
+  signs in (`offlineTasks.ts`). `OfflineBanner.vue` is its own mini app so it shows on every page.
+  Endpoints that must never come from a cache go in `NOT_CACHED` there.
 - **Offline start:** small FORK hooks in `stores/auth.ts`, `stores/base.ts`, `Ready.vue`,
   `client/queryClient.ts` and `sw.ts` delegate to `household/offline.ts` and `household/sw.ts`.
   Upstream's `sw.ts` precached twice, and the empty second copy wiped the cache on activate. That

@@ -24,6 +24,7 @@ import router from '@/router'
 import householdEn from './i18n/en.json'
 import './theme.scss' // mandarin-orange colours
 import {registerOfflineStart} from './offline'
+import {mountOfflineBanner} from './offlineTasks'
 
 library.add(
 	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
@@ -35,3 +36,6 @@ i18n.global.mergeLocaleMessage('en', householdEn)
 
 // Without signal, open on the shopping list rather than the task overview.
 registerOfflineStart(router)
+
+// "Offline: showing what you last opened" on task pages without signal.
+mountOfflineBanner(router)

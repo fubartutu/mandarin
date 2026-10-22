@@ -176,6 +176,9 @@
 				"search": "Search the scans' text",
 				"none": "No scans tagged \"{tag}\" in Paperless."
 			}
+		},
+		"offline": {
+			"tasks": "Offline: showing what you last opened. Changes need signal."
 		}
 	},
 	"ready": {

@@ -24,11 +24,19 @@
 </template>
 
 <script setup lang="ts">
+import {watch} from 'vue'
+
+import {useAuthStore} from '@/stores/auth'
+import {keepOfflineApiCacheFor} from './offlineTasks'
 import {useShoppingSync} from './shopping/sync/useShoppingSync'
 
 // Starting the engine here (the menu is on every page) means changes made
 // offline are sent even if the shopping list isn't open when signal returns.
 const sync = useShoppingSync()
+
+// Tasks kept for offline reading belong to one user (see offlineTasks.ts).
+const auth = useAuthStore()
+watch(() => auth.info?.id, id => keepOfflineApiCacheFor(id ?? 0), {immediate: true})
 </script>
 
 <style lang="scss" scoped>
