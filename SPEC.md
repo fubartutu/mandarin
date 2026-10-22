@@ -135,6 +135,16 @@ Notifications on the phones' home-screen app (and laptop browsers) through Web P
 - **How it works:** the server has its own key pair (VAPID), made on first start and kept with the database. Each device's push address is stored per user and forgotten when the push service says it's gone. Pushes go from the server to Apple's or Google's push service directly, so Cloudflare Zero Trust isn't involved. Tapping a notification opens the app as usual.
 - **Limits:** iPhone and iPad only deliver to the app added to the home screen, not to Safari tabs. Phones may delay pushes in low-power mode.
 
+## Obsidian plugin
+
+A private Obsidian plugin (kept in this repo, copied into the HOME vault's plugins folder; LiveSync carries it to the other machines). It talks to Mandarin's API with a Mandarin API token.
+
+- **Tasks in Obsidian:** a sidebar with due-today and overdue tasks, and a code block for any note (e.g. a project's tasks, or a saved filter). Tasks can be ticked off from there.
+- **Note → task:** a command (and right-click on a line) turns the line into a Mandarin task, with a due date if the line has one, and a link back to the note (an `obsidian://` link) in the task. The line gets a link to the task.
+- **Recipes as notes:** a command picks a Mandarin recipe and saves it as a Markdown note: frontmatter (source, servings, times, tags), ingredients as a list, numbered method, the main picture saved into the vault.
+- **Connection:** Mandarin is behind Cloudflare Zero Trust, which an app can't log in to. The plugin sends a Cloudflare Access service token (client ID and secret, set in its settings) with every request, so it works at home and away and Zero Trust stays in place.
+- **Settings:** Mandarin address, API token, Cloudflare service token, the folder for recipe notes.
+
 ## Platforms and look
 
 A web app installed to the home screen on both phones (no app stores), plus the full website on laptop and tablet.
@@ -167,7 +177,7 @@ Groceries come first; each phase ends with something usable on the phones.
 5. **Recipes:** recipe database, scraper container, add ingredients to the shopping list.
 6. **Paper and AI import:** import printed recipes from Paperless-ngx; AI extraction on sampc for scans and for web pages without recipe data.
 7. **Polish:** offline-readable tasks, theming, any trial feedback.
-8. **Push notifications:** task reminders and the daily overdue summary on the phones, opt-in shopping list summaries, quiet hours.
+8. **Push notifications and Obsidian:** task reminders and the daily overdue summary on the phones, opt-in shopping list summaries, quiet hours; then the Obsidian plugin (tasks, note → task, recipes as notes).
 
 ## Out of scope and later
 
