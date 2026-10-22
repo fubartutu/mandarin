@@ -30,6 +30,11 @@ const navigationItems = computed(() => {
 			routeName: 'user.settings.general',
 		},
 		{
+			// FORK: Mandarin push notifications (route added in household/setup.ts)
+			title: t('household.push.title'),
+			routeName: 'user.settings.household-notifications',
+		},
+		{
 			title: t('user.settings.newPasswordTitle'),
 			routeName: 'user.settings.password-update',
 			condition: isLocalUser.value,

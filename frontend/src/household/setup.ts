@@ -39,3 +39,11 @@ registerOfflineStart(router)
 
 // "Offline: showing what you last opened" on task pages without signal.
 mountOfflineBanner(router)
+
+// Settings → Notifications, added under Vikunja's settings page at runtime so
+// the router file isn't edited (its menu entry is a FORK line in Settings.vue).
+router.addRoute('user.settings', {
+	path: '/user/settings/household-notifications',
+	name: 'user.settings.household-notifications',
+	component: () => import('./push/NotificationsSettings.vue'),
+})

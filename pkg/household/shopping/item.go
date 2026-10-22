@@ -177,8 +177,19 @@ func (i *ShoppingItem) insert(s *xorm.Session, u *user.User, at time.Time) error
 	if err := recordItemChange(s, i, false); err != nil {
 		return err
 	}
+	if OnItemAdded != nil {
+		if err := OnItemAdded(s, i.ListID, i.Name, u.ID); err != nil {
+			return err
+		}
+	}
 	return fillItemDetails(s, i)
 }
+
+// OnItemAdded is called in the same transaction whenever an item is added
+// to a list (not when an add is merged into an existing item). The push
+// package uses it for shopping summaries; it's a variable so this package
+// doesn't import that one.
+var OnItemAdded func(s *xorm.Session, listID int64, name string, actorID int64) error
 
 // fillItemDetails copies photo and not-stocked info from the items'
 // catalogue entries.

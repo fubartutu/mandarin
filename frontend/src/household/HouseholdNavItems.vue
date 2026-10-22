@@ -28,6 +28,7 @@ import {watch} from 'vue'
 
 import {useAuthStore} from '@/stores/auth'
 import {keepOfflineApiCacheFor} from './offlineTasks'
+import {refreshSubscription} from './push/device'
 import {useShoppingSync} from './shopping/sync/useShoppingSync'
 
 // Starting the engine here (the menu is on every page) means changes made
@@ -36,7 +37,11 @@ const sync = useShoppingSync()
 
 // Tasks kept for offline reading belong to one user (see offlineTasks.ts).
 const auth = useAuthStore()
-watch(() => auth.info?.id, id => keepOfflineApiCacheFor(id ?? 0), {immediate: true})
+watch(() => auth.info?.id, id => {
+	keepOfflineApiCacheFor(id ?? 0)
+	// Push: re-send this device's subscription for whoever is signed in.
+	if (id) refreshSubscription()
+}, {immediate: true})
 </script>
 
 <style lang="scss" scoped>

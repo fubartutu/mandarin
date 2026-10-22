@@ -75,3 +75,52 @@ export function registerOfflineApi() {
 		'GET',
 	)
 }
+
+// ---- Push notifications ----
+// The server (pkg/household/push) sends {title, body, url, tag}. A push must
+// always show a notification (Safari stops delivering otherwise).
+
+interface PushMessage {
+	title?: string
+	body?: string
+	url?: string
+	tag?: string
+}
+
+export function registerPush() {
+	self.addEventListener('push', event => {
+		let msg: PushMessage
+		try {
+			msg = event.data?.json() ?? {}
+		} catch {
+			msg = {body: event.data?.text()}
+		}
+		const icon = new URL('images/household/android-chrome-192x192.png', self.registration.scope).href
+		event.waitUntil(self.registration.showNotification(msg.title || 'Mandarin', {
+			body: msg.body,
+			tag: msg.tag,
+			icon,
+			data: {mandarinUrl: msg.url || '/'},
+		}))
+	})
+
+	// Tapping a notification opens its page: in an open Mandarin window if
+	// there is one, else a new one. (Vikunja's own notificationclick handler
+	// in sw.ts only reacts to its "show-task" action, which ours don't have.)
+	self.addEventListener('notificationclick', event => {
+		const path = event.notification.data?.mandarinUrl
+		if (typeof path !== 'string') return
+		event.notification.close()
+		const target = new URL(path.replace(/^\//, ''), self.registration.scope).href
+		event.waitUntil((async () => {
+			const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true})
+			const open = windows.find(w => new URL(w.url).origin === self.location.origin)
+			if (open) {
+				await open.focus()
+				await open.navigate(target).catch(() => self.clients.openWindow(target))
+				return
+			}
+			await self.clients.openWindow(target)
+		})())
+	})
+}

@@ -179,6 +179,35 @@
 		},
 		"offline": {
 			"tasks": "Offline: showing what you last opened. Changes need signal."
+		},
+		"push": {
+			"title": "Notifications",
+			"intro": "Mandarin can send notifications to this phone or computer: task reminders, the daily overdue summary, and summaries of shopping list changes.",
+			"thisDevice": "This device",
+			"state": {
+				"on": "Notifications are on for this device.",
+				"unsupported": "This browser can't receive notifications. Open Mandarin at its https address in a current browser.",
+				"needs-home-screen": "On iPhone and iPad, notifications only reach the home-screen app. Add Mandarin to your home screen (Share → Add to Home Screen), open it from there, and come back here.",
+				"blocked": "Notifications are blocked for Mandarin. Allow them in this device's settings (on iPhone: Settings → Notifications → Mandarin), then reload."
+			},
+			"turnOn": "Turn on for this device",
+			"turnOff": "Turn off for this device",
+			"test": "Send a test",
+			"testSent": "No device could be reached. | Sent to 1 device. | Sent to {count} devices.",
+			"devices": "My devices",
+			"unnamed": "Device",
+			"lastSent": "last notified {when}",
+			"added": "added {when}",
+			"remove": "Turn off notifications for {name}",
+			"what": "What to notify",
+			"reminders": "Task reminders, at the time set on the task",
+			"overdue": "Daily summary of overdue tasks",
+			"overdueHint": "Comes at the overdue reminder time, which is turned on and set in",
+			"shopping": "Shopping lists: when someone else adds items to",
+			"shoppingHint": "One notification once they've stopped adding for about 10 minutes.",
+			"quietHours": "Quiet hours, 10pm–7am",
+			"quietHoursHint": "Shopping summaries wait until the morning. Reminders still come at the time you set them.",
+			"saved": "Notification settings saved."
 		}
 	},
 	"ready": {

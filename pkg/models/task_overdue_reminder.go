@@ -168,7 +168,7 @@ func overdueEventsWithListeners(s *xorm.Session) (single, batch bool, err error)
 // RegisterOverdueReminderCron registers a function which checks once a day for tasks that are overdue and not done.
 func RegisterOverdueReminderCron() {
 	webhookEnabled := config.WebhooksEnabled.GetBool()
-	emailEnabled := config.ServiceEnableEmailReminders.GetBool() && config.MailerEnabled.GetBool()
+	emailEnabled := notifications.OrHouseholdPush(config.ServiceEnableEmailReminders.GetBool() && config.MailerEnabled.GetBool()) // FORK: also run for Mandarin push
 
 	if !emailEnabled && !webhookEnabled {
 		return

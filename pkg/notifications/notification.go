@@ -143,6 +143,10 @@ func Notify(notifiable Notifiable, notification Notification, sessions ...*xorm.
 		return err
 	}
 
+	if householdHook != nil {
+		householdHook(notifiable, notification) // FORK: Mandarin push notifications (household.go)
+	}
+
 	var s *xorm.Session
 	if len(sessions) > 0 && sessions[0] != nil {
 		s = sessions[0]

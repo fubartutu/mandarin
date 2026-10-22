@@ -98,6 +98,14 @@ another package), so in practice:
   English text that says "Vikunja" is overridden in `household/i18n/en.json` ("Powered by
   Vikunja" stays as credit). `household/branding.test.ts` fails when an upstream merge adds or
   changes such a string: add the override it names.
+- **Push notifications:** `pkg/household/push` (Web Push via webpush-go; VAPID keys made on first
+  start and kept in `push_vapid_keys`, so backups cover them). Reminders and the overdue summary come
+  through a hook in Vikunja's `notifications.Notify` (new file `pkg/notifications/household.go`, one
+  FORK line in `notification.go`, one in `task_overdue_reminder.go`); shopping summaries through
+  `shopping.OnItemAdded`. `push.Init()` must run after `cron.Init()` and before the reminder crons.
+  Frontend: `household/push/` (settings page added with `router.addRoute`, menu FORK in
+  `views/user/Settings.vue`) and `registerPush()` in `household/sw.ts`. Headless Chromium can't
+  subscribe (no push service); Playwright Firefox with `dom.push.enabled` can, end to end.
 - **Colours:** `household/theme.scss` (imported by `setup.ts`) overrides Vikunja's `--primary-*`
   tokens with mandarin orange, checked for WCAG contrast in light and dark mode; `index.html` and
   `vite.config.ts` carry the matching `theme-color` (FORK).

@@ -608,6 +608,38 @@ export type DetectionResult = {
     suggested_mapping?: Array<ColumnMapping> | null;
 };
 
+export type Device = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    readonly created?: string;
+    readonly id?: number;
+    /**
+     * When a push last reached the push service for it; null if never.
+     */
+    readonly last_sent?: string | null;
+    /**
+     * What the app calls this device, e.g. iPhone · Safari.
+     */
+    name?: string;
+};
+
+export type DeviceInput = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    endpoint?: string;
+    keys?: DeviceInputKeysStruct;
+    name?: string;
+};
+
+export type DeviceInputKeysStruct = {
+    auth?: string;
+    p256dh?: string;
+};
+
 export type EmailConfirm = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1551,6 +1583,29 @@ export type PasswordTokenRequest = {
     email?: string;
 };
 
+export type Preferences = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The daily overdue summary (at the time set for overdue reminders).
+     */
+    overdue?: boolean;
+    /**
+     * Hold shopping summaries from 10pm to 7am.
+     */
+    quiet_hours?: boolean;
+    /**
+     * A push at each task reminder.
+     */
+    reminders?: boolean;
+    /**
+     * Shopping lists to send summaries of others' changes for.
+     */
+    shopping_list_ids?: Array<number> | null;
+};
+
 export type PreviewResult = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1939,6 +1994,44 @@ export type PublicInviteLink = {
      * Teams the new account will join.
      */
     teams?: Array<InviteLinkTeam> | null;
+};
+
+export type PushDevices = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    devices?: Array<Device> | null;
+};
+
+export type PushEndpointInputBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    endpoint?: string;
+};
+
+export type PushKey = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The VAPID public key, base64url; pass it as applicationServerKey to PushManager.subscribe.
+     */
+    public_key?: string;
+};
+
+export type PushTestResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * How many devices the push services accepted it for.
+     */
+    sent?: number;
 };
 
 export type Reaction = {
@@ -4819,6 +4912,19 @@ export type DetectionResultWritable = {
     suggested_mapping?: Array<ColumnMapping> | null;
 };
 
+export type DeviceWritable = {
+    /**
+     * What the app calls this device, e.g. iPhone · Safari.
+     */
+    name?: string;
+};
+
+export type DeviceInputWritable = {
+    endpoint?: string;
+    keys?: DeviceInputKeysStruct;
+    name?: string;
+};
+
 export type EmailConfirmWritable = {
     token?: string;
 };
@@ -5262,6 +5368,25 @@ export type PasswordTokenRequestWritable = {
     email?: string;
 };
 
+export type PreferencesWritable = {
+    /**
+     * The daily overdue summary (at the time set for overdue reminders).
+     */
+    overdue?: boolean;
+    /**
+     * Hold shopping summaries from 10pm to 7am.
+     */
+    quiet_hours?: boolean;
+    /**
+     * A push at each task reminder.
+     */
+    reminders?: boolean;
+    /**
+     * Shopping lists to send summaries of others' changes for.
+     */
+    shopping_list_ids?: Array<number> | null;
+};
+
 export type PreviewResultWritable = {
     /**
      * The first few tasks that would be imported with the given config.
@@ -5448,6 +5573,28 @@ export type PublicInviteLinkWritable = {
      * Teams the new account will join.
      */
     teams?: Array<InviteLinkTeam> | null;
+};
+
+export type PushDevicesWritable = {
+    devices?: Array<DeviceWritable> | null;
+};
+
+export type PushEndpointInputBodyWritable = {
+    endpoint?: string;
+};
+
+export type PushKeyWritable = {
+    /**
+     * The VAPID public key, base64url; pass it as applicationServerKey to PushManager.subscribe.
+     */
+    public_key?: string;
+};
+
+export type PushTestResultWritable = {
+    /**
+     * How many devices the push services accepted it for.
+     */
+    sent?: number;
 };
 
 export type ReactionWritable = {
@@ -10065,6 +10212,231 @@ export type WebhooksUpdateResponses = {
 };
 
 export type WebhooksUpdateResponse = WebhooksUpdateResponses[keyof WebhooksUpdateResponses];
+
+export type PushDevicesListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/push/devices';
+};
+
+export type PushDevicesListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PushDevicesListError = PushDevicesListErrors[keyof PushDevicesListErrors];
+
+export type PushDevicesListResponses = {
+    /**
+     * OK
+     */
+    200: PushDevices;
+};
+
+export type PushDevicesListResponse = PushDevicesListResponses[keyof PushDevicesListResponses];
+
+export type PushDevicesSaveData = {
+    body: DeviceInputWritable;
+    path?: never;
+    query?: never;
+    url: '/push/devices';
+};
+
+export type PushDevicesSaveErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PushDevicesSaveError = PushDevicesSaveErrors[keyof PushDevicesSaveErrors];
+
+export type PushDevicesSaveResponses = {
+    /**
+     * Created
+     */
+    201: Device;
+};
+
+export type PushDevicesSaveResponse = PushDevicesSaveResponses[keyof PushDevicesSaveResponses];
+
+export type PushDevicesRemoveData = {
+    body: PushEndpointInputBodyWritable;
+    path?: never;
+    query?: never;
+    url: '/push/devices/remove';
+};
+
+export type PushDevicesRemoveErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PushDevicesRemoveError = PushDevicesRemoveErrors[keyof PushDevicesRemoveErrors];
+
+export type PushDevicesRemoveResponses = {
+    /**
+     * OK
+     */
+    200: unknown;
+};
+
+export type PushDevicesDeleteData = {
+    body?: never;
+    path: {
+        device: number;
+    };
+    query?: never;
+    url: '/push/devices/{device}';
+};
+
+export type PushDevicesDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PushDevicesDeleteError = PushDevicesDeleteErrors[keyof PushDevicesDeleteErrors];
+
+export type PushDevicesDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type PushDevicesDeleteResponse = PushDevicesDeleteResponses[keyof PushDevicesDeleteResponses];
+
+export type PushKeyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/push/key';
+};
+
+export type PushKeyErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PushKeyError = PushKeyErrors[keyof PushKeyErrors];
+
+export type PushKeyResponses = {
+    /**
+     * OK
+     */
+    200: PushKey;
+};
+
+export type PushKeyResponse = PushKeyResponses[keyof PushKeyResponses];
+
+export type PushSettingsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/push/settings';
+};
+
+export type PushSettingsGetErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PushSettingsGetError = PushSettingsGetErrors[keyof PushSettingsGetErrors];
+
+export type PushSettingsGetResponses = {
+    /**
+     * OK
+     */
+    200: Preferences;
+};
+
+export type PushSettingsGetResponse = PushSettingsGetResponses[keyof PushSettingsGetResponses];
+
+export type PatchPushSettingsGetData = {
+    body: Array<JsonPatchOp> | null;
+    path?: never;
+    query?: never;
+    url: '/push/settings';
+};
+
+export type PatchPushSettingsGetErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchPushSettingsGetError = PatchPushSettingsGetErrors[keyof PatchPushSettingsGetErrors];
+
+export type PatchPushSettingsGetResponses = {
+    /**
+     * OK
+     */
+    200: Preferences;
+};
+
+export type PatchPushSettingsGetResponse = PatchPushSettingsGetResponses[keyof PatchPushSettingsGetResponses];
+
+export type PushSettingsUpdateData = {
+    body: PreferencesWritable;
+    path?: never;
+    query?: never;
+    url: '/push/settings';
+};
+
+export type PushSettingsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PushSettingsUpdateError = PushSettingsUpdateErrors[keyof PushSettingsUpdateErrors];
+
+export type PushSettingsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: Preferences;
+};
+
+export type PushSettingsUpdateResponse = PushSettingsUpdateResponses[keyof PushSettingsUpdateResponses];
+
+export type PushTestData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/push/test';
+};
+
+export type PushTestErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PushTestError = PushTestErrors[keyof PushTestErrors];
+
+export type PushTestResponses = {
+    /**
+     * OK
+     */
+    200: PushTestResult;
+};
+
+export type PushTestResponse = PushTestResponses[keyof PushTestResponses];
 
 export type RecipesListData = {
     body?: never;

@@ -27,6 +27,7 @@ import (
 	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/files"
 	"code.vikunja.io/api/pkg/household/backup"   // FORK: Mandarin nightly backups
+	"code.vikunja.io/api/pkg/household/push"     // FORK: Mandarin push notifications
 	"code.vikunja.io/api/pkg/household/shopping" // FORK: Mandarin shopping seeding
 	"code.vikunja.io/api/pkg/i18n"
 	"code.vikunja.io/api/pkg/license"
@@ -140,6 +141,7 @@ func FullInit() {
 
 	// Start the cron
 	cron.Init()
+	push.Init() // FORK: Mandarin push notifications (before the reminder crons, which check for it)
 	models.RegisterReminderCron()
 	models.RegisterOverdueReminderCron()
 	models.RegisterUserDeletionCron()

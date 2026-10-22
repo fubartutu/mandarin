@@ -23,10 +23,11 @@ workbox.setConfig({
 import { precacheAndRoute } from 'workbox-precaching'
 precacheAndRoute(self.__WB_MANIFEST)
 
-// FORK: open the app's pages, and tasks read before, from the cache when there's no signal (Mandarin)
-import {registerOfflineApi, registerOfflinePages} from './household/sw'
+// FORK: Mandarin: pages and tasks read before open without signal; push notifications
+import {registerOfflineApi, registerOfflinePages, registerPush} from './household/sw'
 registerOfflinePages()
 registerOfflineApi()
+registerPush()
 
 // Cache assets
 workbox.routing.registerRoute(
