@@ -1,0 +1,52 @@
+/* Mandarin plugin. Uses Obsidian's own colour variables, so it follows the theme. */
+
+.mandarin-view-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.mandarin-section h5 {
+	margin: 1em 0 .3em;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.mandarin-tasks {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mandarin-task {
+	display: flex;
+	align-items: baseline;
+	gap: .5em;
+	padding: .2em 0;
+}
+
+.mandarin-task.is-done .mandarin-task-title {
+	color: var(--text-faint);
+	text-decoration: line-through;
+}
+
+.mandarin-task-title {
+	flex: 1;
+}
+
+.mandarin-due {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+}
+
+.mandarin-due.is-overdue {
+	color: var(--text-error);
+}
+
+.mandarin-muted {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}

@@ -106,6 +106,10 @@ another package), so in practice:
   Frontend: `household/push/` (settings page added with `router.addRoute`, menu FORK in
   `views/user/Settings.vue`) and `registerPush()` in `household/sw.ts`. Headless Chromium can't
   subscribe (no push service); Playwright Firefox with `dom.push.enabled` can, end to end.
+- **Obsidian plugin:** `household-obsidian/` (own npm project, Node 24: `npm run build`, `npm test`,
+  `node install.mjs` copies it into the HOME vault). Talks to /api/v2 with a Mandarin API token
+  plus Cloudflare Access service-token headers, through Obsidian's `requestUrl`. Pure text logic is in
+  `markdown.ts` (tested); `api.integration.test.ts` runs against a server when MANDARIN_TEST_URL is set.
 - **Colours:** `household/theme.scss` (imported by `setup.ts`) overrides Vikunja's `--primary-*`
   tokens with mandarin orange, checked for WCAG contrast in light and dark mode; `index.html` and
   `vite.config.ts` carry the matching `theme-color` (FORK).

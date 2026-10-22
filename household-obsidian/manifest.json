@@ -1,0 +1,9 @@
+{
+  "id": "mandarin",
+  "name": "Mandarin",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Your Mandarin tasks in Obsidian, turn note lines into tasks, and save recipes as notes.",
+  "author": "Sam Primrose",
+  "isDesktopOnly": false
+}

@@ -1,0 +1,20 @@
+{
+  "name": "mandarin-obsidian",
+  "private": true,
+  "description": "Obsidian plugin for Mandarin: tasks in Obsidian, note lines to tasks, recipes as notes.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && node esbuild.config.mjs",
+    "test": "vitest run",
+    "install-plugin": "node install.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "obsidian": "1.14.4",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
