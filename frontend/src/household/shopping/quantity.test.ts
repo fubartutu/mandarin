@@ -33,6 +33,23 @@ describe('parseItemInput', () => {
 		['apples 3', 'apples 3', 0, ''],
 		['size 10 shoes', 'size 10 shoes', 0, ''],
 		['flour1kg', 'flour1kg', 0, ''],
+		// Said rather than typed, as dictation writes it.
+		['two eggs', 'eggs', 2, ''],
+		['Two eggs', 'eggs', 2, ''],
+		['three packs of Tim Tams', 'Tim Tams', 3, 'packs'],
+		['twenty five g mince', 'mince', 25, 'g'],
+		['twenty-five g mince', 'mince', 25, 'g'],
+		['twenty apples', 'apples', 20, ''],
+		['a dozen eggs', 'eggs', 1, 'dozen'],
+		['an L of milk', 'milk', 1, 'L'],
+		['half a kilo of mince', 'mince', 0.5, 'kg'],
+		['milk two litres', 'milk', 2, 'L'],
+		['flour a kilo', 'flour', 1, 'kg'],
+		['Coke twenty five cans', 'Coke', 25, 'cans'],
+		['a cake', 'a cake', 0, ''],
+		['two', 'two', 0, ''],
+		['seven-up', 'seven-up', 0, ''],
+		['shoes size two', 'shoes size two', 0, ''],
 	])('%j → %j, %d %j', (input, name, quantity, unit) => {
 		expect(parseItemInput(input)).toEqual({name, quantity, unit})
 	})
