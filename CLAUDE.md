@@ -119,8 +119,9 @@ another package), so in practice:
   `views/user/Settings.vue`) and `registerPush()` in `household/sw.ts`. Headless Chromium can't
   subscribe (no push service); Playwright Firefox with `dom.push.enabled` can, end to end.
 - **Dictation:** `household/dictation/` (browser speech recognition, Web Speech API). A mic
-  button next to the add-task field (FORK in `components/tasks/AddTask.vue`), only shown where
-  the browser has speech recognition; what's said goes into the field for quick add magic to parse.
+  button next to the add-task field (FORK in `components/tasks/AddTask.vue`) and the shopping
+  add bar (`AddItemBar.vue`), only shown where the browser has speech recognition; what's said
+  goes into the field for quick add magic or `parseItemInput` to parse.
 - **No Teams:** one household, so Teams is hidden from the UI only (backend untouched): menu entry
   (`Navigation.vue`), its shortcut listing (`shortcuts.ts`), team sharing (`ProjectSettingsShare.vue`)
   and quick-action team search and "New team" (`QuickActions.vue`), all FORK lines. The routes stay.

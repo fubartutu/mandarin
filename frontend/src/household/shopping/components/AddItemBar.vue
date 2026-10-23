@@ -49,6 +49,7 @@
 				</li>
 			</ul>
 		</div>
+		<DictateButton v-model="text" />
 		<div class="select">
 			<select
 				v-model="categoryId"
@@ -99,6 +100,7 @@
 <script setup lang="ts">
 import {computed, ref, useTemplateRef} from 'vue'
 
+import DictateButton from '../../dictation/DictateButton.vue'
 import {suggestCatalogEntries} from '../autocomplete'
 import {formatQuantity, parseItemInput, type ParsedItem} from '../quantity'
 import type {CatalogEntry, ShoppingCategoryResponse, ShoppingShopResponse} from '../queries'

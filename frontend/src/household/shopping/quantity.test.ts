@@ -10,6 +10,8 @@ describe('parseItemInput', () => {
 		['2 L milk', 'milk', 2, 'L'],
 		['2l milk', 'milk', 2, 'L'],
 		['500g mince', 'mince', 500, 'g'],
+		['2 litres of milk', 'milk', 2, 'L'],
+		['500 grams of Mince', 'Mince', 500, 'g'],
 		['500 grams mince', 'mince', 500, 'g'],
 		['1.5 kg potatoes', 'potatoes', 1.5, 'kg'],
 		['1,5 kg potatoes', 'potatoes', 1.5, 'kg'],

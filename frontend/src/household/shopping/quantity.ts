@@ -44,6 +44,7 @@ function toNumber(raw: string): number {
  *   "milk"          → {name: "milk", quantity: 0, unit: ""}
  *   "2 L milk"      → {name: "milk", quantity: 2, unit: "L"}
  *   "500g mince"    → {name: "mince", quantity: 500, unit: "g"}
+ *   "2 litres of milk" → {name: "milk", quantity: 2, unit: "L"}
  *   "3 apples"      → {name: "apples", quantity: 3, unit: ""}
  *   "flour 1kg"     → {name: "flour", quantity: 1, unit: "kg"}
  *   "7up"           → {name: "7up", quantity: 0, unit: ""}
@@ -81,8 +82,10 @@ function parseLeading(trimmed: string): ParsedItem | null {
 
 	if (unit !== undefined) {
 		// "500g mince": the word was a unit. Without a name it's not an item.
-		return rest
-			? {name: rest, quantity: toNumber(rawNumber), unit}
+		// "2 litres of milk" (how it's said, so how dictation writes it) drops the "of".
+		const name = rest.replace(/^of\s+/i, '')
+		return name
+			? {name, quantity: toNumber(rawNumber), unit}
 			: null
 	}
 
