@@ -118,6 +118,12 @@ another package), so in practice:
   Frontend: `household/push/` (settings page added with `router.addRoute`, menu FORK in
   `views/user/Settings.vue`) and `registerPush()` in `household/sw.ts`. Headless Chromium can't
   subscribe (no push service); Playwright Firefox with `dom.push.enabled` can, end to end.
+- **Dictation:** `household/dictation/` (browser speech recognition, Web Speech API). A mic
+  button next to the add-task field (FORK in `components/tasks/AddTask.vue`), only shown where
+  the browser has speech recognition; what's said goes into the field for quick add magic to parse.
+- **No Teams:** one household, so Teams is hidden from the UI only (backend untouched): menu entry
+  (`Navigation.vue`), its shortcut listing (`shortcuts.ts`), team sharing (`ProjectSettingsShare.vue`)
+  and quick-action team search and "New team" (`QuickActions.vue`), all FORK lines. The routes stay.
 - **Obsidian plugin:** `household-obsidian/` (own npm project, Node 24: `npm run build`, `npm test`,
   `node install.mjs` copies it into the HOME vault). Talks to /api/v2 with a Mandarin API token
   plus Cloudflare Access service-token headers, through Obsidian's `requestUrl`. Pure text logic is in

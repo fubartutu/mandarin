@@ -8,10 +8,7 @@
 				:project-id="project.id"
 				:user-is-admin="userIsAdmin"
 			/>
-			<TeamSharing
-				:project-id="project.id"
-				:user-is-admin="userIsAdmin"
-			/>
+			<!-- FORK: no sharing with teams (one household, so teams aren't used) -->
 		</template>
 
 		<LinkSharing
@@ -34,7 +31,6 @@ import {PERMISSIONS} from '@/constants/permissions'
 
 import CreateEdit from '@/components/misc/CreateEdit.vue'
 import LinkSharing from '@/components/sharing/LinkSharing.vue'
-import TeamSharing from '@/components/sharing/TeamSharing.vue'
 import UserSharing from '@/components/sharing/UserSharing.vue'
 
 import {useBaseStore} from '@/stores/base'

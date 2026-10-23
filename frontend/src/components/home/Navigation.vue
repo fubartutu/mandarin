@@ -54,17 +54,7 @@
 						{{ $t('label.title') }}
 					</RouterLink>
 				</li>
-				<li>
-					<RouterLink
-						v-shortcut="SHORTCUTS.navigation.teams"
-						:to="{ name: 'teams.index'}"
-					>
-						<span class="menu-item-icon icon">
-							<Icon icon="users" />
-						</span>
-						{{ $t('team.title') }}
-					</RouterLink>
-				</li>
+				<!-- FORK: no Teams entry (one household, so teams aren't used) -->
 				<li v-if="timeTrackingEnabled">
 					<RouterLink :to="{ name: 'time-tracking'}">
 						<span class="menu-item-icon icon">

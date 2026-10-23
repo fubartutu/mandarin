@@ -400,7 +400,7 @@ const availableCmds = computed(() => {
 	return [
 		commands.value.newTask,
 		commands.value.newProject,
-		commands.value.newTeam,
+		// FORK: no "New team" command
 	]
 })
 
@@ -496,7 +496,7 @@ function searchTasks() {
 	}, 150)
 }
 
-const teamSearches = refDebounced(computed(() => parsedQuery.value.assignees), 150)
+const teamSearches = refDebounced(computed((): string[] => []), 150) // FORK: never search teams (one household, so teams aren't used)
 const teamQueries = useQueries({
 	queries: computed(() => active.value && query.value !== '' && selectedCmd.value === null &&
 		(searchMode.value === SEARCH_MODE.ALL || searchMode.value === SEARCH_MODE.TEAMS)
