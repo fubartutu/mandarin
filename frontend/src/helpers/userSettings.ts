@@ -34,6 +34,7 @@ export interface FrontendSettings {
 	quick_add_default_reminders: {relative_period?: number}[]
 	time_tracking_default_start?: string
 	default_due_time?: string
+	household_start_page?: string // FORK: Mandarin start page (see household/startPage.ts)
 }
 
 export function taskRemindersFromSettings(

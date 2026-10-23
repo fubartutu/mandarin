@@ -220,6 +220,22 @@
 			"quietHours": "Quiet hours, 10pm–7am",
 			"quietHoursHint": "Shopping summaries wait until the morning. Reminders still come at the time you set them.",
 			"saved": "Notification settings saved."
+		},
+		"home": {
+			"title": "Home",
+			"tasksHeading": "Tasks",
+			"loading": "Loading…",
+			"toBuy": "nothing to buy | 1 to buy | {count} to buy",
+			"openShopping": "Open shopping",
+			"recentRecipes": "Recently viewed recipes",
+			"newRecipes": "Newest recipes",
+			"allRecipes": "All recipes"
+		},
+		"startPage": {
+			"label": "Start page",
+			"home": "Home",
+			"shopping": "Shopping",
+			"recipes": "Recipes"
 		}
 	},
 	"ready": {

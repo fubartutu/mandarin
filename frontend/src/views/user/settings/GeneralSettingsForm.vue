@@ -29,6 +29,8 @@
 			>
 				<ProjectSearch v-model="defaultProject" />
 			</FormField>
+			<!-- FORK: Mandarin start page (Home, Shopping or Recipes) -->
+			<StartPageField v-model="settings.frontend_settings.household_start_page" />
 		</div>
 	</Card>
 
@@ -348,6 +350,7 @@ import {RELATION_KINDS} from '@/types/IRelationKind'
 import {isDesktopApp} from '@/helpers/desktopAuth'
 import ShortcutRecorder from '@/components/misc/ShortcutRecorder.vue'
 import Reminders from '@/components/tasks/partials/Reminders.vue'
+import StartPageField from '@/household/components/StartPageField.vue' // FORK: Mandarin start page
 import {REMINDER_PERIOD_RELATIVE_TO_TYPES} from '@/types/IReminderPeriodRelativeTo'
 
 const props = defineProps<{identity: AccountIdentity}>()

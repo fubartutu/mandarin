@@ -54,6 +54,14 @@ another package), so in practice:
   entries come from `HouseholdNavItems.vue` in `Navigation.vue`, and `household/setup.ts` (imported
   from `main.ts`) registers icons and merges `household/i18n/en.json`. Don't edit Vikunja's
   `lang/en.json` or `Icon.ts`.
+- **Home and start page:** `household/HomeView.vue` replaces Vikunja's Overview on `/` (added in
+  `setup.ts` with `router.addRoute` under the same name `home`, so `router/index.ts` is untouched):
+  quick add, shopping lists, recently viewed recipes (`recipes/recent.ts`, localStorage) and current
+  tasks. `HouseholdNavItems.vue` sits at the top of the menu (Home, Shopping, Recipes, then a "Tasks"
+  divider); the Overview entry was removed from `Navigation.vue` (FORK). The start page (Home,
+  Shopping or Recipes) is `household_start_page` in `frontend_settings`, picked in Settings → General
+  (`components/StartPageField.vue`, FORK in `GeneralSettingsForm.vue`) and applied by
+  `startPage.ts` only when the app opens or after sign-in.
 - Production runs on **SQLite**, which allows one writer at a time: two requests that each read
   then write can fail with "database is locked". Don't write rows that haven't changed, and don't
   fire two writing requests from the client at once (chain them).

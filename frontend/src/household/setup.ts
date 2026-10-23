@@ -13,6 +13,7 @@ import {
 	faCircleCheck,
 	faCloud,
 	faFileLines,
+	faHouse,
 	faLightbulb,
 	faStore,
 	faTriangleExclamation,
@@ -25,17 +26,29 @@ import householdEn from './i18n/en.json'
 import './theme.scss' // mandarin-orange colours
 import {registerOfflineStart} from './offline'
 import {mountOfflineBanner} from './offlineTasks'
+import {registerStartPage} from './startPage'
 
 library.add(
 	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
-	faFileLines, faLightbulb, faStore, faTriangleExclamation, faCircle,
+	faFileLines, faHouse, faLightbulb, faStore, faTriangleExclamation, faCircle,
 )
 
 // Other languages fall back to English for these keys (fallbackLocale).
 i18n.global.mergeLocaleMessage('en', householdEn)
 
+// Mandarin's Home page on "/" instead of Vikunja's Overview. A route added
+// with the name of an existing one replaces it, so router/index.ts is untouched.
+router.addRoute({
+	path: '/',
+	name: 'home',
+	component: () => import('./HomeView.vue'),
+})
+
 // Without signal, open on the shopping list rather than the task overview.
 registerOfflineStart(router)
+
+// Otherwise open on the page chosen in Settings → General.
+registerStartPage(router)
 
 // "Offline: showing what you last opened" on task pages without signal.
 mountOfflineBanner(router)

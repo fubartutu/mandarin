@@ -189,6 +189,7 @@ import {useTitle} from '@/composables/useTitle'
 import IngredientPicker from './components/IngredientPicker.vue'
 import RecipeImage from './components/RecipeImage.vue'
 import {recipeQuery} from './queries'
+import {rememberRecipeViewed} from './recent'
 import {formatMinutes, numberSteps} from './scaling'
 
 const props = defineProps<{
@@ -200,6 +201,11 @@ const recipe = useQuery(computed(() => recipeQuery(props.recipeId)))
 // The cached copy stays here if a refetch fails without signal.
 const data = computed(() => recipe.data.value)
 useTitle(() => data.value?.title ?? t('household.recipes.title'))
+
+// Listed under "Recently viewed" on the Home page once it has loaded.
+watch(() => data.value?.id, id => {
+	if (id) rememberRecipeViewed(id)
+}, {immediate: true})
 
 const shownImageId = ref<number>()
 const shownImage = computed(() =>

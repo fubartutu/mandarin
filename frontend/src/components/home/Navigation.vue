@@ -19,17 +19,8 @@
 				/>
 			</RouterLink>
 			<menu class="menu-list other-menu-items">
-				<li>
-					<RouterLink
-						v-shortcut="SHORTCUTS.navigation.overview"
-						:to="{ name: 'home'}"
-					>
-						<span class="menu-item-icon icon">
-							<Icon icon="calendar" />
-						</span>
-						{{ $t('navigation.overview') }}
-					</RouterLink>
-				</li>
+				<!-- FORK: Mandarin Home, Shopping and Recipes first, then a divider; Home replaces the Overview entry -->
+				<HouseholdNavItems />
 				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.upcoming"
@@ -52,8 +43,6 @@
 						{{ $t('project.projects') }}
 					</RouterLink>
 				</li>
-				<!-- FORK: Mandarin household menu entries (Shopping) -->
-				<HouseholdNavItems />
 				<li>
 					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.labels"

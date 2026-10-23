@@ -1,5 +1,16 @@
 <template>
 	<li>
+		<RouterLink
+			v-shortcut="SHORTCUTS.navigation.overview"
+			:to="{name: 'home'}"
+		>
+			<span class="menu-item-icon icon">
+				<Icon icon="house" />
+			</span>
+			{{ $t('household.home.title') }}
+		</RouterLink>
+	</li>
+	<li>
 		<RouterLink :to="{name: 'shopping'}">
 			<span class="menu-item-icon icon">
 				<Icon icon="basket-shopping" />
@@ -21,11 +32,19 @@
 			{{ $t('household.recipes.title') }}
 		</RouterLink>
 	</li>
+	<!-- Vikunja's task entries (Upcoming, Projects, …) follow in Navigation.vue. -->
+	<li
+		class="menu-divider"
+		role="separator"
+	>
+		{{ $t('household.home.tasksHeading') }}
+	</li>
 </template>
 
 <script setup lang="ts">
 import {watch} from 'vue'
 
+import {SHORTCUTS} from '@/constants/shortcuts'
 import {useAuthStore} from '@/stores/auth'
 import {keepOfflineApiCacheFor} from './offlineTasks'
 import {refreshSubscription} from './push/device'
@@ -45,10 +64,15 @@ watch(() => auth.info?.id, id => {
 </script>
 
 <style lang="scss" scoped>
-// Mirrors `.top-menu .menu-list li > a` in components/home/Navigation.vue:
+// Mirrors `.top-menu .menu-list li` (and `li > a`) in components/home/Navigation.vue:
 // that rule is scoped to Navigation's own template, so it can't reach the
-// link inside this component. The selector must be just as specific to beat
+// entries inside this component. The selector must be just as specific to beat
 // the global `.menu-list a` padding. Keep in sync if upstream changes it.
+.top-menu .menu-list li {
+	font-weight: 600;
+	font-family: $vikunja-font;
+}
+
 .top-menu .menu-list li > a {
 	display: inline-block;
 	padding-inline-start: 2rem;
@@ -56,6 +80,20 @@ watch(() => auth.info?.id, id => {
 	.icon {
 		padding-block-end: .25rem;
 	}
+}
+
+.menu-divider {
+	margin-block: 1rem .25rem;
+	margin-inline: 1rem;
+	padding-block-start: .75rem;
+	padding-inline-start: 1rem;
+	border-block-start: 1px solid var(--grey-200);
+	color: var(--grey-500);
+	font-family: inherit;
+	font-size: .75rem;
+	font-weight: normal;
+	letter-spacing: .05em;
+	text-transform: uppercase;
 }
 
 .pending {
