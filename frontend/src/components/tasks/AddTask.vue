@@ -31,6 +31,8 @@
 					:highlight-hint-icon="taskAddHovered"
 				/>
 			</p>
+			<!-- FORK: Mandarin dictation (mic button, only where the browser supports it) -->
+			<DictateButton v-model="newTaskTitle" />
 			<p class="control">
 				<XButton
 					class="add-task-button"
@@ -70,6 +72,7 @@ import type {Task as ITask} from '@/client/generated'
 
 import Expandable from '@/components/base/Expandable.vue'
 import QuickAddMagic from '@/components/tasks/partials/QuickAddMagic.vue'
+import DictateButton from '@/household/dictation/DictateButton.vue' // FORK: Mandarin dictation
 import {parseSubtasksViaIndention, type TaskWithParent} from '@/helpers/parseSubtasksViaIndention'
 import {getLabelsFromPrefix} from '@/modules/quickAddMagic'
 import {runWrites} from '@/helpers/runWrites'

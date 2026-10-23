@@ -15,6 +15,7 @@ import {
 	faFileLines,
 	faHouse,
 	faLightbulb,
+	faMicrophone,
 	faStore,
 	faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons'
@@ -30,7 +31,7 @@ import {registerStartPage} from './startPage'
 
 library.add(
 	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
-	faFileLines, faHouse, faLightbulb, faStore, faTriangleExclamation, faCircle,
+	faFileLines, faHouse, faLightbulb, faMicrophone, faStore, faTriangleExclamation, faCircle,
 )
 
 // Other languages fall back to English for these keys (fallbackLocale).

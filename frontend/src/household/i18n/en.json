@@ -192,6 +192,16 @@
 		"offline": {
 			"tasks": "Offline: showing what you last opened. Changes need signal."
 		},
+		"dictation": {
+			"start": "Dictate",
+			"stop": "Stop dictating",
+			"error": {
+				"blocked": "The microphone is blocked for Mandarin. Allow it in this device's settings, or use the microphone on the keyboard instead.",
+				"noMicrophone": "No microphone was found.",
+				"network": "Dictation needs signal. Use the microphone on the keyboard instead.",
+				"other": "Dictation didn't work. Use the microphone on the keyboard instead."
+			}
+		},
 		"push": {
 			"title": "Notifications",
 			"intro": "Mandarin can send notifications to this phone or computer: task reminders, the daily overdue summary, and summaries of shopping list changes.",
