@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"code.vikunja.io/api/pkg/files"
+	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/web"
 
 	"xorm.io/xorm"
@@ -241,7 +242,7 @@ func setNotStocked(s *xorm.Session, catalogItemID int64, shopIDs []int64) error 
 
 // CanRead lets every household member read every catalogue entry.
 func (c *ShoppingCatalogItem) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, 0, err
 	}
 	stored, err := getCatalogItem(s, c.ID)
@@ -254,7 +255,7 @@ func (c *ShoppingCatalogItem) CanRead(s *xorm.Session, a web.Auth) (bool, int, e
 
 // CanCreate lets members add catalogue entries.
 func (c *ShoppingCatalogItem) CanCreate(_ *xorm.Session, a web.Auth) (bool, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -271,7 +272,7 @@ func (c *ShoppingCatalogItem) CanDelete(s *xorm.Session, a web.Auth) (bool, erro
 }
 
 func canWriteCatalogItem(s *xorm.Session, id int64, a web.Auth) (bool, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, err
 	}
 	if _, err := getCatalogItem(s, id); err != nil {
@@ -323,7 +324,7 @@ func (c *ShoppingCatalogItem) ReadOne(s *xorm.Session, _ web.Auth) error {
 // ReadAll returns catalogue entries, most often and most recently added
 // first, optionally filtered by a name search.
 func (c *ShoppingCatalogItem) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (any, int, int64, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, 0, 0, err
 	}
 

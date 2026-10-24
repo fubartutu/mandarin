@@ -58,7 +58,7 @@ func getCategoryByID(s *xorm.Session, id int64) (*ShoppingCategory, error) {
 
 // CanRead lets every household member read every category.
 func (c *ShoppingCategory) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, 0, err
 	}
 	stored, err := getCategoryByID(s, c.ID)
@@ -85,7 +85,7 @@ func (c *ShoppingCategory) CanDelete(s *xorm.Session, a web.Auth) (bool, error) 
 }
 
 func canWriteCategory(s *xorm.Session, id int64, a web.Auth) (bool, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, err
 	}
 	if _, err := getCategoryByID(s, id); err != nil {
@@ -115,7 +115,7 @@ func (c *ShoppingCategory) ReadOne(_ *xorm.Session, _ web.Auth) error {
 
 // ReadAll returns every category in display order.
 func (c *ShoppingCategory) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (any, int, int64, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, 0, 0, err
 	}
 

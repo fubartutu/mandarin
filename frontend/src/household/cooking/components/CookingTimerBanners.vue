@@ -12,7 +12,7 @@
 				class="timer-banner-icon"
 			/>
 			<span class="timer-banner-text">
-				{{ $t('household.cooking.timerDone', {name: $t('household.cooking.timerName', {number: timer.stepNumber, label: timer.label})}) }}
+				{{ $t('household.cooking.timerDone', {name: timerName(timer)}) }}
 			</span>
 			<button
 				type="button"
@@ -26,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+import {useTimerName} from '../timerName'
 import type {CookingTimer} from '../useCookingTimers'
 
 defineProps<{
@@ -35,6 +36,8 @@ defineProps<{
 const emit = defineEmits<{
 	dismiss: [id: string]
 }>()
+
+const timerName = useTimerName()
 </script>
 
 <style lang="scss" scoped>

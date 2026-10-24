@@ -39,7 +39,11 @@ const ErrCodeMenuEntryDoesNotExist = 90301
 
 // HTTPError holds the http error description
 func (err ErrMenuEntryDoesNotExist) HTTPError() web.HTTPError {
-	return web.HTTPError{HTTPCode: http.StatusNotFound, Code: ErrCodeMenuEntryDoesNotExist, Message: "This menu entry does not exist."}
+	return web.HTTPError{
+		HTTPCode: http.StatusNotFound,
+		Code:     ErrCodeMenuEntryDoesNotExist,
+		Message:  "This menu entry does not exist.",
+	}
 }
 
 // ErrInvalidMenuEntry is returned for a bad day, meal, note or range.
@@ -56,5 +60,9 @@ const ErrCodeInvalidMenuEntry = 90302
 
 // HTTPError holds the http error description
 func (err ErrInvalidMenuEntry) HTTPError() web.HTTPError {
-	return web.HTTPError{HTTPCode: http.StatusBadRequest, Code: ErrCodeInvalidMenuEntry, Message: err.Reason}
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrCodeInvalidMenuEntry,
+		Message:  err.Reason,
+	}
 }

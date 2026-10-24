@@ -137,7 +137,7 @@ import {computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch} from '
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {useQuery} from '@tanstack/vue-query'
-import {useEventListener, useSwipe} from '@vueuse/core'
+import {useEventListener, useSwipe, useWakeLock} from '@vueuse/core'
 
 import BaseButton from '@/components/base/BaseButton.vue'
 import {useTitle} from '@/composables/useTitle'
@@ -147,12 +147,12 @@ import CookingIngredients from './components/CookingIngredients.vue'
 import CookingStep from './components/CookingStep.vue'
 import CookingTimerBanners from './components/CookingTimerBanners.vue'
 import CookingTimerTray from './components/CookingTimerTray.vue'
+import {leaveCooking} from './leave'
 import {clearCooking, deviceStorage, fitToRecipe, forgetStaleCooking, loadCooking, saveCooking} from './resume'
 import {cookingScale} from './servings'
 import {cookingSteps, moveStep} from './steps'
 import type {DetectedTimer} from './timers'
 import {useCookingTimers} from './useCookingTimers'
-import {holdScreenAwake} from './wakeLock'
 
 const props = defineProps<{
 	recipeId: number
@@ -263,19 +263,23 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
 	else if (e.key === 'Escape') close()
 })
 
-// The screen stays on while cooking mode is open.
-let releaseWakeLock = () => {}
-onMounted(() => {
-	releaseWakeLock = holdScreenAwake()
+// The screen stays on while cooking mode is open; useWakeLock takes the lock
+// again when the page is back in view. A refused request (low battery, no
+// permission) is ignored: the screen may only dim.
+const wakeLock = useWakeLock()
+let open = true
+onMounted(async () => {
+	await wakeLock.request('screen').catch(() => {})
+	// Closed while the browser was still deciding: let go now.
+	if (!open) wakeLock.release().catch(() => {})
 })
-onBeforeUnmount(() => releaseWakeLock())
+onBeforeUnmount(() => {
+	open = false
+	wakeLock.release().catch(() => {})
+})
 
-// Back to the recipe: a history step when we came from it, so the browser's
-// back button doesn't then return to cooking mode.
 function close() {
-	const recipePage = router.resolve({name: 'recipe', params: {recipeId: props.recipeId}}).fullPath
-	if (window.history.state?.back === recipePage) router.back()
-	else router.replace(recipePage)
+	leaveCooking(router, props.recipeId)
 }
 
 // Done on the last step: cooked, so there's nothing to come back to.

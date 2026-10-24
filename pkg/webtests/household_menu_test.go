@@ -465,3 +465,66 @@ func TestHouseholdMenu_DeletedRecipeBecomesNote(t *testing.T) {
 	assert.Empty(t, got.Note)
 	assert.InDelta(t, 2.0, got.Servings, 0.001)
 }
+
+// Servings on a recipe entry is 0 (the recipe has none) or at least 1.
+func TestHouseholdMenu_ServingsRules(t *testing.T) {
+	e := setupMenuEnv(t)
+	user1 := humaTokenFor(t, &testuser1)
+	lasagne := addMenuRecipe(t, e, user1, "Lasagne", 4)
+	toast := addMenuRecipe(t, e, user1, "Toast", 0)
+	create := func(body string) (int, menu.MenuEntry) {
+		t.Helper()
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/menu", body, user1, "")
+		if rec.Code != http.StatusCreated {
+			return rec.Code, menu.MenuEntry{}
+		}
+		return rec.Code, decode[menu.MenuEntry](t, rec.Body.Bytes())
+	}
+	update := func(id int64, body string) int {
+		t.Helper()
+		return humaRequest(t, e, http.MethodPut, fmt.Sprintf("/api/v2/menu/%d", id), body, user1, "").Code
+	}
+	refused := []int{
+		http.StatusBadRequest,
+		http.StatusUnprocessableEntity,
+	}
+
+	t.Run("create: explicit servings must be at least 1 when the recipe has servings", func(t *testing.T) {
+		code, _ := create(fmt.Sprintf(`{"day":"2026-10-20","meal":"dinner","recipe_id":%d,"servings":0.5}`, lasagne.ID))
+		assert.Contains(t, refused, code)
+		code, got := create(fmt.Sprintf(`{"day":"2026-10-20","meal":"dinner","recipe_id":%d,"servings":1}`, lasagne.ID))
+		require.Equal(t, http.StatusCreated, code)
+		assert.InDelta(t, 1.0, got.Servings, 0.001)
+	})
+
+	t.Run("create: an entry of a recipe without servings stores 0", func(t *testing.T) {
+		code, got := create(fmt.Sprintf(`{"day":"2026-10-21","meal":"dinner","recipe_id":%d}`, toast.ID))
+		require.Equal(t, http.StatusCreated, code)
+		assert.Zero(t, got.Servings)
+		db.AssertExists(t, "menu_entries", map[string]any{"id": got.ID, "servings": 0}, false)
+	})
+
+	t.Run("create: explicit servings are refused when the recipe has none", func(t *testing.T) {
+		code, _ := create(fmt.Sprintf(`{"day":"2026-10-22","meal":"dinner","recipe_id":%d,"servings":2}`, toast.ID))
+		assert.Contains(t, refused, code)
+		db.AssertMissing(t, "menu_entries", map[string]any{"day": "2026-10-22"})
+	})
+
+	t.Run("update: servings must be at least 1", func(t *testing.T) {
+		code, planned := create(fmt.Sprintf(`{"day":"2026-10-23","meal":"dinner","recipe_id":%d}`, lasagne.ID))
+		require.Equal(t, http.StatusCreated, code)
+		for _, body := range []string{`{"servings":0}`, `{"servings":0.5}`} {
+			assert.Contains(t, refused, update(planned.ID, body), body)
+		}
+		db.AssertExists(t, "menu_entries", map[string]any{"id": planned.ID, "servings": 4}, false)
+		assert.Equal(t, http.StatusOK, update(planned.ID, `{"servings":1}`))
+		db.AssertExists(t, "menu_entries", map[string]any{"id": planned.ID, "servings": 1}, false)
+	})
+
+	t.Run("update: refused when the entry's recipe has no servings", func(t *testing.T) {
+		code, planned := create(fmt.Sprintf(`{"day":"2026-10-24","meal":"dinner","recipe_id":%d}`, toast.ID))
+		require.Equal(t, http.StatusCreated, code)
+		assert.Contains(t, refused, update(planned.ID, `{"servings":2}`))
+		db.AssertExists(t, "menu_entries", map[string]any{"id": planned.ID, "servings": 0}, false)
+	})
+}

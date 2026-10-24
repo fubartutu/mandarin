@@ -30,34 +30,11 @@
 		>
 			<li class="menu-row is-tonight">
 				<span class="menu-day">{{ $t('household.home.tonight') }}</span>
-				<span
+				<MenuEntryInline
 					v-if="week.tonight.length > 0"
 					class="menu-entries"
-				>
-					<!-- A <template> v-for repeats several nodes without a wrapper element. -->
-					<template
-						v-for="(entry, i) in week.tonight"
-						:key="entry.id"
-					>
-						<template v-if="i > 0">{{ SEPARATOR }}</template>
-						<RouterLink
-							v-if="entry.recipeId"
-							:to="{name: 'recipe', params: {recipeId: entry.recipeId}}"
-						>
-							{{ entryLabel(entry) }}
-						</RouterLink>
-						<RouterLink
-							v-if="entry.recipeId"
-							:to="cookRoute(entry)"
-							class="cook-link"
-							:aria-label="$t('household.home.cookRecipe', {recipe: entryLabel(entry)})"
-							:title="$t('household.home.cookRecipe', {recipe: entryLabel(entry)})"
-						>
-							<Icon icon="utensils" />
-						</RouterLink>
-						<template v-else>{{ entry.note }}</template>
-					</template>
-				</span>
+					:entries="week.tonight"
+				/>
 				<span
 					v-else
 					class="menu-entries has-text-grey"
@@ -74,21 +51,10 @@
 				class="menu-row"
 			>
 				<span class="menu-day">{{ shortDay(day.day) }}</span>
-				<span class="menu-entries">
-					<template
-						v-for="(entry, i) in day.entries"
-						:key="entry.id"
-					>
-						<template v-if="i > 0">{{ SEPARATOR }}</template>
-						<RouterLink
-							v-if="entry.recipeId"
-							:to="{name: 'recipe', params: {recipeId: entry.recipeId}}"
-						>
-							{{ entryLabel(entry) }}
-						</RouterLink>
-						<template v-else>{{ entry.note }}</template>
-					</template>
-				</span>
+				<MenuEntryInline
+					class="menu-entries"
+					:entries="day.entries"
+				/>
 			</li>
 		</ul>
 		<template #footer>
@@ -111,15 +77,13 @@ import {useQuery} from '@tanstack/vue-query'
 import Card from '@/components/misc/Card.vue'
 
 import {homeWeek} from '../homeWeek'
-import {cookRoute} from '../planning'
-import {menuRangeQuery, type MenuEntryResponse} from '../queries'
+import {menuRangeQuery} from '../queries'
 import {dayKey, fromKey, mondayOf, weekDays} from '../week'
+import MenuEntryInline from './MenuEntryInline.vue'
 
 // The Home page's "This week" card: tonight's dinner and the rest of the week.
 
-const SEPARATOR = ' · '
-
-const {t, locale} = useI18n({useScope: 'global'})
+const {locale} = useI18n({useScope: 'global'})
 
 // Re-checked every minute, so "tonight" moves on at midnight with the page open.
 const now = useNow({interval: 60 * 1000})
@@ -128,10 +92,6 @@ const days = computed(() => weekDays(mondayOf(now.value)))
 // The same query (and so the same cache entry) as this week on the Menu page.
 const entries = useQuery(computed(() => menuRangeQuery(days.value[0], days.value[6])))
 const week = computed(() => homeWeek(entries.data.value ?? [], dayKey(now.value)))
-
-function entryLabel(entry: MenuEntryResponse) {
-	return entry.recipeTitle || t('household.menu.missingRecipe')
-}
 
 function shortDay(day: string) {
 	return fromKey(day).toLocaleDateString(locale.value, {weekday: 'short'})
@@ -183,9 +143,5 @@ function shortDay(day: string) {
 	.menu-entries {
 		font-weight: 600;
 	}
-}
-
-.cook-link {
-	margin-inline-start: .35rem;
 }
 </style>

@@ -37,7 +37,13 @@ describe('useCookingTimers', () => {
 		const {timers} = openCookingMode()
 		const timer = timers.start(3, {label: '20 min', seconds: 1200})
 
-		expect(timer).toEqual({id: expect.any(String), stepNumber: 3, label: '20 min', seconds: 1200, endsAt: START + 1_200_000})
+		expect(timer).toEqual({
+			id: expect.any(String),
+			stepNumber: 3,
+			label: '20 min',
+			seconds: 1200,
+			endsAt: START + 1_200_000,
+		})
 		expect(JSON.parse(JSON.stringify(timers.timers.value))).toEqual([timer])
 		expect(timers.running.value.map(t => t.remaining)).toEqual([1200])
 

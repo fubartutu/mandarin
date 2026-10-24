@@ -662,7 +662,7 @@ export type EntryChanges = {
      */
     note?: string;
     /**
-     * New servings. Recipe entries only.
+     * New servings, at least 1. Recipe entries only, and only when the recipe has servings.
      */
     servings?: number;
 };
@@ -1144,7 +1144,7 @@ export type MenuEntry = {
      */
     readonly recipe_title?: string;
     /**
-     * A recipe entry's servings, e.g. 6 when cooking for guests. Left out or 0 on create: the recipe's own servings. Always 0 on a note entry.
+     * A recipe entry's servings, e.g. 6 when cooking for guests: at least 1, or 0 when the recipe has no servings (then none can be given). Left out or 0 on create: the recipe's own servings. Always 0 on a note entry.
      */
     servings?: number;
     /**
@@ -5037,7 +5037,7 @@ export type EntryChangesWritable = {
      */
     note?: string;
     /**
-     * New servings. Recipe entries only.
+     * New servings, at least 1. Recipe entries only, and only when the recipe has servings.
      */
     servings?: number;
 };
@@ -5213,7 +5213,7 @@ export type MenuEntryWritable = {
      */
     recipe_id?: number;
     /**
-     * A recipe entry's servings, e.g. 6 when cooking for guests. Left out or 0 on create: the recipe's own servings. Always 0 on a note entry.
+     * A recipe entry's servings, e.g. 6 when cooking for guests: at least 1, or 0 when the recipe has no servings (then none can be given). Left out or 0 on create: the recipe's own servings. Always 0 on a note entry.
      */
     servings?: number;
 };

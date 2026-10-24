@@ -24,11 +24,8 @@
 package recipes
 
 import (
-	"code.vikunja.io/api/pkg/config"
 	"code.vikunja.io/api/pkg/db"
-	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/models"
-	"code.vikunja.io/api/pkg/web"
 )
 
 func init() {
@@ -46,24 +43,3 @@ func GetTables() []any {
 // permissionAdmin is what CanRead reports: members may do anything with
 // household data, so the frontend shows every edit control.
 const permissionAdmin = models.PermissionAdmin
-
-// requireMember: household members may do everything, anyone else nothing.
-func requireMember(a web.Auth) error {
-	if !household.IsMember(a) {
-		return models.ErrGenericForbidden{}
-	}
-	return nil
-}
-
-// limitFromPage mirrors pkg/models' unexported getLimitFromPageIndex: page < 1
-// means "everything", otherwise perPage (or the server default) per page.
-func limitFromPage(page, perPage int) (limit, start int) {
-	if page < 1 {
-		return 0, 0
-	}
-	limit = config.ServiceMaxItemsPerPage.GetInt()
-	if perPage > 0 {
-		limit = perPage
-	}
-	return limit, limit * (page - 1)
-}
