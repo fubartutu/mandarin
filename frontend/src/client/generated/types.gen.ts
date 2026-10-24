@@ -1087,6 +1087,41 @@ export type MarkAllReadBodyBody = {
     readonly message?: string;
 };
 
+export type MenuEntry = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When this entry was added.
+     */
+    readonly created?: string;
+    /**
+     * The calendar day it's planned for, as YYYY-MM-DD (no time or timezone).
+     */
+    day?: string;
+    /**
+     * The unique, numeric id of this entry.
+     */
+    readonly id?: number;
+    /**
+     * Which meal of the day.
+     */
+    meal?: 'breakfast' | 'lunch' | 'dinner';
+    /**
+     * The free-text note, e.g. leftovers or takeaway.
+     */
+    note?: string;
+    /**
+     * Order within the day's meal, lowest first. New entries go last.
+     */
+    readonly position?: number;
+    /**
+     * When this entry was last changed.
+     */
+    readonly updated?: string;
+};
+
 export type Message = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1296,6 +1331,18 @@ export type PaginatedLinkSharing = {
      */
     readonly $schema?: string;
     items?: Array<LinkSharing> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedMenuEntry = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<MenuEntry> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -5102,6 +5149,21 @@ export type LoginWritable = {
     username?: string;
 };
 
+export type MenuEntryWritable = {
+    /**
+     * The calendar day it's planned for, as YYYY-MM-DD (no time or timezone).
+     */
+    day?: string;
+    /**
+     * Which meal of the day.
+     */
+    meal?: 'breakfast' | 'lunch' | 'dinner';
+    /**
+     * The free-text note, e.g. leftovers or takeaway.
+     */
+    note?: string;
+};
+
 export type MigrationCredentialsBodyWritable = {
     /**
      * The password to log in with. Only used when no token is given.
@@ -5202,6 +5264,14 @@ export type PaginatedLabelWithTaskIdWritable = {
 
 export type PaginatedLinkSharingWritable = {
     items?: Array<LinkSharingWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedMenuEntryWritable = {
+    items?: Array<MenuEntryWritable> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -7861,6 +7931,104 @@ export type McpInfoResponses = {
 };
 
 export type McpInfoResponse = McpInfoResponses[keyof McpInfoResponses];
+
+export type MenuListData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+        /**
+         * The first day, YYYY-MM-DD.
+         */
+        from: string;
+        /**
+         * The last day, YYYY-MM-DD.
+         */
+        to: string;
+    };
+    url: '/menu';
+};
+
+export type MenuListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type MenuListError = MenuListErrors[keyof MenuListErrors];
+
+export type MenuListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedMenuEntry;
+};
+
+export type MenuListResponse = MenuListResponses[keyof MenuListResponses];
+
+export type MenuCreateData = {
+    body: MenuEntryWritable;
+    path?: never;
+    query?: never;
+    url: '/menu';
+};
+
+export type MenuCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type MenuCreateError = MenuCreateErrors[keyof MenuCreateErrors];
+
+export type MenuCreateResponses = {
+    /**
+     * Created
+     */
+    201: MenuEntry;
+};
+
+export type MenuCreateResponse = MenuCreateResponses[keyof MenuCreateResponses];
+
+export type MenuDeleteData = {
+    body?: never;
+    path: {
+        entry: number;
+    };
+    query?: never;
+    url: '/menu/{entry}';
+};
+
+export type MenuDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type MenuDeleteError = MenuDeleteErrors[keyof MenuDeleteErrors];
+
+export type MenuDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type MenuDeleteResponse = MenuDeleteResponses[keyof MenuDeleteResponses];
 
 export type MigrationCsvDetectData = {
     body: {
