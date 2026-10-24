@@ -9,6 +9,7 @@ import {
 	faBookOpen,
 	faCamera,
 	faChevronDown,
+	faChevronLeft,
 	faChevronRight,
 	faCircleCheck,
 	faCloud,
@@ -18,6 +19,7 @@ import {
 	faMicrophone,
 	faStore,
 	faTriangleExclamation,
+	faUtensils,
 } from '@fortawesome/free-solid-svg-icons'
 import {faCircle} from '@fortawesome/free-regular-svg-icons'
 
@@ -30,8 +32,8 @@ import {mountOfflineBanner} from './offlineTasks'
 import {registerStartPage} from './startPage'
 
 library.add(
-	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
-	faFileLines, faHouse, faLightbulb, faMicrophone, faStore, faTriangleExclamation, faCircle,
+	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronLeft, faChevronRight, faCircleCheck,
+	faCloud, faFileLines, faHouse, faLightbulb, faMicrophone, faStore, faTriangleExclamation, faUtensils, faCircle,
 )
 
 // Other languages fall back to English for these keys (fallbackLocale).

@@ -35,4 +35,11 @@ export const householdRoutes: RouteRecordRaw[] = [
 		component: () => import('./recipes/RecipeEditor.vue'),
 		props: route => ({recipeId: Number(route.params.recipeId)}),
 	},
+	{
+		// /menu is this week; /menu/2026-10-19 the week with that day in it.
+		path: '/menu/:week(\\d{4}-\\d{2}-\\d{2})?',
+		name: 'menu',
+		component: () => import('./menu/MenuView.vue'),
+		props: route => ({week: String(route.params.week ?? '')}),
+	},
 ]

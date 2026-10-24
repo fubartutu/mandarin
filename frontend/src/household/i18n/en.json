@@ -241,6 +241,22 @@
 			"newRecipes": "Newest recipes",
 			"allRecipes": "All recipes"
 		},
+		"menu": {
+			"title": "Menu",
+			"previousWeek": "Previous week",
+			"nextWeek": "Next week",
+			"thisWeek": "This week",
+			"today": "Today",
+			"loading": "Loading…",
+			"notLoaded": "This week couldn't be loaded. It needs signal the first time.",
+			"nothingPlanned": "Nothing planned",
+			"add": "Add to {day}",
+			"notePlaceholder": "e.g. leftovers, takeaway",
+			"noteLabel": "Note for {day}",
+			"save": "Add",
+			"cancel": "Cancel",
+			"delete": "Delete {note}"
+		},
 		"startPage": {
 			"label": "Start page",
 			"home": "Home",

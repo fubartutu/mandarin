@@ -32,6 +32,14 @@
 			{{ $t('household.recipes.title') }}
 		</RouterLink>
 	</li>
+	<li>
+		<RouterLink :to="{name: 'menu'}">
+			<span class="menu-item-icon icon">
+				<Icon icon="utensils" />
+			</span>
+			{{ $t('household.menu.title') }}
+		</RouterLink>
+	</li>
 	<!-- Vikunja's task entries (Upcoming, Projects, …) follow in Navigation.vue. -->
 	<li
 		class="menu-divider"
