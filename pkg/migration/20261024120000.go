@@ -31,6 +31,8 @@ type menuEntries20261024120000 struct {
 	Meal        string    `xorm:"varchar(20) not null"`
 	Position    int       `xorm:"int not null default 0"`
 	Note        string    `xorm:"varchar(250) not null default ''"`
+	RecipeID    int64     `xorm:"bigint not null default 0 index"`
+	Servings    float64   `xorm:"double not null default 0"`
 	CreatedByID int64     `xorm:"bigint not null default 0"`
 	Created     time.Time `xorm:"created not null"`
 	Updated     time.Time `xorm:"updated not null"`

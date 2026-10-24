@@ -45,16 +45,21 @@ const (
 	maxRangeDays = 62
 )
 
-// MenuEntry is one thing planned for one meal on one day. Today every entry
-// is a free-text note ("leftovers", "takeaway"); a planned recipe will be an
-// entry with a recipe id and its own servings. A meal slot (day + meal) can
-// hold several entries, kept in Position order.
+// MenuEntry is one thing planned for one meal on one day: either a recipe
+// with its own servings (RecipeID set, Note empty) or a free-text note
+// ("leftovers", "takeaway"; RecipeID 0). A meal slot (day + meal) can hold
+// several entries, kept in Position order.
 type MenuEntry struct { //nolint:revive // stutters, but the type name is the OpenAPI schema name.
-	ID       int64  `xorm:"bigint autoincr not null unique pk" json:"id" readOnly:"true" doc:"The unique, numeric id of this entry."`
-	Day      string `xorm:"varchar(10) not null index" json:"day" format:"date" doc:"The calendar day it's planned for, as YYYY-MM-DD (no time or timezone)."`
-	Meal     string `xorm:"varchar(20) not null" json:"meal" enum:"breakfast,lunch,dinner" doc:"Which meal of the day."`
-	Position int    `xorm:"int not null default 0" json:"position" readOnly:"true" doc:"Order within the day's meal, lowest first. New entries go last."`
-	Note     string `xorm:"varchar(250) not null default ''" json:"note" maxLength:"250" doc:"The free-text note, e.g. leftovers or takeaway."`
+	ID       int64   `xorm:"bigint autoincr not null unique pk" json:"id" readOnly:"true" doc:"The unique, numeric id of this entry."`
+	Day      string  `xorm:"varchar(10) not null index" json:"day" format:"date" doc:"The calendar day it's planned for, as YYYY-MM-DD (no time or timezone)."`
+	Meal     string  `xorm:"varchar(20) not null" json:"meal" enum:"breakfast,lunch,dinner" doc:"Which meal of the day."`
+	Position int     `xorm:"int not null default 0" json:"position" readOnly:"true" doc:"Order within the day's meal, lowest first. New entries go last."`
+	Note     string  `xorm:"varchar(250) not null default ''" json:"note" maxLength:"250" doc:"A note entry's text, e.g. leftovers or takeaway. Empty on a recipe entry."`
+	RecipeID int64   `xorm:"bigint not null default 0 index" json:"recipe_id" minimum:"0" doc:"The planned recipe, or 0 for a note entry. Can't be changed after adding."`
+	Servings float64 `xorm:"double not null default 0" json:"servings" minimum:"0" doc:"A recipe entry's servings, e.g. 6 when cooking for guests. Left out or 0 on create: the recipe's own servings. Always 0 on a note entry."`
+
+	// RecipeTitle is filled in on every response; it isn't stored.
+	RecipeTitle string `xorm:"-" json:"recipe_title" readOnly:"true" doc:"A recipe entry's recipe title; empty on a note entry."`
 
 	CreatedByID int64     `xorm:"bigint not null default 0" json:"-"`
 	Created     time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"When this entry was added."`
@@ -63,9 +68,64 @@ type MenuEntry struct { //nolint:revive // stutters, but the type name is the Op
 	// The range a listing covers, from the query string.
 	From string `xorm:"-" json:"-"`
 	To   string `xorm:"-" json:"-"`
+	// What an update changes, from the PUT body.
+	Changes EntryChanges `xorm:"-" json:"-"`
 
 	web.CRUDable    `xorm:"-" json:"-"`
 	web.Permissions `xorm:"-" json:"-"`
+}
+
+// EntryChanges is the body of PUT /menu/{entry}. A field left out (nil)
+// stays as it is. Moving to another day will be one more field here.
+type EntryChanges struct {
+	Servings *float64 `json:"servings,omitempty" minimum:"0" doc:"New servings. Recipe entries only."`
+	Note     *string  `json:"note,omitempty" maxLength:"250" doc:"New text, 1–250 characters. Note entries only."`
+}
+
+// recipeRef is the part of a recipe the menu needs. It reads the recipes
+// table directly instead of importing pkg/household/recipes, so recipes can
+// later call into the menu (a deleted recipe turns its entries into notes).
+type recipeRef struct {
+	ID       int64
+	Title    string
+	Servings float64
+}
+
+func getRecipeRef(s *xorm.Session, id int64) (*recipeRef, error) {
+	r := &recipeRef{}
+	exists, err := s.Table("recipes").Cols("id", "title", "servings").Where("id = ?", id).Get(r)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, ErrInvalidMenuEntry{Reason: "This recipe does not exist."}
+	}
+	return r, nil
+}
+
+// addRecipeTitles fills in RecipeTitle with one query for all the entries.
+func addRecipeTitles(s *xorm.Session, entries ...*MenuEntry) error {
+	ids := []int64{}
+	for _, e := range entries {
+		if e.RecipeID != 0 && !slices.Contains(ids, e.RecipeID) {
+			ids = append(ids, e.RecipeID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	refs := []*recipeRef{}
+	if err := s.Table("recipes").Cols("id", "title").In("id", ids).Find(&refs); err != nil {
+		return err
+	}
+	titles := make(map[int64]string, len(refs))
+	for _, r := range refs {
+		titles[r.ID] = r.Title
+	}
+	for _, e := range entries {
+		e.RecipeTitle = titles[e.RecipeID]
+	}
+	return nil
 }
 
 // TableName sets the database table name.
@@ -95,6 +155,22 @@ func (e *MenuEntry) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
 	return canWrite(s, e.ID, a)
 }
 
+// CanUpdate lets every household member change any entry. It loads the
+// stored entry into e, keeping the requested Changes for Update.
+func (e *MenuEntry) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
+	if err := requireMember(a); err != nil {
+		return false, err
+	}
+	stored, err := getEntry(s, e.ID)
+	if err != nil {
+		return false, err
+	}
+	changes := e.Changes
+	*e = *stored
+	e.Changes = changes
+	return true, nil
+}
+
 func canWrite(s *xorm.Session, id int64, a web.Auth) (bool, error) {
 	if err := requireMember(a); err != nil {
 		return false, err
@@ -103,6 +179,22 @@ func canWrite(s *xorm.Session, id int64, a web.Auth) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// checkNote trims a note entry's text and checks its length.
+func checkNote(note string) (string, error) {
+	note = strings.TrimSpace(note)
+	if n := utf8.RuneCountInString(note); n < 1 || n > maxNoteLength {
+		return "", ErrInvalidMenuEntry{Reason: "The note must be 1–250 characters."}
+	}
+	return note, nil
+}
+
+func checkServings(servings float64) error {
+	if servings < 0 {
+		return ErrInvalidMenuEntry{Reason: "The servings can't be negative."}
+	}
+	return nil
 }
 
 // parseDay checks a YYYY-MM-DD day. time.Parse also rejects 2026-02-30.
@@ -114,17 +206,38 @@ func parseDay(day string) (time.Time, error) {
 	return t, nil
 }
 
-func (e *MenuEntry) normalize() error {
+// normalize checks a new entry. A recipe entry without servings gets the
+// recipe's.
+func (e *MenuEntry) normalize(s *xorm.Session) error {
 	if _, err := parseDay(e.Day); err != nil {
 		return err
 	}
 	if !slices.Contains(meals, e.Meal) {
 		return ErrInvalidMenuEntry{Reason: "The meal must be breakfast, lunch or dinner."}
 	}
-	e.Note = strings.TrimSpace(e.Note)
-	if n := utf8.RuneCountInString(e.Note); n < 1 || n > maxNoteLength {
-		return ErrInvalidMenuEntry{Reason: "The note must be 1–250 characters."}
+	if err := checkServings(e.Servings); err != nil {
+		return err
 	}
+	if e.RecipeID == 0 {
+		if e.Servings != 0 {
+			return ErrInvalidMenuEntry{Reason: "Only a recipe entry has servings."}
+		}
+		note, err := checkNote(e.Note)
+		e.Note = note
+		return err
+	}
+	if strings.TrimSpace(e.Note) != "" {
+		return ErrInvalidMenuEntry{Reason: "An entry is either a recipe or a note, not both."}
+	}
+	e.Note = ""
+	recipe, err := getRecipeRef(s, e.RecipeID)
+	if err != nil {
+		return err
+	}
+	if e.Servings == 0 {
+		e.Servings = recipe.Servings
+	}
+	e.RecipeTitle = recipe.Title
 	return nil
 }
 
@@ -134,7 +247,7 @@ func (e *MenuEntry) Create(s *xorm.Session, a web.Auth) error {
 	if err != nil {
 		return err
 	}
-	if err := e.normalize(); err != nil {
+	if err := e.normalize(s); err != nil {
 		return err
 	}
 	last := &MenuEntry{}
@@ -190,7 +303,48 @@ func (e *MenuEntry) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, per
 	if limit, start := limitFromPage(page, perPage); limit > 0 {
 		all = all[min(start, len(all)):min(start+limit, len(all))]
 	}
+	if err := addRecipeTitles(s, all...); err != nil {
+		return nil, 0, 0, err
+	}
 	return all, len(all), total, nil
+}
+
+// Update applies e.Changes to the entry CanUpdate loaded: servings on a
+// recipe entry, the text of a note entry. Nothing is written when nothing
+// changes (SQLite allows one writer at a time).
+func (e *MenuEntry) Update(s *xorm.Session, _ web.Auth) error {
+	cols := []string{}
+	if c := e.Changes.Servings; c != nil {
+		if e.RecipeID == 0 {
+			return ErrInvalidMenuEntry{Reason: "Only a recipe entry has servings."}
+		}
+		if err := checkServings(*c); err != nil {
+			return err
+		}
+		if *c != e.Servings {
+			e.Servings = *c
+			cols = append(cols, "servings")
+		}
+	}
+	if c := e.Changes.Note; c != nil {
+		if e.RecipeID != 0 {
+			return ErrInvalidMenuEntry{Reason: "A recipe entry has no note."}
+		}
+		note, err := checkNote(*c)
+		if err != nil {
+			return err
+		}
+		if note != e.Note {
+			e.Note = note
+			cols = append(cols, "note")
+		}
+	}
+	if len(cols) > 0 {
+		if _, err := s.ID(e.ID).Cols(cols...).Update(e); err != nil {
+			return err
+		}
+	}
+	return addRecipeTitles(s, e)
 }
 
 // Delete removes an entry. The others in its meal keep their positions; only
