@@ -202,6 +202,26 @@
 				"other": "Dictation didn't work. Use the microphone on the keyboard instead."
 			}
 		},
+		"cooking": {
+			"open": "Cook",
+			"close": "Close cooking mode",
+			"ingredients": "Ingredients",
+			"steps": "Steps",
+			"servings": "{count} serving | {count} serving | {count} servings",
+			"scale": "×{scale}",
+			"stepOf": "Step {number} of {count}",
+			"back": "Back",
+			"next": "Next",
+			"done": "Done",
+			"noSteps": "This recipe has no method.",
+			"timers": "Timers",
+			"timerName": "Step {number} · {label}",
+			"startTimer": "Start a {label} timer",
+			"timerRunning": "{label} timer running, {time} left",
+			"cancelTimer": "Cancel timer: {name}",
+			"timerDone": "Timer done: {name}",
+			"dismiss": "Dismiss"
+		},
 		"push": {
 			"title": "Notifications",
 			"intro": "Mandarin can send notifications to this phone or computer: task reminders, the daily overdue summary, and summaries of shopping list changes.",

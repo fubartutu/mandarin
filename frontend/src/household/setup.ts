@@ -17,6 +17,7 @@ import {
 	faHouse,
 	faLightbulb,
 	faMicrophone,
+	faStopwatch,
 	faStore,
 	faTriangleExclamation,
 	faUtensils,
@@ -32,8 +33,9 @@ import {mountOfflineBanner} from './offlineTasks'
 import {registerStartPage} from './startPage'
 
 library.add(
-	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronLeft, faChevronRight, faCircleCheck,
-	faCloud, faFileLines, faHouse, faLightbulb, faMicrophone, faStore, faTriangleExclamation, faUtensils, faCircle,
+	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
+	faFileLines, faHouse, faLightbulb, faMicrophone, faStore, faTriangleExclamation, faCircle,
+	faChevronLeft, faStopwatch, faUtensils, // cooking mode and the menu
 )
 
 // Other languages fall back to English for these keys (fallbackLocale).

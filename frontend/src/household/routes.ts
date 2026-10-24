@@ -36,6 +36,13 @@ export const householdRoutes: RouteRecordRaw[] = [
 		props: route => ({recipeId: Number(route.params.recipeId)}),
 	},
 	{
+		// ?servings=6 (or ?scale=1.5 for a recipe without servings): see cooking/servings.ts.
+		path: '/recipes/:recipeId(\\d+)/cook',
+		name: 'recipe.cook',
+		component: () => import('./cooking/CookingView.vue'),
+		props: route => ({recipeId: Number(route.params.recipeId)}),
+	},
+	{
 		// /menu is this week; /menu/2026-10-19 the week with that day in it.
 		path: '/menu/:week(\\d{4}-\\d{2}-\\d{2})?',
 		name: 'menu',
