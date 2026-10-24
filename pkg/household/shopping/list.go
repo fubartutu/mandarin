@@ -71,7 +71,7 @@ func getListByID(s *xorm.Session, id int64) (*ShoppingList, error) {
 // load replaces the receiver with the stored list, so later steps (ReadOne,
 // Update) work on the real row. *l = *stored copies the whole struct.
 func (l *ShoppingList) load(s *xorm.Session, a web.Auth) error {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return err
 	}
 	stored, err := getListByID(s, l.ID)
@@ -106,7 +106,7 @@ func (l *ShoppingList) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
 }
 
 func canWriteList(s *xorm.Session, id int64, a web.Auth) (bool, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, err
 	}
 	if _, err := getListByID(s, id); err != nil {
@@ -167,7 +167,7 @@ func fillShops(s *xorm.Session, lists ...*ShoppingList) error {
 
 // ReadAll returns every household list, optionally filtered by title.
 func (l *ShoppingList) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (any, int, int64, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, 0, 0, err
 	}
 

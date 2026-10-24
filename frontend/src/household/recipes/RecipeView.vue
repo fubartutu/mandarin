@@ -54,6 +54,21 @@
 					{{ data.title }}
 				</h1>
 				<div class="recipe-actions">
+					<!-- Opens at the servings shown below. -->
+					<RouterLink
+						:to="{name: 'recipe.cook', params: {recipeId: data.id}, query: cookingQuery(data.servings, amount)}"
+						class="button is-primary"
+					>
+						<Icon icon="utensils" />
+						<span>{{ $t('household.cooking.open') }}</span>
+					</RouterLink>
+					<XButton
+						variant="secondary"
+						icon="calendar"
+						@click="planning = true"
+					>
+						{{ $t('household.menu.plan') }}
+					</XButton>
 					<XButton
 						v-if="wakeLock.isSupported.value"
 						variant="secondary"
@@ -174,6 +189,16 @@
 				</section>
 			</div>
 		</article>
+
+		<PickDayModal
+			v-if="data && planning"
+			:title="$t('household.menu.planTitle', {recipe: data.title})"
+			:confirm-label="$t('household.menu.planForDinner')"
+			:day="dayKey(new Date())"
+			:busy="addEntry.isPending.value"
+			@pick="plan"
+			@close="planning = false"
+		/>
 	</div>
 </template>
 
@@ -182,10 +207,17 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useQuery} from '@tanstack/vue-query'
 import {useWakeLock} from '@vueuse/core'
+import {useRouter} from 'vue-router'
 
 import BaseButton from '@/components/base/BaseButton.vue'
 import {useTitle} from '@/composables/useTitle'
+import {success} from '@/message'
 
+import {cookingQuery} from '../cooking/servings'
+import PickDayModal from '../menu/components/PickDayModal.vue'
+import {menuWeekRoute, plannedDayLabel} from '../menu/planning'
+import {useAddEntryMutation} from '../menu/queries'
+import {dayKey} from '../menu/week'
 import IngredientPicker from './components/IngredientPicker.vue'
 import RecipeImage from './components/RecipeImage.vue'
 import {recipeQuery} from './queries'
@@ -196,7 +228,8 @@ const props = defineProps<{
 	recipeId: number
 }>()
 
-const {t} = useI18n({useScope: 'global'})
+const {t, locale} = useI18n({useScope: 'global'})
+const router = useRouter()
 const recipe = useQuery(computed(() => recipeQuery(props.recipeId)))
 // The cached copy stays here if a refetch fails without signal.
 const data = computed(() => recipe.data.value)
@@ -240,6 +273,27 @@ const wakeLock = useWakeLock()
 function toggleWakeLock() {
 	if (wakeLock.isActive.value) wakeLock.release()
 	else wakeLock.request('screen')
+}
+
+// ---- Plan: put this recipe on a day's dinner ----
+
+const planning = ref(false)
+const addEntry = useAddEntryMutation()
+
+function plan(day: string) {
+	const recipeId = data.value?.id
+	if (!recipeId || addEntry.isPending.value) return
+	// No servings sent: the server uses the recipe's. On failure the mutation
+	// shows the error toast and the dialog stays open.
+	addEntry.mutate({day, meal: 'dinner', recipeId}, {
+		onSuccess: () => {
+			planning.value = false
+			success(
+				{message: t('household.menu.planned', {day: plannedDayLabel(day, locale.value)})},
+				[{title: t('household.menu.openMenu'), callback: () => router.push(menuWeekRoute(day, new Date()))}],
+			)
+		},
+	})
 }
 </script>
 

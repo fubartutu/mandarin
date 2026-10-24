@@ -9,6 +9,7 @@ import {
 	faBookOpen,
 	faCamera,
 	faChevronDown,
+	faChevronLeft,
 	faChevronRight,
 	faCircleCheck,
 	faCloud,
@@ -16,8 +17,10 @@ import {
 	faHouse,
 	faLightbulb,
 	faMicrophone,
+	faStopwatch,
 	faStore,
 	faTriangleExclamation,
+	faUtensils,
 } from '@fortawesome/free-solid-svg-icons'
 import {faCircle} from '@fortawesome/free-regular-svg-icons'
 
@@ -32,6 +35,7 @@ import {registerStartPage} from './startPage'
 library.add(
 	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
 	faFileLines, faHouse, faLightbulb, faMicrophone, faStore, faTriangleExclamation, faCircle,
+	faChevronLeft, faStopwatch, faUtensils, // cooking mode and the menu
 )
 
 // Other languages fall back to English for these keys (fallbackLocale).

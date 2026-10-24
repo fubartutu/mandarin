@@ -25,12 +25,10 @@
 package shopping
 
 import (
-	"code.vikunja.io/api/pkg/config"
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/user"
-	"code.vikunja.io/api/pkg/web"
 
 	"xorm.io/xorm"
 )
@@ -61,31 +59,9 @@ func GetTables() []any {
 // household data, so the frontend shows every edit control.
 const permissionAdmin = models.PermissionAdmin
 
-// requireMember is the permission check shared by every model in this
-// package: household members may do everything, anyone else nothing.
-func requireMember(a web.Auth) error {
-	if !household.IsMember(a) {
-		return models.ErrGenericForbidden{}
-	}
-	return nil
-}
-
-// limitFromPage mirrors pkg/models' unexported getLimitFromPageIndex: page < 1
-// means "everything", otherwise perPage (or the server default) per page.
-func limitFromPage(page, perPage int) (limit, start int) {
-	if page < 1 {
-		return 0, 0
-	}
-	limit = config.ServiceMaxItemsPerPage.GetInt()
-	if perPage > 0 {
-		limit = perPage
-	}
-	return limit, limit * (page - 1)
-}
-
-// paginate applies limitFromPage to a query. limit 0 means no limit.
+// paginate applies household.LimitFromPage to a query. limit 0 means no limit.
 func paginate(q *xorm.Session, page, perPage int) *xorm.Session {
-	if limit, start := limitFromPage(page, perPage); limit > 0 {
+	if limit, start := household.LimitFromPage(page, perPage); limit > 0 {
 		return q.Limit(limit, start)
 	}
 	return q

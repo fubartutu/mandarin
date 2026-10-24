@@ -26,6 +26,8 @@
 		<AddTask @tasksAdded="showTasksKey++" />
 
 		<div class="home-cards">
+			<HomeMenuCard />
+
 			<Card
 				:title="$t('household.shopping.title')"
 				class="home-card"
@@ -140,6 +142,7 @@ import {parseDateOrNull} from '@/helpers/parseDateOrNull'
 import {formatDateSince, formatDisplayDate} from '@/helpers/time/formatDate'
 import {useAuthStore} from '@/stores/auth'
 
+import HomeMenuCard from './menu/components/HomeMenuCard.vue'
 import RecipeImage from './recipes/components/RecipeImage.vue'
 import {recipesQuery} from './recipes/queries'
 import {useRecentRecipes} from './recipes/recent'
@@ -148,7 +151,7 @@ import {useShoppingData} from './shopping/useShopping'
 import {useShoppingSync} from './shopping/sync/useShoppingSync'
 
 // Replaces Vikunja's Overview (views/Home.vue) on "/": the same greeting,
-// quick add and current tasks, with the shopping lists and recipes in place
+// quick add and current tasks, with this week's menu, the shopping lists and recipes in place
 // of the "last viewed projects" cards. Registered in setup.ts.
 
 const PREVIEW_ITEMS = 4

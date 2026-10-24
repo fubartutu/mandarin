@@ -24,6 +24,7 @@ import (
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/files"
 	"code.vikunja.io/api/pkg/household"
+	"code.vikunja.io/api/pkg/household/menu"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
 
@@ -125,7 +126,7 @@ func (r *Recipe) emptyNotNull() {
 
 // CanRead lets every household member read every recipe, with admin permission.
 func (r *Recipe) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, 0, err
 	}
 	stored, err := getRecipe(s, r.ID)
@@ -152,7 +153,7 @@ func (r *Recipe) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
 }
 
 func canWrite(s *xorm.Session, id int64, a web.Auth) (bool, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, err
 	}
 	if _, err := getRecipe(s, id); err != nil {
@@ -290,7 +291,7 @@ func fillCreators(s *xorm.Session, recipes ...*Recipe) error {
 // ReadAll returns the household's recipes by title. The search matches the
 // title, tags and ingredients, so "chicken" finds every chicken recipe.
 func (r *Recipe) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (any, int, int64, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, 0, 0, err
 	}
 	cond := builder.NewCond()
@@ -304,7 +305,7 @@ func (r *Recipe) ReadAll(s *xorm.Session, a web.Auth, search string, page int, p
 	}
 	recipes := []*Recipe{}
 	q := s.Where(cond).OrderBy("title ASC, id ASC")
-	if limit, start := limitFromPage(page, perPage); limit > 0 {
+	if limit, start := household.LimitFromPage(page, perPage); limit > 0 {
 		q = q.Limit(limit, start)
 	}
 	if err := q.Find(&recipes); err != nil {
@@ -339,10 +340,14 @@ func (r *Recipe) Update(s *xorm.Session, a web.Auth) error {
 	return r.ReadOne(s, a)
 }
 
-// Delete removes the recipe and its images.
+// Delete removes the recipe and its images. Menu entries planned with it
+// become notes with its title, in the same transaction.
 func (r *Recipe) Delete(s *xorm.Session, _ web.Auth) error {
 	stored, err := getRecipe(s, r.ID)
 	if err != nil {
+		return err
+	}
+	if err := menu.RecipeDeleted(s, stored.ID, stored.Title); err != nil {
 		return err
 	}
 	for _, id := range stored.ImageIDs {

@@ -218,6 +218,7 @@ func isStandardCRUDRoute(routeGroupName string, routeParts []string, _ string) b
 		"projects_views_tasks": true,
 		// FORK: Mandarin's household resources are CRUD too; otherwise their list
 		// and single-item reads collide on one permission and start-up panics.
+		"menu":                 true,
 		"recipes":              true,
 		"shopping_lists":       true,
 		"shopping_lists_items": true,

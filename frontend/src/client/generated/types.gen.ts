@@ -648,6 +648,25 @@ export type EmailConfirm = {
     token?: string;
 };
 
+export type EntryChanges = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Move the entry to this day (YYYY-MM-DD), last in the same meal there. The same day changes nothing.
+     */
+    day?: string;
+    /**
+     * New text, 1–250 characters. Note entries only.
+     */
+    note?: string;
+    /**
+     * New servings, at least 1. Recipe entries only, and only when the recipe has servings.
+     */
+    servings?: number;
+};
+
 export type ErrorDetail = {
     /**
      * Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
@@ -1087,6 +1106,53 @@ export type MarkAllReadBodyBody = {
     readonly message?: string;
 };
 
+export type MenuEntry = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When this entry was added.
+     */
+    readonly created?: string;
+    /**
+     * The calendar day it's planned for, as YYYY-MM-DD (no time or timezone).
+     */
+    day?: string;
+    /**
+     * The unique, numeric id of this entry.
+     */
+    readonly id?: number;
+    /**
+     * Which meal of the day.
+     */
+    meal?: 'breakfast' | 'lunch' | 'dinner';
+    /**
+     * A note entry's text, e.g. leftovers or takeaway. Empty on a recipe entry.
+     */
+    note?: string;
+    /**
+     * Order within the day's meal, lowest first. New entries go last.
+     */
+    readonly position?: number;
+    /**
+     * The planned recipe, or 0 for a note entry. Can't be changed after adding.
+     */
+    recipe_id?: number;
+    /**
+     * A recipe entry's recipe title; empty on a note entry.
+     */
+    readonly recipe_title?: string;
+    /**
+     * A recipe entry's servings, e.g. 6 when cooking for guests: at least 1, or 0 when the recipe has no servings (then none can be given). Left out or 0 on create: the recipe's own servings. Always 0 on a note entry.
+     */
+    servings?: number;
+    /**
+     * When this entry was last changed.
+     */
+    readonly updated?: string;
+};
+
 export type Message = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1296,6 +1362,18 @@ export type PaginatedLinkSharing = {
      */
     readonly $schema?: string;
     items?: Array<LinkSharing> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedMenuEntry = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<MenuEntry> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -4949,6 +5027,21 @@ export type EmailConfirmWritable = {
     token?: string;
 };
 
+export type EntryChangesWritable = {
+    /**
+     * Move the entry to this day (YYYY-MM-DD), last in the same meal there. The same day changes nothing.
+     */
+    day?: string;
+    /**
+     * New text, 1–250 characters. Note entries only.
+     */
+    note?: string;
+    /**
+     * New servings, at least 1. Recipe entries only, and only when the recipe has servings.
+     */
+    servings?: number;
+};
+
 export type HealthBodyBodyWritable = {
     /**
      * Availability of each configured OpenID Connect provider, from cached state — this endpoint never contacts the providers. Omitted when OpenID Connect authentication is not configured or the providers have not been initialized yet right after startup.
@@ -5102,6 +5195,29 @@ export type LoginWritable = {
     username?: string;
 };
 
+export type MenuEntryWritable = {
+    /**
+     * The calendar day it's planned for, as YYYY-MM-DD (no time or timezone).
+     */
+    day?: string;
+    /**
+     * Which meal of the day.
+     */
+    meal?: 'breakfast' | 'lunch' | 'dinner';
+    /**
+     * A note entry's text, e.g. leftovers or takeaway. Empty on a recipe entry.
+     */
+    note?: string;
+    /**
+     * The planned recipe, or 0 for a note entry. Can't be changed after adding.
+     */
+    recipe_id?: number;
+    /**
+     * A recipe entry's servings, e.g. 6 when cooking for guests: at least 1, or 0 when the recipe has no servings (then none can be given). Left out or 0 on create: the recipe's own servings. Always 0 on a note entry.
+     */
+    servings?: number;
+};
+
 export type MigrationCredentialsBodyWritable = {
     /**
      * The password to log in with. Only used when no token is given.
@@ -5202,6 +5318,14 @@ export type PaginatedLabelWithTaskIdWritable = {
 
 export type PaginatedLinkSharingWritable = {
     items?: Array<LinkSharingWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedMenuEntryWritable = {
+    items?: Array<MenuEntryWritable> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -7861,6 +7985,131 @@ export type McpInfoResponses = {
 };
 
 export type McpInfoResponse = McpInfoResponses[keyof McpInfoResponses];
+
+export type MenuListData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+        /**
+         * The first day, YYYY-MM-DD.
+         */
+        from: string;
+        /**
+         * The last day, YYYY-MM-DD.
+         */
+        to: string;
+    };
+    url: '/menu';
+};
+
+export type MenuListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type MenuListError = MenuListErrors[keyof MenuListErrors];
+
+export type MenuListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedMenuEntry;
+};
+
+export type MenuListResponse = MenuListResponses[keyof MenuListResponses];
+
+export type MenuCreateData = {
+    body: MenuEntryWritable;
+    path?: never;
+    query?: never;
+    url: '/menu';
+};
+
+export type MenuCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type MenuCreateError = MenuCreateErrors[keyof MenuCreateErrors];
+
+export type MenuCreateResponses = {
+    /**
+     * Created
+     */
+    201: MenuEntry;
+};
+
+export type MenuCreateResponse = MenuCreateResponses[keyof MenuCreateResponses];
+
+export type MenuDeleteData = {
+    body?: never;
+    path: {
+        entry: number;
+    };
+    query?: never;
+    url: '/menu/{entry}';
+};
+
+export type MenuDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type MenuDeleteError = MenuDeleteErrors[keyof MenuDeleteErrors];
+
+export type MenuDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type MenuDeleteResponse = MenuDeleteResponses[keyof MenuDeleteResponses];
+
+export type MenuUpdateData = {
+    body: EntryChangesWritable;
+    path: {
+        entry: number;
+    };
+    query?: never;
+    url: '/menu/{entry}';
+};
+
+export type MenuUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type MenuUpdateError = MenuUpdateErrors[keyof MenuUpdateErrors];
+
+export type MenuUpdateResponses = {
+    /**
+     * OK
+     */
+    200: MenuEntry;
+};
+
+export type MenuUpdateResponse = MenuUpdateResponses[keyof MenuUpdateResponses];
 
 export type MigrationCsvDetectData = {
     body: {

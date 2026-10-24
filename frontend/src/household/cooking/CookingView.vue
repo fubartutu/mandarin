@@ -1,0 +1,446 @@
+<template>
+	<!-- Teleported to <body>: inside the app layout an ancestor stacking context let the fixed .navbar paint over it. -->
+	<Teleport to="body">
+		<!-- Covers the whole app (menu and top bar too) while cooking. -->
+		<div class="cooking">
+			<CookingTimerBanners
+				v-if="finished.length > 0"
+				class="timer-banners"
+				:finished="finished"
+				@dismiss="dismiss"
+			/>
+
+			<header class="cooking-header">
+				<div class="cooking-title">
+					<h1 class="title">
+						{{ data?.title ?? $t('household.recipes.loading') }}
+					</h1>
+					<span
+						v-if="amountLabel"
+						class="cooking-amount"
+					>{{ amountLabel }}</span>
+				</div>
+				<BaseButton
+					class="close-button"
+					:aria-label="$t('household.cooking.close')"
+					:title="$t('household.cooking.close')"
+					@click="close"
+				>
+					<Icon icon="xmark" />
+				</BaseButton>
+			</header>
+
+			<p
+				v-if="!data && !recipe.isPending.value"
+				class="cooking-message"
+			>
+				{{ $t('household.recipes.notLoaded') }}
+			</p>
+
+			<template v-if="data">
+				<!-- On a phone one panel shows at a time; tablet and laptop show both. -->
+				<nav
+					class="panel-tabs"
+					role="tablist"
+				>
+					<button
+						v-for="tab in tabs"
+						:key="tab"
+						type="button"
+						role="tab"
+						class="panel-tab"
+						:class="{'is-active': panel === tab}"
+						:aria-selected="panel === tab"
+						@click="panel = tab"
+					>
+						{{ $t(`household.cooking.${tab}`) }}
+					</button>
+				</nav>
+
+				<div class="cooking-body">
+					<CookingIngredients
+						v-model="ticked"
+						class="panel ingredients-panel"
+						:class="{'is-shown': panel === 'ingredients'}"
+						:lines="data.ingredients"
+						:factor="scale.factor"
+					/>
+
+					<section
+						ref="stepsPanel"
+						class="panel steps-panel"
+						:class="{'is-shown': panel === 'steps'}"
+					>
+						<CookingStep
+							v-if="currentStep"
+							class="current-step"
+							:step="currentStep"
+							:count="steps.length"
+							:running="running"
+							@startTimer="startStepTimer"
+						/>
+						<p
+							v-else
+							class="cooking-message"
+						>
+							{{ $t('household.cooking.noSteps') }}
+						</p>
+
+						<CookingTimerTray
+							v-if="running.length > 0"
+							class="timer-tray"
+							:running="running"
+							@cancel="cancel"
+						/>
+
+						<div
+							v-if="steps.length > 0"
+							class="step-buttons"
+						>
+							<XButton
+								variant="secondary"
+								icon="chevron-left"
+								:disabled="stepIndex === 0"
+								@click="go(-1)"
+							>
+								{{ $t('household.cooking.back') }}
+							</XButton>
+							<XButton
+								v-if="stepIndex < steps.length - 1"
+								icon="chevron-right"
+								@click="go(1)"
+							>
+								{{ $t('household.cooking.next') }}
+							</XButton>
+							<XButton
+								v-else
+								icon="check"
+								@click="finishCooking"
+							>
+								{{ $t('household.cooking.done') }}
+							</XButton>
+						</div>
+					</section>
+				</div>
+
+				<!-- The phone's Ingredients tab hides the steps panel, so its timers show here. -->
+				<CookingTimerTray
+					v-if="panel === 'ingredients' && running.length > 0"
+					class="timer-tray ingredients-tray"
+					:running="running"
+					@cancel="cancel"
+				/>
+			</template>
+		</div>
+	</Teleport>
+</template>
+
+<script setup lang="ts">
+import {computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useRoute, useRouter} from 'vue-router'
+import {useQuery} from '@tanstack/vue-query'
+import {useEventListener, useSwipe, useWakeLock} from '@vueuse/core'
+
+import BaseButton from '@/components/base/BaseButton.vue'
+import {useTitle} from '@/composables/useTitle'
+
+import {recipeQuery} from '../recipes/queries'
+import CookingIngredients from './components/CookingIngredients.vue'
+import CookingStep from './components/CookingStep.vue'
+import CookingTimerBanners from './components/CookingTimerBanners.vue'
+import CookingTimerTray from './components/CookingTimerTray.vue'
+import {leaveCooking} from './leave'
+import {clearCooking, deviceStorage, fitToRecipe, forgetStaleCooking, loadCooking, saveCooking} from './resume'
+import {cookingScale} from './servings'
+import {cookingSteps, moveStep} from './steps'
+import type {DetectedTimer} from './timers'
+import {useCookingTimers} from './useCookingTimers'
+
+const props = defineProps<{
+	recipeId: number
+}>()
+
+const {t} = useI18n({useScope: 'global'})
+const route = useRoute()
+const router = useRouter()
+
+// Same query as the recipe page, so it opens from the cache straight away.
+const recipe = useQuery(computed(() => recipeQuery(props.recipeId)))
+const data = computed(() => recipe.data.value)
+useTitle(() => data.value?.title ?? t('household.recipes.title'))
+
+const scale = computed(() => cookingScale(data.value?.servings ?? 0, route.query))
+const amountLabel = computed(() => {
+	if (!data.value) return ''
+	if (scale.value.servings) return t('household.cooking.servings', {count: scale.value.servings}, scale.value.servings)
+	return scale.value.factor === 1 ? '' : t('household.cooking.scale', {scale: scale.value.factor})
+})
+
+const ticked = ref<number[]>([])
+
+const steps = computed(() => cookingSteps(data.value?.steps ?? []))
+const stepIndex = ref(0)
+const currentStep = computed(() => steps.value[stepIndex.value])
+function go(delta: number) {
+	stepIndex.value = moveStep(stepIndex.value, delta, steps.value.length)
+}
+// A refetch can change the method under us; stay on a real step.
+watch(() => steps.value.length, () => go(0))
+
+// Timers live as long as this view: closing cooking mode ends them.
+// Destructured refs (running, finished) unwrap in the template like top-level ones.
+const {timers, running, finished, start, cancel, dismiss} = useCookingTimers()
+function startStepTimer(timer: DetectedTimer) {
+	if (currentStep.value) start(currentStep.value.number, timer)
+}
+
+// Resume: coming back to this recipe within 6 hours carries on with the same
+// step, ticks and timers (saved on this device only, see resume.ts).
+const storage = deviceStorage()
+forgetStaleCooking(storage, Date.now())
+let restored = false // nothing is saved until the saved state is back in place
+let saving = true // off once cooked (Done) or closed
+watch(data, recipeData => {
+	if (!recipeData || restored) return
+	restored = true
+	const saved = loadCooking(storage, props.recipeId, Date.now())
+	if (!saved) return
+	const state = fitToRecipe(saved, {steps: steps.value.length, ingredients: recipeData.ingredients.length})
+	stepIndex.value = state.stepIndex
+	ticked.value = state.ticked
+	// Timers kept their end times, so they counted on while away; any that
+	// ended meanwhile finish on the next tick (banner and sound).
+	timers.value = state.timers
+	finished.value = state.finished
+}, {immediate: true})
+
+let pendingSave: ReturnType<typeof setTimeout> | undefined
+function saveNow() {
+	clearTimeout(pendingSave)
+	if (!restored || !saving) return
+	saveCooking(storage, props.recipeId, {
+		stepIndex: stepIndex.value,
+		ticked: ticked.value,
+		timers: timers.value,
+		finished: finished.value,
+	}, Date.now())
+}
+watch([stepIndex, ticked, timers, finished], () => {
+	clearTimeout(pendingSave)
+	pendingSave = setTimeout(saveNow, 300)
+}, {deep: true})
+// The phone locking or the app being swiped away may be the last chance to save.
+useEventListener(window, 'pagehide', saveNow)
+useEventListener(document, 'visibilitychange', () => {
+	if (document.visibilityState === 'hidden') saveNow()
+})
+// Before unmount, not on scope dispose: useCookingTimers clears its timers then.
+onBeforeUnmount(() => {
+	saveNow()
+	saving = false
+})
+
+type Panel = 'ingredients' | 'steps'
+const tabs: Panel[] = ['ingredients', 'steps']
+const panel = ref<Panel>('ingredients')
+// Nothing to gather: start on the steps.
+watch(() => data.value?.ingredients.length, count => {
+	if (count === 0) panel.value = 'steps'
+}, {immediate: true})
+
+// Swipe left for the next step, right for the one before.
+const stepsPanel = useTemplateRef<HTMLElement>('stepsPanel')
+useSwipe(stepsPanel, {
+	onSwipeEnd(_, direction) {
+		if (direction === 'left') go(1)
+		else if (direction === 'right') go(-1)
+	},
+})
+
+// Laptop: arrow keys move between steps, Escape closes.
+useEventListener(document, 'keydown', (e: KeyboardEvent) => {
+	if (e.altKey || e.ctrlKey || e.metaKey) return
+	if (e.key === 'ArrowRight') go(1)
+	else if (e.key === 'ArrowLeft') go(-1)
+	else if (e.key === 'Escape') close()
+})
+
+// The screen stays on while cooking mode is open; useWakeLock takes the lock
+// again when the page is back in view. A refused request (low battery, no
+// permission) is ignored: the screen may only dim.
+const wakeLock = useWakeLock()
+let open = true
+onMounted(async () => {
+	await wakeLock.request('screen').catch(() => {})
+	// Closed while the browser was still deciding: let go now.
+	if (!open) wakeLock.release().catch(() => {})
+})
+onBeforeUnmount(() => {
+	open = false
+	wakeLock.release().catch(() => {})
+})
+
+function close() {
+	leaveCooking(router, props.recipeId)
+}
+
+// Done on the last step: cooked, so there's nothing to come back to.
+// Closing with × (or Escape) keeps the place for later.
+function finishCooking() {
+	saving = false
+	clearTimeout(pendingSave)
+	clearCooking(storage, props.recipeId)
+	close()
+}
+</script>
+
+<style lang="scss" scoped>
+.cooking {
+	position: fixed;
+	inset: 0;
+	z-index: 4600; // above the menu, top bar and modals (4500)
+	display: flex;
+	flex-direction: column;
+	padding:
+		max(.75rem, env(safe-area-inset-top))
+		max(1rem, env(safe-area-inset-right))
+		max(.75rem, env(safe-area-inset-bottom))
+		max(1rem, env(safe-area-inset-left));
+	background: var(--site-background);
+	color: var(--text);
+}
+
+// Finished timers sit over the top of cooking mode until dismissed.
+.timer-banners {
+	position: absolute;
+	inset-block-start: max(.75rem, env(safe-area-inset-top));
+	inset-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+	z-index: 1;
+}
+
+.cooking-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-block-end: .75rem;
+}
+
+.cooking-title {
+	min-inline-size: 0;
+
+	.title {
+		margin: 0;
+		font-size: 1.35rem;
+		word-break: normal;
+	}
+}
+
+.cooking-amount {
+	color: var(--grey-600);
+}
+
+.close-button {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	inline-size: 2.75rem;
+	block-size: 2.75rem;
+	border-radius: 50%;
+	background: var(--grey-100);
+	font-size: 1.25rem;
+}
+
+.cooking-message {
+	color: var(--grey-600);
+	font-style: italic;
+}
+
+.panel-tabs {
+	display: flex;
+	gap: .5rem;
+	margin-block-end: .75rem;
+
+	@media screen and (min-width: $tablet) {
+		display: none;
+	}
+}
+
+.panel-tab {
+	flex: 1;
+	padding: .6rem;
+	border: 0;
+	border-radius: $radius;
+	background: var(--grey-100);
+	color: var(--text);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+
+	&.is-active {
+		background: var(--primary);
+		color: var(--white);
+	}
+}
+
+// Ingredients beside the step on a tablet or laptop.
+.cooking-body {
+	display: grid;
+	flex: 1;
+	grid-template-columns: 1fr;
+	gap: 2rem;
+	min-block-size: 0;
+
+	@media screen and (min-width: $tablet) {
+		grid-template-columns: minmax(16rem, 1fr) 2fr;
+	}
+}
+
+.panel {
+	min-block-size: 0;
+	overflow-y: auto;
+
+	@media screen and (max-width: $tablet - 1px) {
+		&:not(.is-shown) {
+			display: none;
+		}
+	}
+}
+
+.steps-panel {
+	display: flex;
+	flex-direction: column;
+	// Vertical scrolling stays with the browser; sideways swipes are ours.
+	touch-action: pan-y;
+}
+
+.current-step {
+	flex: 1;
+}
+
+.timer-tray {
+	padding-block-start: 1rem;
+}
+
+.ingredients-tray {
+	@media screen and (min-width: $tablet) {
+		display: none;
+	}
+}
+
+.step-buttons {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-block-start: 1rem;
+
+	.button {
+		flex: 1;
+		max-inline-size: 14rem;
+		block-size: 3.25rem;
+		font-size: 1.1rem;
+	}
+}
+</style>
