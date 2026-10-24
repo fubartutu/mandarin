@@ -17,6 +17,7 @@
 package menu
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -33,8 +34,11 @@ const deletedRecipeNote = "Deleted recipe"
 // one writer at a time).
 func RecipeDeleted(s *xorm.Session, recipeID int64, title string) error {
 	planned, err := s.Where("recipe_id = ?", recipeID).Exist(&MenuEntry{})
-	if err != nil || !planned {
-		return err
+	if err != nil {
+		return fmt.Errorf("check menu entries of recipe %d: %w", recipeID, err)
+	}
+	if !planned {
+		return nil
 	}
 	_, err = s.Table(&MenuEntry{}).Where("recipe_id = ?", recipeID).Update(map[string]any{
 		"recipe_id": 0,
@@ -42,7 +46,10 @@ func RecipeDeleted(s *xorm.Session, recipeID int64, title string) error {
 		"note":      noteFromTitle(title),
 		"updated":   time.Now(),
 	})
-	return err
+	if err != nil {
+		return fmt.Errorf("turn menu entries of recipe %d into notes: %w", recipeID, err)
+	}
+	return nil
 }
 
 // noteFromTitle trims the title and cuts it to the note's length, counting

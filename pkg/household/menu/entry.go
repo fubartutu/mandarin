@@ -17,6 +17,7 @@
 package menu
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -96,7 +97,7 @@ func getRecipeRef(s *xorm.Session, id int64) (*recipeRef, error) {
 	r := &recipeRef{}
 	exists, err := s.Table("recipes").Cols("id", "title", "servings").Where("id = ?", id).Get(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get recipe %d: %w", id, err)
 	}
 	if !exists {
 		return nil, ErrInvalidMenuEntry{Reason: "This recipe does not exist."}
@@ -117,7 +118,7 @@ func addRecipeTitles(s *xorm.Session, entries ...*MenuEntry) error {
 	}
 	refs := []*recipeRef{}
 	if err := s.Table("recipes").Cols("id", "title").In("id", ids).Find(&refs); err != nil {
-		return err
+		return fmt.Errorf("get recipe titles: %w", err)
 	}
 	titles := make(map[int64]string, len(refs))
 	for _, r := range refs {
@@ -138,7 +139,7 @@ func getEntry(s *xorm.Session, id int64) (*MenuEntry, error) {
 	e := &MenuEntry{}
 	exists, err := s.Where("id = ?", id).Get(e)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get menu entry %d: %w", id, err)
 	}
 	if !exists {
 		return nil, ErrMenuEntryDoesNotExist{EntryID: id}
@@ -251,8 +252,11 @@ func (e *MenuEntry) normalize(s *xorm.Session) error {
 func nextPosition(s *xorm.Session, day, meal string) (int, error) {
 	last := &MenuEntry{}
 	has, err := s.Where("day = ? AND meal = ?", day, meal).Desc("position").Get(last)
-	if err != nil || !has {
-		return 0, err
+	if err != nil {
+		return 0, fmt.Errorf("get last menu entry of %s %s: %w", day, meal, err)
+	}
+	if !has {
+		return 0, nil
 	}
 	return last.Position + 1, nil
 }
@@ -273,8 +277,10 @@ func (e *MenuEntry) Create(s *xorm.Session, a web.Auth) error {
 	e.Position = position
 	e.ID = 0
 	e.CreatedByID = u.ID
-	_, err = s.Insert(e)
-	return err
+	if _, err := s.Insert(e); err != nil {
+		return fmt.Errorf("insert menu entry: %w", err)
+	}
+	return nil
 }
 
 // ReadAll returns the entries from From to To (both included), by day, then
@@ -300,7 +306,7 @@ func (e *MenuEntry) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, per
 	// comparison works on every database.
 	all := []*MenuEntry{}
 	if err := s.Where("day >= ? AND day <= ?", e.From, e.To).OrderBy("day ASC, position ASC, id ASC").Find(&all); err != nil {
-		return nil, 0, 0, err
+		return nil, 0, 0, fmt.Errorf("list menu entries: %w", err)
 	}
 	// Meal order isn't alphabetical, so it's sorted here. SortStableFunc
 	// keeps the day/position order within each meal.
@@ -370,7 +376,7 @@ func (e *MenuEntry) Update(s *xorm.Session, _ web.Auth) error {
 	}
 	if len(cols) > 0 {
 		if _, err := s.ID(e.ID).Cols(cols...).Update(e); err != nil {
-			return err
+			return fmt.Errorf("update menu entry %d: %w", e.ID, err)
 		}
 	}
 	return addRecipeTitles(s, e)
@@ -379,6 +385,8 @@ func (e *MenuEntry) Update(s *xorm.Session, _ web.Auth) error {
 // Delete removes an entry. The others in its meal keep their positions; only
 // their order matters.
 func (e *MenuEntry) Delete(s *xorm.Session, _ web.Auth) error {
-	_, err := s.ID(e.ID).Delete(&MenuEntry{})
-	return err
+	if _, err := s.ID(e.ID).Delete(&MenuEntry{}); err != nil {
+		return fmt.Errorf("delete menu entry %d: %w", e.ID, err)
+	}
+	return nil
 }
