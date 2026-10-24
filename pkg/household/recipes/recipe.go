@@ -24,6 +24,7 @@ import (
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/files"
 	"code.vikunja.io/api/pkg/household"
+	"code.vikunja.io/api/pkg/household/menu"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
 
@@ -339,10 +340,14 @@ func (r *Recipe) Update(s *xorm.Session, a web.Auth) error {
 	return r.ReadOne(s, a)
 }
 
-// Delete removes the recipe and its images.
+// Delete removes the recipe and its images. Menu entries planned with it
+// become notes with its title, in the same transaction.
 func (r *Recipe) Delete(s *xorm.Session, _ web.Auth) error {
 	stored, err := getRecipe(s, r.ID)
 	if err != nil {
+		return err
+	}
+	if err := menu.RecipeDeleted(s, stored.ID, stored.Title); err != nil {
 		return err
 	}
 	for _, id := range stored.ImageIDs {
