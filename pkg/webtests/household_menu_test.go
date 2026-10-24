@@ -416,3 +416,52 @@ func TestHouseholdMenu_Move(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, code)
 	})
 }
+
+func TestHouseholdMenu_DeletedRecipeBecomesNote(t *testing.T) {
+	e := setupMenuEnv(t)
+	user1 := humaTokenFor(t, &testuser1)
+	lasagne := addMenuRecipe(t, e, user1, "Lasagne", 4)
+	curry := addMenuRecipe(t, e, user1, "Curry", 2)
+	add := func(body string) menu.MenuEntry {
+		t.Helper()
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/menu", body, user1, "")
+		require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+		return decode[menu.MenuEntry](t, rec.Body.Bytes())
+	}
+
+	// Lasagne last Tuesday (second in its meal, after a note) and on
+	// Saturday; curry on Friday.
+	add(`{"day":"2026-10-20","meal":"dinner","note":"Bread"}`)
+	past := add(fmt.Sprintf(`{"day":"2026-10-20","meal":"dinner","recipe_id":%d}`, lasagne.ID))
+	future := add(fmt.Sprintf(`{"day":"2026-10-24","meal":"lunch","recipe_id":%d,"servings":6}`, lasagne.ID))
+	other := add(fmt.Sprintf(`{"day":"2026-10-23","meal":"dinner","recipe_id":%d}`, curry.ID))
+
+	rec := humaRequest(t, e, http.MethodDelete, fmt.Sprintf("/api/v2/recipes/%d", lasagne.ID), "", user1, "")
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/menu?from=2026-10-19&to=2026-10-25", "", user1, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	byID := map[int64]menu.MenuEntry{}
+	for _, entry := range decode[menuWeek](t, rec.Body.Bytes()).Items {
+		byID[entry.ID] = entry
+	}
+	require.Len(t, byID, 4)
+	for _, want := range []menu.MenuEntry{past, future} {
+		got := byID[want.ID]
+		assert.Equal(t, "Lasagne", got.Note)
+		assert.Zero(t, got.RecipeID)
+		assert.Zero(t, got.Servings)
+		assert.Empty(t, got.RecipeTitle)
+		assert.Equal(t, want.Day, got.Day)
+		assert.Equal(t, want.Meal, got.Meal)
+		assert.Equal(t, want.Position, got.Position)
+	}
+	assert.Equal(t, 1, byID[past.ID].Position)
+
+	// The curry entry is untouched.
+	got := byID[other.ID]
+	assert.Equal(t, curry.ID, got.RecipeID)
+	assert.Equal(t, "Curry", got.RecipeTitle)
+	assert.Empty(t, got.Note)
+	assert.InDelta(t, 2.0, got.Servings, 0.001)
+}

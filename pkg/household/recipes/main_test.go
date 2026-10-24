@@ -23,6 +23,7 @@ import (
 	"code.vikunja.io/api/pkg/config"
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/files"
+	"code.vikunja.io/api/pkg/household/menu"
 	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/user"
@@ -51,6 +52,10 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	if err := x.Sync2(GetTables()...); err != nil {
+		log.Fatal(err)
+	}
+	// Deleting a recipe turns its menu entries into notes.
+	if err := x.Sync2(menu.GetTables()...); err != nil {
 		log.Fatal(err)
 	}
 	os.Exit(m.Run())
