@@ -147,6 +147,7 @@ import CookingIngredients from './components/CookingIngredients.vue'
 import CookingStep from './components/CookingStep.vue'
 import CookingTimerBanners from './components/CookingTimerBanners.vue'
 import CookingTimerTray from './components/CookingTimerTray.vue'
+import {leaveCooking} from './leave'
 import {clearCooking, deviceStorage, fitToRecipe, forgetStaleCooking, loadCooking, saveCooking} from './resume'
 import {cookingScale} from './servings'
 import {cookingSteps, moveStep} from './steps'
@@ -277,12 +278,8 @@ onBeforeUnmount(() => {
 	wakeLock.release().catch(() => {})
 })
 
-// Back to the recipe: a history step when we came from it, so the browser's
-// back button doesn't then return to cooking mode.
 function close() {
-	const recipePage = router.resolve({name: 'recipe', params: {recipeId: props.recipeId}}).fullPath
-	if (window.history.state?.back === recipePage) router.back()
-	else router.replace(recipePage)
+	leaveCooking(router, props.recipeId)
 }
 
 // Done on the last step: cooked, so there's nothing to come back to.
