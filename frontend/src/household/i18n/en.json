@@ -282,7 +282,13 @@
 			"servings": "{count} serving | {count} serving | {count} servings",
 			"servingsLabel": "Servings of {recipe}",
 			"saveServings": "Save",
-			"missingRecipe": "Recipe not found"
+			"missingRecipe": "Recipe not found",
+			"plan": "Plan",
+			"planTitle": "Plan {recipe}",
+			"planForDinner": "Plan for dinner",
+			"pickDay": "Day",
+			"planned": "Planned for {day}",
+			"openMenu": "Open menu"
 		},
 		"startPage": {
 			"label": "Start page",
