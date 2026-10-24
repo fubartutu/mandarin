@@ -35,4 +35,11 @@ export const householdRoutes: RouteRecordRaw[] = [
 		component: () => import('./recipes/RecipeEditor.vue'),
 		props: route => ({recipeId: Number(route.params.recipeId)}),
 	},
+	{
+		// ?servings=6 (or ?scale=1.5 for a recipe without servings): see cooking/servings.ts.
+		path: '/recipes/:recipeId(\\d+)/cook',
+		name: 'recipe.cook',
+		component: () => import('./cooking/CookingView.vue'),
+		props: route => ({recipeId: Number(route.params.recipeId)}),
+	},
 ]
