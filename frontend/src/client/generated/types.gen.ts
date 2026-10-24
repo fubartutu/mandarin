@@ -648,6 +648,21 @@ export type EmailConfirm = {
     token?: string;
 };
 
+export type EntryChanges = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * New text, 1–250 characters. Note entries only.
+     */
+    note?: string;
+    /**
+     * New servings. Recipe entries only.
+     */
+    servings?: number;
+};
+
 export type ErrorDetail = {
     /**
      * Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
@@ -1109,13 +1124,25 @@ export type MenuEntry = {
      */
     meal?: 'breakfast' | 'lunch' | 'dinner';
     /**
-     * The free-text note, e.g. leftovers or takeaway.
+     * A note entry's text, e.g. leftovers or takeaway. Empty on a recipe entry.
      */
     note?: string;
     /**
      * Order within the day's meal, lowest first. New entries go last.
      */
     readonly position?: number;
+    /**
+     * The planned recipe, or 0 for a note entry. Can't be changed after adding.
+     */
+    recipe_id?: number;
+    /**
+     * A recipe entry's recipe title; empty on a note entry.
+     */
+    readonly recipe_title?: string;
+    /**
+     * A recipe entry's servings, e.g. 6 when cooking for guests. Left out or 0 on create: the recipe's own servings. Always 0 on a note entry.
+     */
+    servings?: number;
     /**
      * When this entry was last changed.
      */
@@ -4996,6 +5023,17 @@ export type EmailConfirmWritable = {
     token?: string;
 };
 
+export type EntryChangesWritable = {
+    /**
+     * New text, 1–250 characters. Note entries only.
+     */
+    note?: string;
+    /**
+     * New servings. Recipe entries only.
+     */
+    servings?: number;
+};
+
 export type HealthBodyBodyWritable = {
     /**
      * Availability of each configured OpenID Connect provider, from cached state — this endpoint never contacts the providers. Omitted when OpenID Connect authentication is not configured or the providers have not been initialized yet right after startup.
@@ -5159,9 +5197,17 @@ export type MenuEntryWritable = {
      */
     meal?: 'breakfast' | 'lunch' | 'dinner';
     /**
-     * The free-text note, e.g. leftovers or takeaway.
+     * A note entry's text, e.g. leftovers or takeaway. Empty on a recipe entry.
      */
     note?: string;
+    /**
+     * The planned recipe, or 0 for a note entry. Can't be changed after adding.
+     */
+    recipe_id?: number;
+    /**
+     * A recipe entry's servings, e.g. 6 when cooking for guests. Left out or 0 on create: the recipe's own servings. Always 0 on a note entry.
+     */
+    servings?: number;
 };
 
 export type MigrationCredentialsBodyWritable = {
@@ -8029,6 +8075,33 @@ export type MenuDeleteResponses = {
 };
 
 export type MenuDeleteResponse = MenuDeleteResponses[keyof MenuDeleteResponses];
+
+export type MenuUpdateData = {
+    body: EntryChangesWritable;
+    path: {
+        entry: number;
+    };
+    query?: never;
+    url: '/menu/{entry}';
+};
+
+export type MenuUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type MenuUpdateError = MenuUpdateErrors[keyof MenuUpdateErrors];
+
+export type MenuUpdateResponses = {
+    /**
+     * OK
+     */
+    200: MenuEntry;
+};
+
+export type MenuUpdateResponse = MenuUpdateResponses[keyof MenuUpdateResponses];
 
 export type MigrationCsvDetectData = {
     body: {

@@ -55,6 +55,12 @@ func RegisterHouseholdMenuRoutes(api huma.API) {
 		Method:      http.MethodPost, Path: "/menu", Tags: tags,
 	}, menuCreate)
 	Register(api, huma.Operation{
+		OperationID: "menu-update",
+		Summary:     "Change a menu entry",
+		Description: "Changes only the fields sent: servings on a recipe entry, the text of a note entry. The day, meal and position stay as they are." + menuAccess,
+		Method:      http.MethodPut, Path: "/menu/{entry}", Tags: tags,
+	}, menuUpdate)
+	Register(api, huma.Operation{
 		OperationID: "menu-delete",
 		Summary:     "Delete a menu entry",
 		Method:      http.MethodDelete, Path: "/menu/{entry}", Tags: tags,
@@ -92,6 +98,22 @@ func menuCreate(ctx context.Context, in *struct {
 		return nil, translateDomainError(err)
 	}
 	return &singleBody[menu.MenuEntry]{Body: &in.Body}, nil
+}
+
+func menuUpdate(ctx context.Context, in *struct {
+	ID   int64 `path:"entry"`
+	Body menu.EntryChanges
+}) (*singleBody[menu.MenuEntry], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// CanUpdate loads the stored entry; Update applies the changes to it.
+	entry := &menu.MenuEntry{ID: in.ID, Changes: in.Body}
+	if err := handler.DoUpdate(ctx, entry, a); err != nil {
+		return nil, translateDomainError(err)
+	}
+	return &singleBody[menu.MenuEntry]{Body: entry}, nil
 }
 
 func menuDelete(ctx context.Context, in *struct {

@@ -86,17 +86,74 @@
 						:key="entry.id"
 						class="entry"
 					>
-						<span class="entry-note">{{ entry.note }}</span>
-						<button
-							type="button"
-							class="button is-small is-text delete-button"
-							:title="$t('household.menu.delete', {note: entry.note})"
-							:aria-label="$t('household.menu.delete', {note: entry.note})"
-							:disabled="busy"
-							@click="remove(entry.id)"
+						<span
+							v-if="entry.recipeId"
+							class="entry-main"
 						>
-							<Icon icon="trash-alt" />
-						</button>
+							<RouterLink
+								class="entry-recipe"
+								:to="{name: 'recipe', params: {recipeId: entry.recipeId}}"
+							>
+								{{ entryLabel(entry) }}
+							</RouterLink>
+							<form
+								v-if="editingServings === entry.id"
+								class="servings-form"
+								@submit.prevent="saveServings(entry)"
+							>
+								<input
+									v-model.number="servingsDraft"
+									v-focus
+									class="input is-small servings-input"
+									type="number"
+									step="1"
+									min="1"
+									:aria-label="$t('household.menu.servingsLabel', {recipe: entryLabel(entry)})"
+									@keydown.esc="stopEditingServings"
+								>
+								<button
+									type="submit"
+									class="button is-small is-primary"
+									:disabled="busy || !validServings"
+								>
+									{{ $t('household.menu.saveServings') }}
+								</button>
+								<button
+									type="button"
+									class="button is-small"
+									@click="stopEditingServings"
+								>
+									{{ $t('household.menu.cancel') }}
+								</button>
+							</form>
+							<span
+								v-else-if="entry.servings > 0"
+								class="entry-servings"
+							>· {{ $t('household.menu.servings', {count: entry.servings}, entry.servings) }}</span>
+						</span>
+						<span
+							v-else
+							class="entry-note"
+						>{{ entry.note }}</span>
+						<Dropdown
+							class="entry-options"
+							trigger-icon="ellipsis-h"
+							:trigger-label="$t('household.menu.options', {entry: entryLabel(entry)})"
+						>
+							<template #default="{close}">
+								<DropdownItem
+									v-for="action in entryActions(entry)"
+									:key="action.key"
+									:icon="action.icon"
+									:class="{'has-text-danger': action.danger}"
+									:icon-class="{'has-text-danger': action.danger}"
+									:disabled="busy"
+									@click="close(); action.run()"
+								>
+									{{ action.label }}
+								</DropdownItem>
+							</template>
+						</Dropdown>
 					</li>
 				</ul>
 				<p
@@ -109,32 +166,63 @@
 				<form
 					v-if="adding === day"
 					class="add-form"
-					@submit.prevent="submitNote(day)"
+					@submit.prevent="submitDraft(day)"
 				>
-					<input
-						v-model="draft"
-						v-focus
-						class="input is-small"
-						type="text"
-						maxlength="250"
-						:placeholder="$t('household.menu.notePlaceholder')"
-						:aria-label="$t('household.menu.noteLabel', {day: dayLabel(day)})"
-						@keydown.esc="stopAdding"
+					<div class="add-row">
+						<input
+							v-model="draft"
+							v-focus
+							class="input is-small"
+							type="text"
+							maxlength="250"
+							role="combobox"
+							aria-autocomplete="list"
+							:aria-expanded="matches.length > 0"
+							:aria-controls="`menu-matches-${day}`"
+							:aria-activedescendant="highlighted >= 0 ? `menu-match-${day}-${highlighted}` : undefined"
+							:placeholder="$t('household.menu.notePlaceholder')"
+							:aria-label="$t('household.menu.noteLabel', {day: dayLabel(day)})"
+							@keydown.esc="stopAdding"
+							@keydown.down.prevent="moveHighlight(1)"
+							@keydown.up.prevent="moveHighlight(-1)"
+						>
+						<button
+							type="submit"
+							class="button is-small is-primary"
+							:disabled="busy || draft.trim() === ''"
+						>
+							{{ $t('household.menu.save') }}
+						</button>
+						<button
+							type="button"
+							class="button is-small"
+							@click="stopAdding"
+						>
+							{{ $t('household.menu.cancel') }}
+						</button>
+					</div>
+					<ul
+						v-if="matches.length > 0"
+						:id="`menu-matches-${day}`"
+						class="recipe-matches"
+						role="listbox"
+						:aria-label="$t('household.menu.recipeMatches')"
 					>
-					<button
-						type="submit"
-						class="button is-small is-primary"
-						:disabled="busy || draft.trim() === ''"
-					>
-						{{ $t('household.menu.save') }}
-					</button>
-					<button
-						type="button"
-						class="button is-small"
-						@click="stopAdding"
-					>
-						{{ $t('household.menu.cancel') }}
-					</button>
+						<!-- mousedown.prevent keeps the focus in the field while tapping. -->
+						<li
+							v-for="(recipe, i) in matches"
+							:id="`menu-match-${day}-${i}`"
+							:key="recipe.id"
+							class="recipe-match"
+							:class="{'is-highlighted': i === highlighted}"
+							role="option"
+							:aria-selected="i === highlighted"
+							@mousedown.prevent
+							@click="pickRecipe(day, recipe.id)"
+						>
+							{{ recipe.title }}
+						</li>
+					</ul>
 				</form>
 			</li>
 		</ol>
@@ -147,9 +235,22 @@ import {useI18n} from 'vue-i18n'
 import {useQuery} from '@tanstack/vue-query'
 import {useNow} from '@vueuse/core'
 
+import type {IconProp} from '@fortawesome/fontawesome-svg-core'
+
+import Dropdown from '@/components/misc/Dropdown.vue'
+import DropdownItem from '@/components/misc/DropdownItem.vue'
 import {useTitle} from '@/composables/useTitle'
 
-import {menuRangeQuery, useAddNoteMutation, useDeleteEntryMutation} from './queries'
+import {recipesQuery} from '../recipes/queries'
+import {matchRecipes} from './recipeMatches'
+import {
+	menuRangeQuery,
+	useAddEntryMutation,
+	useDeleteEntryMutation,
+	useUpdateEntryMutation,
+	type MenuEntryResponse,
+	type NewEntry,
+} from './queries'
 import {dayKey, dayStatus, dinnersByDay, fromKey, mondayOf, shiftWeek, weekDays} from './week'
 
 const props = defineProps<{
@@ -203,10 +304,26 @@ watch(() => [monday.value, entries.data.value !== undefined] as const, async ([s
 	dayRefs.get(today.value)?.scrollIntoView({block: 'center'})
 }, {immediate: true})
 
-// ---- Adding and deleting notes ----
+// ---- Adding notes and recipes ----
 
 const adding = ref('')
 const draft = ref('')
+
+// The recipe list is only fetched once "+" is open; it's filtered on the device.
+const recipes = useQuery(computed(() => ({...recipesQuery(), enabled: adding.value !== ''})))
+const matches = computed(() => matchRecipes(recipes.data.value ?? [], draft.value))
+// The match picked with the arrow keys, or -1 for none (Enter then adds a note).
+const highlighted = ref(-1)
+watch(draft, () => {
+	highlighted.value = -1
+})
+
+function moveHighlight(step: number) {
+	const count = matches.value.length
+	if (count === 0) return
+	// Wraps around, and passes through -1 (no match picked) on the way.
+	highlighted.value = ((highlighted.value + 1 + step + count + 1) % (count + 1)) - 1
+}
 
 // A local directive: in <script setup>, a `vFoo` constant is usable as
 // `v-foo` in the template. The note field is focused each time it appears
@@ -223,22 +340,88 @@ function stopAdding() {
 	draft.value = ''
 }
 
-const addNote = useAddNoteMutation()
+const addEntry = useAddEntryMutation()
+const updateEntry = useUpdateEntryMutation()
 const deleteEntry = useDeleteEntryMutation()
 // One write at a time: the server's SQLite allows a single writer.
-const busy = computed(() => addNote.isPending.value || deleteEntry.isPending.value)
+const busy = computed(() => addEntry.isPending.value || updateEntry.isPending.value || deleteEntry.isPending.value)
 
-// Only dinner is shown for now, so notes go to dinner.
-function submitNote(day: string) {
+// Only dinner is shown for now, so everything goes to dinner.
+function add(entry: NewEntry) {
+	if (busy.value) return
+	// On failure the mutation shows a toast and the typed text stays.
+	addEntry.mutate(entry, {onSuccess: stopAdding})
+}
+
+function pickRecipe(day: string, recipeId: number) {
+	add({day, meal: 'dinner', recipeId})
+}
+
+// Enter or "Add": the highlighted recipe, else the text as a note.
+function submitDraft(day: string) {
+	const picked = matches.value[highlighted.value]
+	if (picked) {
+		pickRecipe(day, picked.id)
+		return
+	}
 	const note = draft.value.trim()
-	if (!note || busy.value) return
-	// On failure the mutation shows a toast and the typed note stays.
-	addNote.mutate({day, meal: 'dinner', note}, {onSuccess: stopAdding})
+	if (note) add({day, meal: 'dinner', note})
+}
+
+// ---- An entry's menu ----
+
+function entryLabel(entry: MenuEntryResponse) {
+	if (!entry.recipeId) return entry.note
+	return entry.recipeTitle || t('household.menu.missingRecipe')
+}
+
+interface EntryAction {
+	key: string
+	label: string
+	icon: IconProp
+	danger?: boolean
+	run: () => void
+}
+
+/** The "⋯" menu of an entry. Later: move to another day, add to list, cook. */
+function entryActions(entry: MenuEntryResponse): EntryAction[] {
+	const actions: EntryAction[] = []
+	if (entry.recipeId) {
+		actions.push({key: 'servings', label: t('household.menu.changeServings'), icon: 'users', run: () => startEditingServings(entry)})
+	}
+	actions.push({key: 'delete', label: t('household.menu.delete'), icon: 'trash-alt', danger: true, run: () => remove(entry.id)})
+	return actions
 }
 
 function remove(id: number) {
 	if (busy.value) return
 	deleteEntry.mutate(id)
+}
+
+// ---- Changing servings ----
+
+const editingServings = ref(0) // the entry id, 0 for none
+// v-model.number gives '' while the field is empty.
+const servingsDraft = ref<number | ''>('')
+const validServings = computed(() => typeof servingsDraft.value === 'number' && servingsDraft.value >= 1)
+
+function startEditingServings(entry: MenuEntryResponse) {
+	editingServings.value = entry.id
+	servingsDraft.value = entry.servings > 0 ? entry.servings : ''
+}
+
+function stopEditingServings() {
+	editingServings.value = 0
+	servingsDraft.value = ''
+}
+
+function saveServings(entry: MenuEntryResponse) {
+	if (busy.value || !validServings.value || typeof servingsDraft.value !== 'number') return
+	if (servingsDraft.value === entry.servings) {
+		stopEditingServings()
+		return
+	}
+	updateEntry.mutate({id: entry.id, changes: {servings: servingsDraft.value}}, {onSuccess: stopEditingServings})
 }
 </script>
 
@@ -335,8 +518,34 @@ function remove(id: number) {
 	padding-block: .2rem;
 }
 
-.entry-note {
+.entry-note,
+.entry-main {
 	overflow-wrap: anywhere;
+}
+
+.entry-main {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .4rem;
+}
+
+.entry-servings {
+	color: var(--grey-500);
+	font-size: .875rem;
+}
+
+.servings-form {
+	display: flex;
+	gap: .4rem;
+}
+
+.servings-input {
+	inline-size: 4.5rem;
+}
+
+.entry-options {
+	flex-shrink: 0;
 }
 
 .nothing {
@@ -346,12 +555,33 @@ function remove(id: number) {
 }
 
 .add-form {
+	margin-block-start: .5rem;
+}
+
+.add-row {
 	display: flex;
 	gap: .4rem;
-	margin-block-start: .5rem;
 
 	.input {
 		flex: 1;
+	}
+}
+
+.recipe-matches {
+	margin: .25rem 0 0;
+	padding: 0;
+	border: 1px solid var(--grey-200);
+	border-radius: $radius;
+	list-style: none;
+}
+
+.recipe-match {
+	padding: .4rem .75rem;
+	cursor: pointer;
+
+	&:hover,
+	&.is-highlighted {
+		background: var(--grey-100);
 	}
 }
 </style>

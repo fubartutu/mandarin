@@ -271,11 +271,18 @@
 			"notLoaded": "This week couldn't be loaded. It needs signal the first time.",
 			"nothingPlanned": "Nothing planned",
 			"add": "Add to {day}",
-			"notePlaceholder": "e.g. leftovers, takeaway",
-			"noteLabel": "Note for {day}",
+			"notePlaceholder": "Note or recipe",
+			"noteLabel": "Note or recipe for {day}",
+			"recipeMatches": "Matching recipes",
 			"save": "Add",
 			"cancel": "Cancel",
-			"delete": "Delete {note}"
+			"options": "Options for {entry}",
+			"delete": "Delete",
+			"changeServings": "Change servings",
+			"servings": "{count} serving | {count} serving | {count} servings",
+			"servingsLabel": "Servings of {recipe}",
+			"saveServings": "Save",
+			"missingRecipe": "Recipe not found"
 		},
 		"startPage": {
 			"label": "Start page",
