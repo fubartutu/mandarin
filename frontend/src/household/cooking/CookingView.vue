@@ -1,6 +1,13 @@
 <template>
 	<!-- Covers the whole app (menu and top bar too) while cooking. -->
 	<div class="cooking">
+		<CookingTimerBanners
+			v-if="finished.length > 0"
+			class="timer-banners"
+			:finished="finished"
+			@dismiss="dismiss"
+		/>
+
 		<header class="cooking-header">
 			<div class="cooking-title">
 				<h1 class="title">
@@ -67,6 +74,8 @@
 						class="current-step"
 						:step="currentStep"
 						:count="steps.length"
+						:running="running"
+						@startTimer="startStepTimer"
 					/>
 					<p
 						v-else
@@ -74,6 +83,13 @@
 					>
 						{{ $t('household.cooking.noSteps') }}
 					</p>
+
+					<CookingTimerTray
+						v-if="running.length > 0"
+						class="timer-tray"
+						:running="running"
+						@cancel="cancel"
+					/>
 
 					<div
 						v-if="steps.length > 0"
@@ -104,6 +120,14 @@
 					</div>
 				</section>
 			</div>
+
+			<!-- The phone's Ingredients tab hides the steps panel, so its timers show here. -->
+			<CookingTimerTray
+				v-if="panel === 'ingredients' && running.length > 0"
+				class="timer-tray ingredients-tray"
+				:running="running"
+				@cancel="cancel"
+			/>
 		</template>
 	</div>
 </template>
@@ -121,8 +145,12 @@ import {useTitle} from '@/composables/useTitle'
 import {recipeQuery} from '../recipes/queries'
 import CookingIngredients from './components/CookingIngredients.vue'
 import CookingStep from './components/CookingStep.vue'
+import CookingTimerBanners from './components/CookingTimerBanners.vue'
+import CookingTimerTray from './components/CookingTimerTray.vue'
 import {cookingScale} from './servings'
 import {cookingSteps, moveStep} from './steps'
+import type {DetectedTimer} from './timers'
+import {useCookingTimers} from './useCookingTimers'
 import {holdScreenAwake} from './wakeLock'
 
 const props = defineProps<{
@@ -155,6 +183,13 @@ function go(delta: number) {
 }
 // A refetch can change the method under us; stay on a real step.
 watch(() => steps.value.length, () => go(0))
+
+// Timers live as long as this view: closing cooking mode ends them.
+// Destructured refs (running, finished) unwrap in the template like top-level ones.
+const {running, finished, start, cancel, dismiss} = useCookingTimers()
+function startStepTimer(timer: DetectedTimer) {
+	if (currentStep.value) start(currentStep.value.number, timer)
+}
 
 type Panel = 'ingredients' | 'steps'
 const tabs: Panel[] = ['ingredients', 'steps']
@@ -211,6 +246,14 @@ function close() {
 		max(1rem, env(safe-area-inset-left));
 	background: var(--site-background);
 	color: var(--text);
+}
+
+// Finished timers sit over the top of cooking mode until dismissed.
+.timer-banners {
+	position: absolute;
+	inset-block-start: max(.75rem, env(safe-area-inset-top));
+	inset-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+	z-index: 1;
 }
 
 .cooking-header {
@@ -312,6 +355,16 @@ function close() {
 
 .current-step {
 	flex: 1;
+}
+
+.timer-tray {
+	padding-block-start: 1rem;
+}
+
+.ingredients-tray {
+	@media screen and (min-width: $tablet) {
+		display: none;
+	}
 }
 
 .step-buttons {

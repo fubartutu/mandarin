@@ -17,6 +17,7 @@ import {
 	faHouse,
 	faLightbulb,
 	faMicrophone,
+	faStopwatch,
 	faStore,
 	faTriangleExclamation,
 	faUtensils,
@@ -34,7 +35,7 @@ import {registerStartPage} from './startPage'
 library.add(
 	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
 	faFileLines, faHouse, faLightbulb, faMicrophone, faStore, faTriangleExclamation, faCircle,
-	faChevronLeft, faUtensils, // cooking mode
+	faChevronLeft, faStopwatch, faUtensils, // cooking mode
 )
 
 // Other languages fall back to English for these keys (fallbackLocale).
