@@ -17,7 +17,15 @@ const WORDS: Record<string, number> = {
 	ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20, thirty: 30, forty: 40, sixty: 60,
 }
 // "half an hour", "a half-hour"; then the words above, "forty-five" before "forty".
-const WORD_NUMBER = String.raw`\b(?:half\s+an?|a\s+half|half|forty[\s-]five|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|sixty)\b`
+const WORD_NUMBER = String.raw`\b(?:${[
+	String.raw`half\s+an?`,
+	String.raw`a\s+half`,
+	'half',
+	String.raw`forty[\s-]five`,
+	'an?',
+	'one|two|three|four|five|six|seven|eight|nine',
+	'ten|eleven|twelve|fifteen|twenty|thirty|forty|sixty',
+].join('|')})\b`
 // "1½", "1 1/2", "1/2", "1.5", "2,5", "¾" or plain "20". Mixed numbers first,
 // so "1 1/2" isn't read as just the "1/2".
 const DIGIT_NUMBER = String.raw`\d+\s*[¼⅓½⅔¾]|\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:[.,]\d+)?|[¼⅓½⅔¾]`

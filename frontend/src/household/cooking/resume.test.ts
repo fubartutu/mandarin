@@ -76,8 +76,25 @@ describe('cooking mode resume', () => {
 	it('fits a saved state to the recipe as it is now', () => {
 		const saved = {...cooking, stepIndex: 5, ticked: [0, 3, 4, 9]}
 
-		expect(fitToRecipe(saved, {steps: 3, ingredients: 4})).toEqual({...cooking, stepIndex: 2, ticked: [0, 3]})
-		expect(fitToRecipe({...cooking, stepIndex: -1}, {steps: 0, ingredients: 0})).toEqual({...cooking, stepIndex: 0, ticked: []})
+		expect(fitToRecipe(saved, {
+			steps: 3,
+			ingredients: 4,
+		})).toEqual({
+			...cooking,
+			stepIndex: 2,
+			ticked: [0, 3],
+		})
+		expect(fitToRecipe({
+			...cooking,
+			stepIndex: -1,
+		}, {
+			steps: 0,
+			ingredients: 0,
+		})).toEqual({
+			...cooking,
+			stepIndex: 0,
+			ticked: [],
+		})
 	})
 
 	it('forgets a recipe once it has been cooked', () => {

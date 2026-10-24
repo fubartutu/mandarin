@@ -41,7 +41,14 @@ describe('entryFactor', () => {
 
 describe('cookRoute', () => {
 	it('passes the entry servings', () => {
-		expect(cookRoute({recipeId: 7, servings: 6})).toEqual({name: 'recipe.cook', params: {recipeId: 7}, query: {servings: '6'}})
+		expect(cookRoute({
+			recipeId: 7,
+			servings: 6,
+		})).toEqual({
+			name: 'recipe.cook',
+			params: {recipeId: 7},
+			query: {servings: '6'},
+		})
 	})
 	it('leaves servings out when the entry has none', () => {
 		expect(cookRoute({recipeId: 7, servings: 0})).toEqual({name: 'recipe.cook', params: {recipeId: 7}})
