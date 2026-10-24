@@ -56,7 +56,7 @@ type MenuEntry struct { //nolint:revive // stutters, but the type name is the Op
 	Position int     `xorm:"int not null default 0" json:"position" readOnly:"true" doc:"Order within the day's meal, lowest first. New entries go last."`
 	Note     string  `xorm:"varchar(250) not null default ''" json:"note" maxLength:"250" doc:"A note entry's text, e.g. leftovers or takeaway. Empty on a recipe entry."`
 	RecipeID int64   `xorm:"bigint not null default 0 index" json:"recipe_id" minimum:"0" doc:"The planned recipe, or 0 for a note entry. Can't be changed after adding."`
-	Servings float64 `xorm:"double not null default 0" json:"servings" minimum:"0" doc:"A recipe entry's servings, e.g. 6 when cooking for guests. Left out or 0 on create: the recipe's own servings. Always 0 on a note entry."`
+	Servings float64 `xorm:"double not null default 0" json:"servings" minimum:"0" doc:"A recipe entry's servings, e.g. 6 when cooking for guests: at least 1, or 0 when the recipe has no servings (then none can be given). Left out or 0 on create: the recipe's own servings. Always 0 on a note entry."`
 
 	// RecipeTitle is filled in on every response; it isn't stored.
 	RecipeTitle string `xorm:"-" json:"recipe_title" readOnly:"true" doc:"A recipe entry's recipe title; empty on a note entry."`
@@ -78,7 +78,7 @@ type MenuEntry struct { //nolint:revive // stutters, but the type name is the Op
 // EntryChanges is the body of PUT /menu/{entry}. A field left out (nil)
 // stays as it is.
 type EntryChanges struct {
-	Servings *float64 `json:"servings,omitempty" minimum:"0" doc:"New servings. Recipe entries only."`
+	Servings *float64 `json:"servings,omitempty" minimum:"1" doc:"New servings, at least 1. Recipe entries only, and only when the recipe has servings."`
 	Note     *string  `json:"note,omitempty" maxLength:"250" doc:"New text, 1–250 characters. Note entries only."`
 	Day      *string  `json:"day,omitempty" format:"date" doc:"Move the entry to this day (YYYY-MM-DD), last in the same meal there. The same day changes nothing."`
 }
@@ -191,9 +191,14 @@ func checkNote(note string) (string, error) {
 	return note, nil
 }
 
-func checkServings(servings float64) error {
-	if servings < 0 {
-		return ErrInvalidMenuEntry{Reason: "The servings can't be negative."}
+// checkServings checks servings given for an entry of recipe. A recipe
+// without servings (0) can't be scaled, so its entries keep 0.
+func checkServings(servings float64, recipe *recipeRef) error {
+	if recipe.Servings <= 0 {
+		return ErrInvalidMenuEntry{Reason: "This recipe has no servings to change."}
+	}
+	if servings < 1 {
+		return ErrInvalidMenuEntry{Reason: "The servings must be at least 1."}
 	}
 	return nil
 }
@@ -216,9 +221,6 @@ func (e *MenuEntry) normalize(s *xorm.Session) error {
 	if !slices.Contains(meals, e.Meal) {
 		return ErrInvalidMenuEntry{Reason: "The meal must be breakfast, lunch or dinner."}
 	}
-	if err := checkServings(e.Servings); err != nil {
-		return err
-	}
 	if e.RecipeID == 0 {
 		if e.Servings != 0 {
 			return ErrInvalidMenuEntry{Reason: "Only a recipe entry has servings."}
@@ -237,6 +239,8 @@ func (e *MenuEntry) normalize(s *xorm.Session) error {
 	}
 	if e.Servings == 0 {
 		e.Servings = recipe.Servings
+	} else if err := checkServings(e.Servings, recipe); err != nil {
+		return err
 	}
 	e.RecipeTitle = recipe.Title
 	return nil
@@ -327,7 +331,11 @@ func (e *MenuEntry) Update(s *xorm.Session, _ web.Auth) error {
 		if e.RecipeID == 0 {
 			return ErrInvalidMenuEntry{Reason: "Only a recipe entry has servings."}
 		}
-		if err := checkServings(*c); err != nil {
+		recipe, err := getRecipeRef(s, e.RecipeID)
+		if err != nil {
+			return err
+		}
+		if err := checkServings(*c, recipe); err != nil {
 			return err
 		}
 		if *c != e.Servings {
