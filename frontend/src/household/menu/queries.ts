@@ -5,19 +5,23 @@
 import {queryOptions, useMutation} from '@tanstack/vue-query'
 import type {QueryClient} from '@tanstack/vue-query'
 
-import {menuCreate, menuDelete, menuList} from '@/client/generated'
-import type {MenuEntry} from '@/client/generated'
+import {menuCreate, menuDelete, menuList, menuUpdate} from '@/client/generated'
+import type {EntryChangesWritable, MenuEntry} from '@/client/generated'
 import {contextMutationOptions} from '@/client/queries/contextMutation'
 import {fetchAllPages} from '@/client/queries/fetchAllPages'
 
 export type Meal = 'breakfast' | 'lunch' | 'dinner'
 
+/** An entry is a recipe (recipeId set, note empty) or a note (recipeId 0). */
 export interface MenuEntryResponse {
 	id: number
 	day: string // YYYY-MM-DD
 	meal: Meal
 	position: number
 	note: string
+	recipeId: number
+	recipeTitle: string
+	servings: number
 }
 
 export function normalizeEntry(e: MenuEntry): MenuEntryResponse {
@@ -27,8 +31,14 @@ export function normalizeEntry(e: MenuEntry): MenuEntryResponse {
 		meal: e.meal ?? 'dinner',
 		position: e.position ?? 0,
 		note: e.note ?? '',
+		recipeId: e.recipe_id ?? 0,
+		recipeTitle: e.recipe_title ?? '',
+		servings: e.servings ?? 0,
 	}
 }
+
+/** What to add: a note's text, or a recipe (its servings default to the recipe's). */
+export type NewEntry = {day: string, meal: Meal} & ({note: string} | {recipeId: number})
 
 export const menuKeys = {
 	all: ['menu'] as const,
@@ -48,10 +58,24 @@ export function menuRangeQuery(from: string, to: string) {
 // Each mutation refreshes the menu afterwards, so every open week shows it.
 const refresh = (client: QueryClient) => client.invalidateQueries({queryKey: menuKeys.all})
 
-export function useAddNoteMutation() {
+export function useAddEntryMutation() {
 	return useMutation(contextMutationOptions({
-		mutationFn: async ({day, meal, note}: {day: string, meal: Meal, note: string}) =>
-			normalizeEntry((await menuCreate({body: {day, meal, note}})).data),
+		mutationFn: async (entry: NewEntry) => {
+			// `'recipeId' in entry` narrows the union type to the recipe case.
+			const body = 'recipeId' in entry
+				? {day: entry.day, meal: entry.meal, recipe_id: entry.recipeId}
+				: {day: entry.day, meal: entry.meal, note: entry.note}
+			return normalizeEntry((await menuCreate({body})).data)
+		},
+		onSettled: (_input, client) => refresh(client),
+	}))
+}
+
+/** Changes servings (recipe entries) or the note (note entries); fields left out stay. */
+export function useUpdateEntryMutation() {
+	return useMutation(contextMutationOptions({
+		mutationFn: async ({id, changes}: {id: number, changes: EntryChangesWritable}) =>
+			normalizeEntry((await menuUpdate({path: {entry: id}, body: changes})).data),
 		onSettled: (_input, client) => refresh(client),
 	}))
 }
