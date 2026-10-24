@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {menuWeekRoute, plannedDayLabel} from './planning'
+import {entryFactor, menuWeekRoute, plannedDayLabel} from './planning'
 
 describe('menuWeekRoute', () => {
 	const now = new Date(2026, 9, 24, 12, 0) // Saturday 24 Oct 2026, week of Mon 19 Oct
@@ -22,5 +22,19 @@ describe('plannedDayLabel', () => {
 		expect(plannedDayLabel('2026-10-27', 'en-GB')).toMatch(/^Tue,? 27 Oct$/)
 		expect(plannedDayLabel('2027-01-03', 'en-GB')).toMatch(/^Sun,? 3 Jan$/)
 		expect(plannedDayLabel('2026-10-27', 'en-US')).toMatch(/^Tue,? Oct 27$/)
+	})
+})
+
+describe('entryFactor', () => {
+	it('scales the recipe to the servings planned', () => {
+		expect(entryFactor(6, 4)).toBe(1.5)
+		expect(entryFactor(2, 4)).toBe(0.5)
+		expect(entryFactor(4, 4)).toBe(1)
+	})
+
+	it('keeps the recipe as written when either serving count is unknown', () => {
+		expect(entryFactor(0, 4)).toBe(1)
+		expect(entryFactor(6, 0)).toBe(1)
+		expect(entryFactor(0, 0)).toBe(1)
 	})
 })

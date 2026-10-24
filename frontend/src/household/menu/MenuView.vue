@@ -236,6 +236,14 @@
 			@pick="move"
 			@close="moving = null"
 		/>
+
+		<AddToListModal
+			v-if="addingToList"
+			:recipe-id="addingToList.recipeId"
+			:recipe-title="entryLabel(addingToList)"
+			:servings="addingToList.servings"
+			@close="addingToList = null"
+		/>
 	</div>
 </template>
 
@@ -254,6 +262,7 @@ import {useTitle} from '@/composables/useTitle'
 import {success} from '@/message'
 
 import {recipesQuery} from '../recipes/queries'
+import AddToListModal from './components/AddToListModal.vue'
 import PickDayModal from './components/PickDayModal.vue'
 import {menuWeekRoute, plannedDayLabel} from './planning'
 import {matchRecipes} from './recipeMatches'
@@ -397,11 +406,14 @@ interface EntryAction {
 	run: () => void
 }
 
-/** The "⋯" menu of an entry. Later: add to list, cook. */
+/** The "⋯" menu of an entry. Later: cook. */
 function entryActions(entry: MenuEntryResponse): EntryAction[] {
 	const actions: EntryAction[] = []
 	if (entry.recipeId) {
 		actions.push({key: 'servings', label: t('household.menu.changeServings'), icon: 'users', run: () => startEditingServings(entry)})
+		actions.push({key: 'add-to-list', label: t('household.menu.addToList'), icon: 'basket-shopping', run: () => {
+			addingToList.value = entry
+		}})
 	}
 	actions.push({key: 'move', label: t('household.menu.moveTo'), icon: 'calendar-alt', run: () => {
 		moving.value = entry
@@ -440,6 +452,12 @@ function saveServings(entry: MenuEntryResponse) {
 	}
 	updateEntry.mutate({id: entry.id, changes: {servings: servingsDraft.value}}, {onSuccess: stopEditingServings})
 }
+
+// ---- Adding a recipe's ingredients to a shopping list ----
+
+// The entry whose "Add to list" dialog is open. The dialog adds through the
+// shopping sync engine (as the recipe page does), not through the menu's writes.
+const addingToList = ref<MenuEntryResponse | null>(null)
 
 // ---- Moving to another day ----
 
