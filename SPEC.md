@@ -165,7 +165,7 @@ The app runs on the ZimaOS server (192.168.1.52) behind the existing Nginx Proxy
 - **Proxy:** Nginx Proxy Manager with Let's Encrypt and websockets on; the app's public URL setting must match the subdomain exactly.
 - **Repo:** a GitHub fork of `go-vikunja/vikunja`, public. `main` mirrors upstream; work happens on a separate branch; upstream is merged in every few weeks.
 - **Builds:** GitHub Actions builds the Docker image and publishes it to GitHub's container registry (ghcr.io); the server pulls it.
-- **Backups:** to be decided (see open questions).
+- **Backups:** nightly `mandarin-YYYY-MM-DD.tar.gz` (database and files) in a folder on the server, kept 14 days. An off-box copy is still open (see open questions).
 - **Trial:** stock KitchenOwl and Vikunja are running now for evaluation; they're retired once the fork replaces them.
 
 ## Build phases
@@ -195,10 +195,10 @@ Groceries come first; each phase ends with something usable on the phones.
 
 ## Open questions
 
-- [x] App name: **Mandarin**. Logo still to design.
-- [ ] GitHub account for the fork (public repo assumed).
-- [ ] Local dev setup on the laptop, or build on GitHub and deploy straight to ZimaOS?
+- [x] App name: **Mandarin**. Logo and app icons done (Phase 7).
+- [x] GitHub account for the fork: public repo [fubartutu/mandarin](https://github.com/fubartutu/mandarin).
+- [x] Dev setup: both. Code and tests run locally on the laptop (Node 24 via `mise`); GitHub Actions builds the Docker image and ZimaOS pulls it.
 - [ ] Meal planning and cooking mode: wanted, and in which phase?
-- [ ] Backups: nightly to a folder on the server, or off the box (e.g. the Synology NAS)?
+- [x] Backups: nightly to a folder on the server (database and files, kept 14 days). Still open: an extra copy off the box, e.g. the Synology NAS.
 - [x] Notifications when the other person changes a shared list: per list, off by default, batched (Phase 8).
-- [ ] Vikunja trial: reverse-proxy issue still to resolve.
+- [x] Vikunja trial reverse-proxy issue: resolved, Mandarin is live behind Nginx Proxy Manager.
