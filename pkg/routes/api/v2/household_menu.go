@@ -32,7 +32,8 @@ import (
 
 func init() { AddRouteRegistrar(RegisterHouseholdMenuRoutes) }
 
-const menuAccess = " There is one menu for the whole household: every user on the server can read and change all of it; link shares cannot."
+const menuAccess = " There is one menu for the whole household: " +
+	"every user on the server can read and change all of it; link shares cannot."
 
 type menuListBody struct {
 	Body Paginated[*menu.MenuEntry]
@@ -45,25 +46,35 @@ func RegisterHouseholdMenuRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "menu-list",
 		Summary:     "List menu entries",
-		Description: "The entries planned from one day to another (both included, at most 62 days), by day, then meal (breakfast, lunch, dinner), then position." + menuAccess,
-		Method:      http.MethodGet, Path: "/menu", Tags: tags,
+		Description: "The entries planned from one day to another (both included, at most 62 days), " +
+			"by day, then meal (breakfast, lunch, dinner), then position." + menuAccess,
+		Method: http.MethodGet,
+		Path:   "/menu",
+		Tags:   tags,
 	}, menuList)
 	Register(api, huma.Operation{
 		OperationID: "menu-create",
 		Summary:     "Add a menu entry",
 		Description: "Added last in its day's meal." + menuAccess,
-		Method:      http.MethodPost, Path: "/menu", Tags: tags,
+		Method:      http.MethodPost,
+		Path:        "/menu",
+		Tags:        tags,
 	}, menuCreate)
 	Register(api, huma.Operation{
 		OperationID: "menu-update",
 		Summary:     "Change a menu entry",
-		Description: "Changes only the fields sent: servings on a recipe entry, the text of a note entry, or the day: a moved entry goes last in the same meal on its new day. The meal stays as it is." + menuAccess,
-		Method:      http.MethodPut, Path: "/menu/{entry}", Tags: tags,
+		Description: "Changes only the fields sent: servings on a recipe entry, the text of a note entry, " +
+			"or the day: a moved entry goes last in the same meal on its new day. The meal stays as it is." + menuAccess,
+		Method: http.MethodPut,
+		Path:   "/menu/{entry}",
+		Tags:   tags,
 	}, menuUpdate)
 	Register(api, huma.Operation{
 		OperationID: "menu-delete",
 		Summary:     "Delete a menu entry",
-		Method:      http.MethodDelete, Path: "/menu/{entry}", Tags: tags,
+		Method:      http.MethodDelete,
+		Path:        "/menu/{entry}",
+		Tags:        tags,
 	}, menuDelete)
 }
 
