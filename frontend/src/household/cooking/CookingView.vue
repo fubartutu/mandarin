@@ -1,135 +1,138 @@
 <template>
-	<!-- Covers the whole app (menu and top bar too) while cooking. -->
-	<div class="cooking">
-		<CookingTimerBanners
-			v-if="finished.length > 0"
-			class="timer-banners"
-			:finished="finished"
-			@dismiss="dismiss"
-		/>
-
-		<header class="cooking-header">
-			<div class="cooking-title">
-				<h1 class="title">
-					{{ data?.title ?? $t('household.recipes.loading') }}
-				</h1>
-				<span
-					v-if="amountLabel"
-					class="cooking-amount"
-				>{{ amountLabel }}</span>
-			</div>
-			<BaseButton
-				class="close-button"
-				:aria-label="$t('household.cooking.close')"
-				:title="$t('household.cooking.close')"
-				@click="close"
-			>
-				<Icon icon="xmark" />
-			</BaseButton>
-		</header>
-
-		<p
-			v-if="!data && !recipe.isPending.value"
-			class="cooking-message"
-		>
-			{{ $t('household.recipes.notLoaded') }}
-		</p>
-
-		<template v-if="data">
-			<!-- On a phone one panel shows at a time; tablet and laptop show both. -->
-			<nav
-				class="panel-tabs"
-				role="tablist"
-			>
-				<button
-					v-for="tab in tabs"
-					:key="tab"
-					type="button"
-					role="tab"
-					class="panel-tab"
-					:class="{'is-active': panel === tab}"
-					:aria-selected="panel === tab"
-					@click="panel = tab"
-				>
-					{{ $t(`household.cooking.${tab}`) }}
-				</button>
-			</nav>
-
-			<div class="cooking-body">
-				<CookingIngredients
-					v-model="ticked"
-					class="panel ingredients-panel"
-					:class="{'is-shown': panel === 'ingredients'}"
-					:lines="data.ingredients"
-					:factor="scale.factor"
-				/>
-
-				<section
-					ref="stepsPanel"
-					class="panel steps-panel"
-					:class="{'is-shown': panel === 'steps'}"
-				>
-					<CookingStep
-						v-if="currentStep"
-						class="current-step"
-						:step="currentStep"
-						:count="steps.length"
-						:running="running"
-						@startTimer="startStepTimer"
-					/>
-					<p
-						v-else
-						class="cooking-message"
-					>
-						{{ $t('household.cooking.noSteps') }}
-					</p>
-
-					<CookingTimerTray
-						v-if="running.length > 0"
-						class="timer-tray"
-						:running="running"
-						@cancel="cancel"
-					/>
-
-					<div
-						v-if="steps.length > 0"
-						class="step-buttons"
-					>
-						<XButton
-							variant="secondary"
-							icon="chevron-left"
-							:disabled="stepIndex === 0"
-							@click="go(-1)"
-						>
-							{{ $t('household.cooking.back') }}
-						</XButton>
-						<XButton
-							v-if="stepIndex < steps.length - 1"
-							icon="chevron-right"
-							@click="go(1)"
-						>
-							{{ $t('household.cooking.next') }}
-						</XButton>
-						<XButton
-							v-else
-							icon="check"
-							@click="finishCooking"
-						>
-							{{ $t('household.cooking.done') }}
-						</XButton>
-					</div>
-				</section>
-			</div>
-
-			<!-- The phone's Ingredients tab hides the steps panel, so its timers show here. -->
-			<CookingTimerTray
-				v-if="panel === 'ingredients' && running.length > 0"
-				class="timer-tray ingredients-tray"
-				:running="running"
-				@cancel="cancel"
+	<!-- Teleported to <body>: inside the app layout an ancestor stacking context let the fixed .navbar paint over it. -->
+	<Teleport to="body">
+		<!-- Covers the whole app (menu and top bar too) while cooking. -->
+		<div class="cooking">
+			<CookingTimerBanners
+				v-if="finished.length > 0"
+				class="timer-banners"
+				:finished="finished"
+				@dismiss="dismiss"
 			/>
-		</template>
-	</div>
+
+			<header class="cooking-header">
+				<div class="cooking-title">
+					<h1 class="title">
+						{{ data?.title ?? $t('household.recipes.loading') }}
+					</h1>
+					<span
+						v-if="amountLabel"
+						class="cooking-amount"
+					>{{ amountLabel }}</span>
+				</div>
+				<BaseButton
+					class="close-button"
+					:aria-label="$t('household.cooking.close')"
+					:title="$t('household.cooking.close')"
+					@click="close"
+				>
+					<Icon icon="xmark" />
+				</BaseButton>
+			</header>
+
+			<p
+				v-if="!data && !recipe.isPending.value"
+				class="cooking-message"
+			>
+				{{ $t('household.recipes.notLoaded') }}
+			</p>
+
+			<template v-if="data">
+				<!-- On a phone one panel shows at a time; tablet and laptop show both. -->
+				<nav
+					class="panel-tabs"
+					role="tablist"
+				>
+					<button
+						v-for="tab in tabs"
+						:key="tab"
+						type="button"
+						role="tab"
+						class="panel-tab"
+						:class="{'is-active': panel === tab}"
+						:aria-selected="panel === tab"
+						@click="panel = tab"
+					>
+						{{ $t(`household.cooking.${tab}`) }}
+					</button>
+				</nav>
+
+				<div class="cooking-body">
+					<CookingIngredients
+						v-model="ticked"
+						class="panel ingredients-panel"
+						:class="{'is-shown': panel === 'ingredients'}"
+						:lines="data.ingredients"
+						:factor="scale.factor"
+					/>
+
+					<section
+						ref="stepsPanel"
+						class="panel steps-panel"
+						:class="{'is-shown': panel === 'steps'}"
+					>
+						<CookingStep
+							v-if="currentStep"
+							class="current-step"
+							:step="currentStep"
+							:count="steps.length"
+							:running="running"
+							@startTimer="startStepTimer"
+						/>
+						<p
+							v-else
+							class="cooking-message"
+						>
+							{{ $t('household.cooking.noSteps') }}
+						</p>
+
+						<CookingTimerTray
+							v-if="running.length > 0"
+							class="timer-tray"
+							:running="running"
+							@cancel="cancel"
+						/>
+
+						<div
+							v-if="steps.length > 0"
+							class="step-buttons"
+						>
+							<XButton
+								variant="secondary"
+								icon="chevron-left"
+								:disabled="stepIndex === 0"
+								@click="go(-1)"
+							>
+								{{ $t('household.cooking.back') }}
+							</XButton>
+							<XButton
+								v-if="stepIndex < steps.length - 1"
+								icon="chevron-right"
+								@click="go(1)"
+							>
+								{{ $t('household.cooking.next') }}
+							</XButton>
+							<XButton
+								v-else
+								icon="check"
+								@click="finishCooking"
+							>
+								{{ $t('household.cooking.done') }}
+							</XButton>
+						</div>
+					</section>
+				</div>
+
+				<!-- The phone's Ingredients tab hides the steps panel, so its timers show here. -->
+				<CookingTimerTray
+					v-if="panel === 'ingredients' && running.length > 0"
+					class="timer-tray ingredients-tray"
+					:running="running"
+					@cancel="cancel"
+				/>
+			</template>
+		</div>
+	</Teleport>
 </template>
 
 <script setup lang="ts">

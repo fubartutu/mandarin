@@ -437,7 +437,8 @@ function entryActions(entry: MenuEntryResponse): EntryAction[] {
 	actions.push({
 		key: 'move',
 		label: t('household.menu.moveTo'),
-		icon: 'calendar-alt',
+		// faCalendarAlt is registered from the regular set, so it needs the 'far' prefix.
+		icon: ['far', 'calendar-alt'],
 		run: () => {
 			moving.value = entry
 		},
