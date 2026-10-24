@@ -113,7 +113,7 @@
 						<XButton
 							v-else
 							icon="check"
-							@click="close"
+							@click="finishCooking"
 						>
 							{{ $t('household.cooking.done') }}
 						</XButton>
@@ -147,6 +147,7 @@ import CookingIngredients from './components/CookingIngredients.vue'
 import CookingStep from './components/CookingStep.vue'
 import CookingTimerBanners from './components/CookingTimerBanners.vue'
 import CookingTimerTray from './components/CookingTimerTray.vue'
+import {clearCooking, deviceStorage, fitToRecipe, forgetStaleCooking, loadCooking, saveCooking} from './resume'
 import {cookingScale} from './servings'
 import {cookingSteps, moveStep} from './steps'
 import type {DetectedTimer} from './timers'
@@ -186,10 +187,56 @@ watch(() => steps.value.length, () => go(0))
 
 // Timers live as long as this view: closing cooking mode ends them.
 // Destructured refs (running, finished) unwrap in the template like top-level ones.
-const {running, finished, start, cancel, dismiss} = useCookingTimers()
+const {timers, running, finished, start, cancel, dismiss} = useCookingTimers()
 function startStepTimer(timer: DetectedTimer) {
 	if (currentStep.value) start(currentStep.value.number, timer)
 }
+
+// Resume: coming back to this recipe within 6 hours carries on with the same
+// step, ticks and timers (saved on this device only, see resume.ts).
+const storage = deviceStorage()
+forgetStaleCooking(storage, Date.now())
+let restored = false // nothing is saved until the saved state is back in place
+let saving = true // off once cooked (Done) or closed
+watch(data, recipeData => {
+	if (!recipeData || restored) return
+	restored = true
+	const saved = loadCooking(storage, props.recipeId, Date.now())
+	if (!saved) return
+	const state = fitToRecipe(saved, {steps: steps.value.length, ingredients: recipeData.ingredients.length})
+	stepIndex.value = state.stepIndex
+	ticked.value = state.ticked
+	// Timers kept their end times, so they counted on while away; any that
+	// ended meanwhile finish on the next tick (banner and sound).
+	timers.value = state.timers
+	finished.value = state.finished
+}, {immediate: true})
+
+let pendingSave: ReturnType<typeof setTimeout> | undefined
+function saveNow() {
+	clearTimeout(pendingSave)
+	if (!restored || !saving) return
+	saveCooking(storage, props.recipeId, {
+		stepIndex: stepIndex.value,
+		ticked: ticked.value,
+		timers: timers.value,
+		finished: finished.value,
+	}, Date.now())
+}
+watch([stepIndex, ticked, timers, finished], () => {
+	clearTimeout(pendingSave)
+	pendingSave = setTimeout(saveNow, 300)
+}, {deep: true})
+// The phone locking or the app being swiped away may be the last chance to save.
+useEventListener(window, 'pagehide', saveNow)
+useEventListener(document, 'visibilitychange', () => {
+	if (document.visibilityState === 'hidden') saveNow()
+})
+// Before unmount, not on scope dispose: useCookingTimers clears its timers then.
+onBeforeUnmount(() => {
+	saveNow()
+	saving = false
+})
 
 type Panel = 'ingredients' | 'steps'
 const tabs: Panel[] = ['ingredients', 'steps']
@@ -229,6 +276,15 @@ function close() {
 	const recipePage = router.resolve({name: 'recipe', params: {recipeId: props.recipeId}}).fullPath
 	if (window.history.state?.back === recipePage) router.back()
 	else router.replace(recipePage)
+}
+
+// Done on the last step: cooked, so there's nothing to come back to.
+// Closing with × (or Escape) keeps the place for later.
+function finishCooking() {
+	saving = false
+	clearTimeout(pendingSave)
+	clearCooking(storage, props.recipeId)
+	close()
 }
 </script>
 
