@@ -46,6 +46,15 @@
 						>
 							{{ entryLabel(entry) }}
 						</RouterLink>
+						<RouterLink
+							v-if="entry.recipeId"
+							:to="cookRoute(entry)"
+							class="cook-link"
+							:aria-label="$t('household.home.cookRecipe', {recipe: entryLabel(entry)})"
+							:title="$t('household.home.cookRecipe', {recipe: entryLabel(entry)})"
+						>
+							<Icon icon="utensils" />
+						</RouterLink>
 						<template v-else>{{ entry.note }}</template>
 					</template>
 				</span>
@@ -102,6 +111,7 @@ import {useQuery} from '@tanstack/vue-query'
 import Card from '@/components/misc/Card.vue'
 
 import {homeWeek} from '../homeWeek'
+import {cookRoute} from '../planning'
 import {menuRangeQuery, type MenuEntryResponse} from '../queries'
 import {dayKey, fromKey, mondayOf, weekDays} from '../week'
 
@@ -173,5 +183,9 @@ function shortDay(day: string) {
 	.menu-entries {
 		font-weight: 600;
 	}
+}
+
+.cook-link {
+	margin-inline-start: .35rem;
 }
 </style>

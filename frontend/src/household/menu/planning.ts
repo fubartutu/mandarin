@@ -30,3 +30,13 @@ export function plannedDayLabel(day: string, locale: string): string {
 export function entryFactor(entryServings: number, recipeServings: number): number {
 	return entryServings > 0 && recipeServings > 0 ? entryServings / recipeServings : 1
 }
+
+/**
+ * Cooking mode for a planned recipe entry, at the entry's servings when it
+ * has them (else cooking mode uses the recipe as written).
+ */
+export function cookRoute(entry: {recipeId: number, servings: number}): RouteLocationRaw {
+	return entry.servings > 0
+		? {name: 'recipe.cook', params: {recipeId: entry.recipeId}, query: {servings: String(entry.servings)}}
+		: {name: 'recipe.cook', params: {recipeId: entry.recipeId}}
+}

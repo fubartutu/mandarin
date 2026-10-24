@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {entryFactor, menuWeekRoute, plannedDayLabel} from './planning'
+import {cookRoute, entryFactor, menuWeekRoute, plannedDayLabel} from './planning'
 
 describe('menuWeekRoute', () => {
 	const now = new Date(2026, 9, 24, 12, 0) // Saturday 24 Oct 2026, week of Mon 19 Oct
@@ -36,5 +36,14 @@ describe('entryFactor', () => {
 		expect(entryFactor(0, 4)).toBe(1)
 		expect(entryFactor(6, 0)).toBe(1)
 		expect(entryFactor(0, 0)).toBe(1)
+	})
+})
+
+describe('cookRoute', () => {
+	it('passes the entry servings', () => {
+		expect(cookRoute({recipeId: 7, servings: 6})).toEqual({name: 'recipe.cook', params: {recipeId: 7}, query: {servings: '6'}})
+	})
+	it('leaves servings out when the entry has none', () => {
+		expect(cookRoute({recipeId: 7, servings: 0})).toEqual({name: 'recipe.cook', params: {recipeId: 7}})
 	})
 })
