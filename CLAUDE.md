@@ -152,3 +152,17 @@ the frontend unit tests fail with `localStorage` undefined. pnpm is pinned in
 Vikunja's own conventions (commands, `mage`, API v2, generated clients, skills) still apply:
 
 @AGENTS.md
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `fubartutu/mandarin` (always `gh ... -R fubartutu/mandarin`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root, created when first needed. See `docs/agents/domain.md`.
