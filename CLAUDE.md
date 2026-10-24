@@ -13,7 +13,8 @@ non-obvious Go/Vue idioms briefly when writing code.
   `.github/workflows/household-docker.yml`).
 - Syncing upstream every few weeks:
   `git fetch upstream && git switch main && git merge --ff-only upstream/main && git push origin main`,
-  then `git switch household && git merge main`. On a `README.md` conflict keep ours.
+  then `git switch household && git merge main`. On a `README.md` conflict keep ours. Then
+  disable any new upstream workflows (rule 5).
 
 ## Soft-fork rules
 
@@ -31,9 +32,11 @@ non-obvious Go/Vue idioms briefly when writing code.
 3. **AGPL-3.0 stays.** Don't remove or change `LICENSE`, copyright headers or Vikunja credits.
    The source stays public. Code borrowed from Specifically Clementines (MIT) keeps its notice.
 4. **Don't touch the license system** in `pkg/license/` (see upstream's guidance below).
-5. Upstream's own CI workflows are disabled in the fork's GitHub Actions settings, not deleted,
-   so merges stay clean. `ci` was disabled on 2026-10-20; the others only fire on PRs, issues or
-   schedules (off on forks), so they never registered. If one ever runs, disable it with:
+5. Upstream's own workflows are disabled in the fork's GitHub Actions settings, not deleted,
+   so merges stay clean. `household` is GitHub's default branch (since 2026-10-24), so every
+   upstream workflow file on it registers as active, including scheduled ones. After each upstream
+   merge (it can add workflows), disable them and check that only the `Household …` ones stay active
+   (`gh workflow list -R fubartutu/mandarin --all`). "Not active" errors are for ones already off:
    `for f in .github/workflows/*.yml; do case $f in *household*) ;; *) gh workflow disable $(basename $f) -R fubartutu/mandarin;; esac; done`
 
 ## Where fork code goes
