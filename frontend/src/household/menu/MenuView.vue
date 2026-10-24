@@ -226,6 +226,16 @@
 				</form>
 			</li>
 		</ol>
+
+		<PickDayModal
+			v-if="moving"
+			:title="$t('household.menu.moveTitle', {entry: entryLabel(moving)})"
+			:confirm-label="$t('household.menu.move')"
+			:day="moving.day"
+			:busy="updateEntry.isPending.value"
+			@pick="move"
+			@close="moving = null"
+		/>
 	</div>
 </template>
 
@@ -234,14 +244,18 @@ import {computed, nextTick, ref, watch, type ComponentPublicInstance} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useQuery} from '@tanstack/vue-query'
 import {useNow} from '@vueuse/core'
+import {useRouter} from 'vue-router'
 
 import type {IconProp} from '@fortawesome/fontawesome-svg-core'
 
 import Dropdown from '@/components/misc/Dropdown.vue'
 import DropdownItem from '@/components/misc/DropdownItem.vue'
 import {useTitle} from '@/composables/useTitle'
+import {success} from '@/message'
 
 import {recipesQuery} from '../recipes/queries'
+import PickDayModal from './components/PickDayModal.vue'
+import {menuWeekRoute, plannedDayLabel} from './planning'
 import {matchRecipes} from './recipeMatches'
 import {
 	menuRangeQuery,
@@ -383,13 +397,16 @@ interface EntryAction {
 	run: () => void
 }
 
-/** The "⋯" menu of an entry. Later: move to another day, add to list, cook. */
+/** The "⋯" menu of an entry. Later: add to list, cook. */
 function entryActions(entry: MenuEntryResponse): EntryAction[] {
 	const actions: EntryAction[] = []
 	if (entry.recipeId) {
 		actions.push({key: 'servings', label: t('household.menu.changeServings'), icon: 'users', run: () => startEditingServings(entry)})
 	}
-	actions.push({key: 'delete', label: t('household.menu.delete'), icon: 'trash-alt', danger: true, run: () => remove(entry.id)})
+	actions.push({key: 'move', label: t('household.menu.moveTo'), icon: 'calendar-alt', run: () => {
+		moving.value = entry
+	}})
+	actions.push({key: 'delete',label: t('household.menu.delete'), icon: 'trash-alt', danger: true, run: () => remove(entry.id)})
 	return actions
 }
 
@@ -422,6 +439,33 @@ function saveServings(entry: MenuEntryResponse) {
 		return
 	}
 	updateEntry.mutate({id: entry.id, changes: {servings: servingsDraft.value}}, {onSuccess: stopEditingServings})
+}
+
+// ---- Moving to another day ----
+
+const router = useRouter()
+// The entry whose "Move to…" dialog is open.
+const moving = ref<MenuEntryResponse | null>(null)
+
+function move(day: string) {
+	const entry = moving.value
+	if (!entry || busy.value) return
+	if (day === entry.day) {
+		moving.value = null
+		return
+	}
+	// On failure the mutation shows the error toast and the dialog stays open.
+	updateEntry.mutate({id: entry.id, changes: {day}}, {
+		onSuccess: () => {
+			moving.value = null
+			// Moved within the week shown: the list itself shows where it went.
+			if (days.value.includes(day)) return
+			success(
+				{message: t('household.menu.moved', {day: plannedDayLabel(day, locale.value)})},
+				[{title: t('household.menu.openMenu'), callback: () => router.push(menuWeekRoute(day, new Date()))}],
+			)
+		},
+	})
 }
 </script>
 

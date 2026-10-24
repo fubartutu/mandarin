@@ -654,6 +654,10 @@ export type EntryChanges = {
      */
     readonly $schema?: string;
     /**
+     * Move the entry to this day (YYYY-MM-DD), last in the same meal there. The same day changes nothing.
+     */
+    day?: string;
+    /**
      * New text, 1–250 characters. Note entries only.
      */
     note?: string;
@@ -5024,6 +5028,10 @@ export type EmailConfirmWritable = {
 };
 
 export type EntryChangesWritable = {
+    /**
+     * Move the entry to this day (YYYY-MM-DD), last in the same meal there. The same day changes nothing.
+     */
+    day?: string;
     /**
      * New text, 1–250 characters. Note entries only.
      */

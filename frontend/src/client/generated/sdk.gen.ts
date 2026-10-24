@@ -773,7 +773,7 @@ export const menuDelete = <ThrowOnError extends boolean = true>(options: Options
 /**
  * Change a menu entry
  *
- * Changes only the fields sent: servings on a recipe entry, the text of a note entry. The day, meal and position stay as they are. There is one menu for the whole household: every user on the server can read and change all of it; link shares cannot.
+ * Changes only the fields sent: servings on a recipe entry, the text of a note entry, or the day: a moved entry goes last in the same meal on its new day. The meal stays as it is. There is one menu for the whole household: every user on the server can read and change all of it; link shares cannot.
  */
 export const menuUpdate = <ThrowOnError extends boolean = true>(options: Options<MenuUpdateData, ThrowOnError>): RequestResult<MenuUpdateResponses, MenuUpdateErrors, ThrowOnError> => (options.client ?? client).put<MenuUpdateResponses, MenuUpdateErrors, ThrowOnError>({
     security: [{

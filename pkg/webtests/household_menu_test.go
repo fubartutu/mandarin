@@ -332,6 +332,91 @@ func TestHouseholdMenu_Update(t *testing.T) {
 	})
 }
 
+func TestHouseholdMenu_Move(t *testing.T) {
+	e := setupMenuEnv(t)
+	user1 := humaTokenFor(t, &testuser1)
+	user2 := humaTokenFor(t, &testuser2)
+	add := func(day, note string) menu.MenuEntry {
+		t.Helper()
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/menu",
+			`{"day":"`+day+`","meal":"dinner","note":"`+note+`"}`, user1, "")
+		require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+		return decode[menu.MenuEntry](t, rec.Body.Bytes())
+	}
+	move := func(id int64, body, token string) (int, menu.MenuEntry) {
+		t.Helper()
+		rec := humaRequest(t, e, http.MethodPut, fmt.Sprintf("/api/v2/menu/%d", id), body, token, "")
+		if rec.Code != http.StatusOK {
+			return rec.Code, menu.MenuEntry{}
+		}
+		return rec.Code, decode[menu.MenuEntry](t, rec.Body.Bytes())
+	}
+
+	curry := add("2026-10-20", "Curry")
+	naan := add("2026-10-20", "Naan")
+	lasagne := addMenuRecipe(t, e, user1, "Lasagne", 4)
+	rec := humaRequest(t, e, http.MethodPost, "/api/v2/menu",
+		fmt.Sprintf(`{"day":"2026-10-20","meal":"dinner","recipe_id":%d}`, lasagne.ID), user1, "")
+	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
+	planned := decode[menu.MenuEntry](t, rec.Body.Bytes())
+
+	t.Run("to an empty day, in another week", func(t *testing.T) {
+		code, got := move(curry.ID, `{"day":"2026-11-03"}`, user1)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, "2026-11-03", got.Day)
+		assert.Equal(t, "dinner", got.Meal)
+		assert.Equal(t, "Curry", got.Note)
+		assert.Equal(t, 0, got.Position)
+		db.AssertExists(t, "menu_entries", map[string]any{"id": curry.ID, "day": "2026-11-03", "position": 0}, false)
+	})
+
+	t.Run("to a day with entries goes last, by another member", func(t *testing.T) {
+		add("2026-10-22", "Soup")  // position 0
+		add("2026-10-22", "Bread") // position 1
+		code, got := move(planned.ID, `{"day":"2026-10-22"}`, user2)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, "2026-10-22", got.Day)
+		assert.Equal(t, 2, got.Position)
+		assert.Equal(t, "Lasagne", got.RecipeTitle)
+		assert.InDelta(t, 4.0, got.Servings, 0.001)
+
+		rec := humaRequest(t, e, http.MethodGet, "/api/v2/menu?from=2026-10-22&to=2026-10-22", "", user1, "")
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		titles := []string{}
+		for _, entry := range decode[menuWeek](t, rec.Body.Bytes()).Items {
+			titles = append(titles, entry.Note+entry.RecipeTitle)
+		}
+		assert.Equal(t, []string{"Soup", "Bread", "Lasagne"}, titles)
+	})
+
+	t.Run("same day changes nothing", func(t *testing.T) {
+		code, got := move(naan.ID, `{"day":"2026-10-20"}`, user1)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, "2026-10-20", got.Day)
+		assert.Equal(t, naan.Position, got.Position)
+		db.AssertExists(t, "menu_entries", map[string]any{"id": naan.ID, "day": "2026-10-20", "position": naan.Position}, false)
+	})
+
+	t.Run("invalid days", func(t *testing.T) {
+		for _, body := range []string{`{"day":"2026-02-30"}`, `{"day":"tomorrow"}`, `{"day":""}`} {
+			code, _ := move(naan.ID, body, user1)
+			assert.True(t, code == http.StatusBadRequest || code == http.StatusUnprocessableEntity, "%s: %d", body, code)
+		}
+		db.AssertExists(t, "menu_entries", map[string]any{"id": naan.ID, "day": "2026-10-20"}, false)
+	})
+
+	t.Run("link shares cannot move", func(t *testing.T) {
+		code, _ := move(naan.ID, `{"day":"2026-10-21"}`, menuLinkShareToken(t))
+		assert.Equal(t, http.StatusForbidden, code)
+		db.AssertExists(t, "menu_entries", map[string]any{"id": naan.ID, "day": "2026-10-20"}, false)
+	})
+
+	t.Run("not logged in", func(t *testing.T) {
+		code, _ := move(naan.ID, `{"day":"2026-10-21"}`, "")
+		assert.Equal(t, http.StatusUnauthorized, code)
+	})
+}
+
 func TestHouseholdMenu_DeletedRecipeBecomesNote(t *testing.T) {
 	e := setupMenuEnv(t)
 	user1 := humaTokenFor(t, &testuser1)

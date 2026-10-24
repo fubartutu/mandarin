@@ -71,7 +71,7 @@ export function useAddEntryMutation() {
 	}))
 }
 
-/** Changes servings (recipe entries) or the note (note entries); fields left out stay. */
+/** Changes servings (recipe entries), the note (note entries) or the day (goes last there); fields left out stay. */
 export function useUpdateEntryMutation() {
 	return useMutation(contextMutationOptions({
 		mutationFn: async ({id, changes}: {id: number, changes: EntryChangesWritable}) =>
