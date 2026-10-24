@@ -1,4 +1,5 @@
-// Which page the app opens on: Home (the default), Shopping or Recipes.
+// Which page the app opens on: Home (the default), Shopping, Recipes or Menu.
+// Each value is also the name of the page's route.
 // Kept in the user's frontend_settings (free-form JSON on the server), so it
 // follows them to every device. Chosen in Settings → General.
 
@@ -6,7 +7,7 @@ import {START_LOCATION, type Router, type RouteLocationNormalized} from 'vue-rou
 
 import {useAuthStore} from '@/stores/auth'
 
-export const START_PAGES = ['home', 'shopping', 'recipes'] as const
+export const START_PAGES = ['home', 'shopping', 'recipes', 'menu'] as const
 export type StartPage = typeof START_PAGES[number]
 
 /** The pages that hand over to the start page once someone has signed in. */

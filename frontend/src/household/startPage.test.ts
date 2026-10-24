@@ -9,6 +9,7 @@ describe('startPageFrom', () => {
 	it('keeps a known page', () => {
 		expect(startPageFrom('shopping')).toBe('shopping')
 		expect(startPageFrom('recipes')).toBe('recipes')
+		expect(startPageFrom('menu')).toBe('menu')
 	})
 
 	it('falls back to Home for unset or unknown values', () => {
