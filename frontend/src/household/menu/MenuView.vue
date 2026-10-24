@@ -264,7 +264,7 @@ import {success} from '@/message'
 import {recipesQuery} from '../recipes/queries'
 import AddToListModal from './components/AddToListModal.vue'
 import PickDayModal from './components/PickDayModal.vue'
-import {menuWeekRoute, plannedDayLabel} from './planning'
+import {cookRoute, menuWeekRoute, plannedDayLabel} from './planning'
 import {matchRecipes} from './recipeMatches'
 import {
 	menuRangeQuery,
@@ -410,6 +410,7 @@ interface EntryAction {
 function entryActions(entry: MenuEntryResponse): EntryAction[] {
 	const actions: EntryAction[] = []
 	if (entry.recipeId) {
+		actions.push({key: 'cook', label: t('household.cooking.open'), icon: 'utensils', run: () => router.push(cookRoute(entry))})
 		actions.push({key: 'servings', label: t('household.menu.changeServings'), icon: 'users', run: () => startEditingServings(entry)})
 		actions.push({key: 'add-to-list', label: t('household.menu.addToList'), icon: 'basket-shopping', run: () => {
 			addingToList.value = entry
