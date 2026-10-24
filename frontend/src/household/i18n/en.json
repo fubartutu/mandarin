@@ -213,7 +213,14 @@
 			"back": "Back",
 			"next": "Next",
 			"done": "Done",
-			"noSteps": "This recipe has no method."
+			"noSteps": "This recipe has no method.",
+			"timers": "Timers",
+			"timerName": "Step {number} · {label}",
+			"startTimer": "Start a {label} timer",
+			"timerRunning": "{label} timer running, {time} left",
+			"cancelTimer": "Cancel timer: {name}",
+			"timerDone": "Timer done: {name}",
+			"dismiss": "Dismiss"
 		},
 		"push": {
 			"title": "Notifications",
