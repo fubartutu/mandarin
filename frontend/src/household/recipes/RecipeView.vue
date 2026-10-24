@@ -54,6 +54,14 @@
 					{{ data.title }}
 				</h1>
 				<div class="recipe-actions">
+					<!-- Opens at the servings shown below. -->
+					<RouterLink
+						:to="{name: 'recipe.cook', params: {recipeId: data.id}, query: cookingQuery(data.servings, amount)}"
+						class="button is-primary"
+					>
+						<Icon icon="utensils" />
+						<span>{{ $t('household.cooking.open') }}</span>
+					</RouterLink>
 					<XButton
 						v-if="wakeLock.isSupported.value"
 						variant="secondary"
@@ -186,6 +194,7 @@ import {useWakeLock} from '@vueuse/core'
 import BaseButton from '@/components/base/BaseButton.vue'
 import {useTitle} from '@/composables/useTitle'
 
+import {cookingQuery} from '../cooking/servings'
 import IngredientPicker from './components/IngredientPicker.vue'
 import RecipeImage from './components/RecipeImage.vue'
 import {recipeQuery} from './queries'
