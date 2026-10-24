@@ -8,6 +8,7 @@ One self-hosted app for the household: shared shopping lists that keep working w
 
 - **Shopping:** fast to use in the shop, works offline, syncs when the signal returns, covers groceries and other family shopping (kids' shoes, Kmart runs).
 - **Recipes:** import from recipe blogs with the exact ingredients, numbered steps and photos; add ingredients to the shopping list.
+- **Menu:** plan the week's dinners from the recipes; cook from a full-screen step-by-step view.
 - **Tasks:** Vikunja-level task management with due dates, reminders, saved filters and multiple views.
 - **Everywhere:** looks good and works well on phone, tablet and laptop; both an iPhone and an Android phone.
 - **Self-hosted:** runs in Docker on the home ZimaOS server.
@@ -124,6 +125,30 @@ Paper recipes (mostly printed: cookbook pages, magazine cut-outs) are scanned in
 - **Picture and link:** the scanned page becomes the recipe's picture, and the recipe links back to the Paperless document.
 - **AI model:** runs on sampc's GPU (e.g. Ollama), shared with Sam's Whisper setup. When sampc is off, imports fall back to the simple rules.
 
+## Menu planning
+
+One shared household menu: what's for dinner each day of the week, planned from the recipes.
+
+- **The plan:** one for the whole household; anyone can edit it. Online-only (no offline sync); a week already opened stays readable without signal, like tasks.
+- **Entries:** each day has meal slots. An entry is either a **recipe** with its own servings (defaulting to the recipe's, e.g. "for 6 on Saturday") or a **free-text note** ("leftovers", "takeaway", "at Mum's"). A slot can hold several entries in order (main and a side).
+- **Meals:** the model has breakfast, lunch and dinner; the app only shows dinner for now. Showing the others later is a small change.
+- **Week view:** Monday to Sunday, with arrows to earlier and later weeks. One scrolling list of day cards on every screen size; today is highlighted and scrolled into view, past days are dimmed.
+- **Planning:** "+" on a day searches the recipes or takes a note; a recipe page has a **Plan** button with a date picker. An entry's menu: move to another day, change servings, add to list, cook, delete.
+- **Shopping:** ingredients go on a list one recipe at a time, when wanted: "Add to list" on a planned entry is the recipe's usual add-to-list, scaled to the entry's servings. No add-the-whole-week button.
+- **Deleted recipes:** a planned entry whose recipe is deleted turns into a note with the recipe's title, so past weeks still read properly.
+- **History:** past weeks are kept. No cooked/skipped marking (edit the entry instead), no copying of earlier weeks, no suggestions yet.
+- **In the app:** a **Menu** entry in the menu after Recipes, a "Tonight / this week" section on Home, and Menu as a start-page choice.
+
+## Cooking mode
+
+A full-screen view for cooking one recipe, opened from a recipe page, or from a planned entry at that entry's servings.
+
+- **Ingredients:** scaled to the servings, each one can be ticked off.
+- **Steps:** one at a time in large text; swipe or next/back.
+- **Screen stays on** while cooking mode is open (Wake Lock).
+- **Timers:** a step that mentions a time ("simmer 20 minutes") gets a tap-to-start timer. Several can run at once. They run only while cooking mode is open and finish with a sound, vibration and a banner (no push).
+- **Resume:** leaving and coming back to the same recipe within 6 hours returns to the same step, with the ticked ingredients and running timers. Kept on that device only.
+
 ## Push notifications
 
 Notifications on the phones' home-screen app (and laptop browsers) through Web Push, which iPhone and iPad support for home-screen apps since iOS/iPadOS 16.4, and Android and desktop browsers always have. Vikunja has none: reminders only go by email.
@@ -181,6 +206,7 @@ Groceries come first; each phase ends with something usable on the phones.
 7. **Polish:** offline-readable tasks, theming, any trial feedback.
 8. **Push notifications and Obsidian:** task reminders and the daily overdue summary on the phones, opt-in shopping list summaries, quiet hours; then the Obsidian plugin (tasks, note → task, recipes as notes).
 9. **Shops, part 2:** an optional shop per item (chosen when adding or editing), and a per-shop aisle order for categories.
+10. **Menu planning and cooking mode:** the shared weekly dinner menu first (planner, Home section, Plan button on recipes), then cooking mode, opened from recipes and planned entries.
 
 ## Out of scope and later
 
@@ -191,14 +217,14 @@ Groceries come first; each phase ends with something usable on the phones.
 - Voice add via Siri Shortcuts or Google Assistant.
 - Offline editing of tasks (not just reading).
 - Store apps for iOS and Android.
-- Meal planning and a cooking mode (not yet decided).
+- Menu: breakfast and lunch slots, copying earlier weeks, suggestions, a "tonight's dinner" push.
 
 ## Open questions
 
 - [x] App name: **Mandarin**. Logo and app icons done (Phase 7).
 - [x] GitHub account for the fork: public repo [fubartutu/mandarin](https://github.com/fubartutu/mandarin).
 - [x] Dev setup: both. Code and tests run locally on the laptop (Node 24 via `mise`); GitHub Actions builds the Docker image and ZimaOS pulls it.
-- [ ] Meal planning and cooking mode: wanted, and in which phase?
+- [x] Meal planning and cooking mode: both wanted, in Phase 10 (menu planning first).
 - [x] Backups: nightly to a folder on the server (database and files, kept 14 days). Still open: an extra copy off the box, e.g. the Synology NAS.
 - [x] Notifications when the other person changes a shared list: per list, off by default, batched (Phase 8).
 - [x] Vikunja trial reverse-proxy issue: resolved, Mandarin is live behind Nginx Proxy Manager.
