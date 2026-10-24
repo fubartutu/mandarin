@@ -57,7 +57,7 @@ func RegisterHouseholdMenuRoutes(api huma.API) {
 	Register(api, huma.Operation{
 		OperationID: "menu-update",
 		Summary:     "Change a menu entry",
-		Description: "Changes only the fields sent: servings on a recipe entry, the text of a note entry. The day, meal and position stay as they are." + menuAccess,
+		Description: "Changes only the fields sent: servings on a recipe entry, the text of a note entry, or the day: a moved entry goes last in the same meal on its new day. The meal stays as it is." + menuAccess,
 		Method:      http.MethodPut, Path: "/menu/{entry}", Tags: tags,
 	}, menuUpdate)
 	Register(api, huma.Operation{

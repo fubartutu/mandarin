@@ -76,10 +76,11 @@ type MenuEntry struct { //nolint:revive // stutters, but the type name is the Op
 }
 
 // EntryChanges is the body of PUT /menu/{entry}. A field left out (nil)
-// stays as it is. Moving to another day will be one more field here.
+// stays as it is.
 type EntryChanges struct {
 	Servings *float64 `json:"servings,omitempty" minimum:"0" doc:"New servings. Recipe entries only."`
 	Note     *string  `json:"note,omitempty" maxLength:"250" doc:"New text, 1–250 characters. Note entries only."`
+	Day      *string  `json:"day,omitempty" format:"date" doc:"Move the entry to this day (YYYY-MM-DD), last in the same meal there. The same day changes nothing."`
 }
 
 // recipeRef is the part of a recipe the menu needs. It reads the recipes
@@ -241,6 +242,17 @@ func (e *MenuEntry) normalize(s *xorm.Session) error {
 	return nil
 }
 
+// nextPosition is the position after the last entry in a day's meal, or 0
+// when the meal is empty.
+func nextPosition(s *xorm.Session, day, meal string) (int, error) {
+	last := &MenuEntry{}
+	has, err := s.Where("day = ? AND meal = ?", day, meal).Desc("position").Get(last)
+	if err != nil || !has {
+		return 0, err
+	}
+	return last.Position + 1, nil
+}
+
 // Create adds an entry at the end of its day's meal.
 func (e *MenuEntry) Create(s *xorm.Session, a web.Auth) error {
 	u, err := user.GetFromAuth(a)
@@ -250,15 +262,11 @@ func (e *MenuEntry) Create(s *xorm.Session, a web.Auth) error {
 	if err := e.normalize(s); err != nil {
 		return err
 	}
-	last := &MenuEntry{}
-	has, err := s.Where("day = ? AND meal = ?", e.Day, e.Meal).Desc("position").Get(last)
+	position, err := nextPosition(s, e.Day, e.Meal)
 	if err != nil {
 		return err
 	}
-	e.Position = 0
-	if has {
-		e.Position = last.Position + 1
-	}
+	e.Position = position
 	e.ID = 0
 	e.CreatedByID = u.ID
 	_, err = s.Insert(e)
@@ -310,8 +318,9 @@ func (e *MenuEntry) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, per
 }
 
 // Update applies e.Changes to the entry CanUpdate loaded: servings on a
-// recipe entry, the text of a note entry. Nothing is written when nothing
-// changes (SQLite allows one writer at a time).
+// recipe entry, the text of a note entry, or another day (where it goes last
+// in its meal). Nothing is written when nothing changes (SQLite allows one
+// writer at a time).
 func (e *MenuEntry) Update(s *xorm.Session, _ web.Auth) error {
 	cols := []string{}
 	if c := e.Changes.Servings; c != nil {
@@ -338,6 +347,18 @@ func (e *MenuEntry) Update(s *xorm.Session, _ web.Auth) error {
 			e.Note = note
 			cols = append(cols, "note")
 		}
+	}
+	if c := e.Changes.Day; c != nil && *c != e.Day {
+		if _, err := parseDay(*c); err != nil {
+			return err
+		}
+		position, err := nextPosition(s, *c, e.Meal)
+		if err != nil {
+			return err
+		}
+		e.Day = *c
+		e.Position = position
+		cols = append(cols, "day", "position")
 	}
 	if len(cols) > 0 {
 		if _, err := s.ID(e.ID).Cols(cols...).Update(e); err != nil {
