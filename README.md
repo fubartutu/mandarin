@@ -1,6 +1,7 @@
 # Mandarin
 
-> One self-hosted app for the household: tasks, shopping lists that work with no signal, and recipes.
+> One self-hosted app for the household: tasks, shopping lists that work with no signal, recipes
+> and the week's menu.
 
 Mandarin is a soft fork of **[Vikunja](https://vikunja.io)**, the open-source, self-hosted task
 manager by [kolaente](https://github.com/kolaente) and the
@@ -26,9 +27,9 @@ and [support upstream Vikunja](https://vikunja.io/support/) directly.
 **Household mode.** One household per server, and every user is in it automatically. Shopping
 lists and recipes are shared with everyone; task projects stay private unless shared.
 
-**Home page.** Quick add, the shopping lists, recently viewed recipes and current tasks on one
-page, with Home, Shopping and Recipes at the top of the menu. Pick which one the app opens on in
-Settings → General.
+**Home page.** Quick add, this week's menu (tonight's dinner first), the shopping lists, recently
+viewed recipes and current tasks on one page, with Home, Shopping, Recipes and Menu at the top of
+the menu. Pick which one the app opens on in Settings → General.
 
 **Shopping lists**
 - A ShopShop-style list: one line per item, a big tick target, ticked items drop to the bottom.
@@ -51,6 +52,18 @@ Settings → General.
   scan as the recipe's picture and a link back to the document.
 - Every import shows a preview to check and fix before saving.
 - Add a recipe's ingredients to a shopping list, with their amounts.
+- **Cooking mode:** full screen, with ingredients scaled to the servings and tickable, and one
+  step at a time in large text (swipe, next/back or arrow keys). Times in a step ("simmer 20
+  minutes") become tap-to-start timers that beep and vibrate when done; several can run at once.
+  The screen stays on, and reopening the recipe within 6 hours picks up where you left off.
+
+**Menu planning**
+- One menu for the household, a week at a time (Monday to Sunday), with today highlighted.
+- Plan a recipe for dinner from the Menu page's add field (it suggests recipes as you type) or
+  with the Plan button on a recipe, or jot down a free-text note ("leftovers").
+- Each planned recipe has its own servings. Move an entry to another day, add its ingredients to a
+  shopping list at those servings, or cook it straight from the menu.
+- Deleting a recipe keeps its menu entries as notes with the recipe's name.
 
 **Tasks**
 - All of Vikunja's task features, minus Teams (one household, so they're hidden in the app; the
@@ -138,9 +151,9 @@ Fork-specific code lives in its own folders so upstream merges stay easy:
 
 | Folder | What's there |
 | --- | --- |
-| `pkg/household/` | Backend modules: shopping, recipes, push, backup. |
+| `pkg/household/` | Backend modules: shopping, recipes, menu, push, backup. |
 | `pkg/routes/api/v2/household_*.go` | API routes. |
-| `frontend/src/household/` | Frontend: home page, shopping, recipes, push settings, theme, branding. |
+| `frontend/src/household/` | Frontend: home page, shopping, recipes, cooking mode, menu, push settings, theme, branding. |
 | `household-scraper/` | The recipe scraper container (tests: `pytest`). |
 | `household-obsidian/` | The Obsidian plugin. |
 | `.github/workflows/household-*.yml` | The two image builds. |
