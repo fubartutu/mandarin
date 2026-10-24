@@ -42,13 +42,13 @@ export type NewEntry = {day: string, meal: Meal} & ({note: string} | {recipeId: 
 
 export const menuKeys = {
 	all: ['menu'] as const,
-	week: (from: string, to: string) => [...menuKeys.all, 'range', from, to] as const,
+	range: (from: string, to: string) => [...menuKeys.all, 'range', from, to] as const,
 }
 
 /** The entries from one day to another, both included. */
 export function menuRangeQuery(from: string, to: string) {
 	return queryOptions({
-		queryKey: menuKeys.week(from, to),
+		queryKey: menuKeys.range(from, to),
 		queryFn: () => fetchAllPages(async page => (await menuList({query: {from, to, page}})).data),
 		select: entries => entries.map(normalizeEntry),
 		staleTime: 30 * 1000,
