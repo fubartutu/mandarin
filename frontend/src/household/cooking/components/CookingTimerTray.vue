@@ -25,12 +25,11 @@
 </template>
 
 <script setup lang="ts">
-import {useI18n} from 'vue-i18n'
-
 import BaseButton from '@/components/base/BaseButton.vue'
 
+import {useTimerName} from '../timerName'
 import {formatRemaining} from '../timers'
-import type {CookingTimer, RunningTimer} from '../useCookingTimers'
+import type {RunningTimer} from '../useCookingTimers'
 
 defineProps<{
 	running: RunningTimer[] // in order of time left
@@ -40,8 +39,7 @@ const emit = defineEmits<{
 	cancel: [id: string]
 }>()
 
-const {t} = useI18n({useScope: 'global'})
-const timerName = (timer: CookingTimer) => t('household.cooking.timerName', {number: timer.stepNumber, label: timer.label})
+const timerName = useTimerName()
 </script>
 
 <style lang="scss" scoped>
