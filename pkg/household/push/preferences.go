@@ -17,6 +17,7 @@
 package push
 
 import (
+	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/web"
 
 	"xorm.io/xorm"
@@ -62,7 +63,7 @@ func preferencesFor(s *xorm.Session, userID int64) (*Preferences, error) {
 
 // GetPreferences returns the caller's preferences (defaults until saved).
 func GetPreferences(s *xorm.Session, a web.Auth) (*Preferences, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, err
 	}
 	return preferencesFor(s, a.GetID())
@@ -70,7 +71,7 @@ func GetPreferences(s *xorm.Session, a web.Auth) (*Preferences, error) {
 
 // SavePreferences replaces the caller's preferences.
 func SavePreferences(s *xorm.Session, a web.Auth, p *Preferences) (*Preferences, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, err
 	}
 	p.UserID = a.GetID()

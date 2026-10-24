@@ -159,7 +159,7 @@ func (e *MenuEntry) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
 // CanUpdate lets every household member change any entry. It loads the
 // stored entry into e, keeping the requested Changes for Update.
 func (e *MenuEntry) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, err
 	}
 	stored, err := getEntry(s, e.ID)
@@ -173,7 +173,7 @@ func (e *MenuEntry) CanUpdate(s *xorm.Session, a web.Auth) (bool, error) {
 }
 
 func canWrite(s *xorm.Session, id int64, a web.Auth) (bool, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, err
 	}
 	if _, err := getEntry(s, id); err != nil {
@@ -277,7 +277,7 @@ func (e *MenuEntry) Create(s *xorm.Session, a web.Auth) error {
 // meal (breakfast first), then position. Paging is allowed but a week fits
 // on one page.
 func (e *MenuEntry) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, perPage int) (any, int, int64, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, 0, 0, err
 	}
 	from, err := parseDay(e.From)
@@ -308,7 +308,7 @@ func (e *MenuEntry) ReadAll(s *xorm.Session, a web.Auth, _ string, page int, per
 	})
 
 	total := int64(len(all))
-	if limit, start := limitFromPage(page, perPage); limit > 0 {
+	if limit, start := household.LimitFromPage(page, perPage); limit > 0 {
 		all = all[min(start, len(all)):min(start+limit, len(all))]
 	}
 	if err := addRecipeTitles(s, all...); err != nil {

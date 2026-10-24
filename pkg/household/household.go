@@ -24,6 +24,7 @@
 package household
 
 import (
+	"code.vikunja.io/api/pkg/config"
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/web"
 )
@@ -43,4 +44,26 @@ func IsMember(a web.Auth) bool {
 	default:
 		return a.GetID() > 0
 	}
+}
+
+// RequireMember is the permission check of every household model: members
+// may do everything, anyone else nothing.
+func RequireMember(a web.Auth) error {
+	if !IsMember(a) {
+		return models.ErrGenericForbidden{}
+	}
+	return nil
+}
+
+// LimitFromPage mirrors pkg/models' unexported getLimitFromPageIndex: page < 1
+// means "everything" (limit 0), otherwise perPage (or the server default) per page.
+func LimitFromPage(page, perPage int) (limit, start int) {
+	if page < 1 {
+		return 0, 0
+	}
+	limit = config.ServiceMaxItemsPerPage.GetInt()
+	if perPage > 0 {
+		limit = perPage
+	}
+	return limit, limit * (page - 1)
 }

@@ -24,6 +24,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
 
@@ -71,7 +72,7 @@ type DeviceInput struct {
 // push address is already known (the browser re-subscribed, or another
 // person signed in on this device: it then belongs to them).
 func SaveDevice(s *xorm.Session, a web.Auth, in *DeviceInput) (*Device, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, err
 	}
 	u, err := user.GetFromAuth(a)
@@ -107,7 +108,7 @@ func SaveDevice(s *xorm.Session, a web.Auth, in *DeviceInput) (*Device, error) {
 
 // ListDevices returns the caller's devices, newest first.
 func ListDevices(s *xorm.Session, a web.Auth) ([]*Device, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, err
 	}
 	devices := []*Device{}
@@ -117,7 +118,7 @@ func ListDevices(s *xorm.Session, a web.Auth) ([]*Device, error) {
 
 // DeleteDevice removes one of the caller's devices.
 func DeleteDevice(s *xorm.Session, a web.Auth, id int64) error {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return err
 	}
 	n, err := s.Where("id = ? AND user_id = ?", id, a.GetID()).Delete(&Device{})
@@ -133,7 +134,7 @@ func DeleteDevice(s *xorm.Session, a web.Auth, id int64) error {
 // DeleteDeviceByEndpoint removes the caller's device with this push
 // address, e.g. when "turn off on this device" is pressed.
 func DeleteDeviceByEndpoint(s *xorm.Session, a web.Auth, endpoint string) error {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return err
 	}
 	_, err := s.Where("endpoint_hash = ? AND user_id = ?", hashEndpoint(endpoint), a.GetID()).Delete(&Device{})

@@ -19,6 +19,7 @@ package shopping
 import (
 	"time"
 
+	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/web"
 
 	"xorm.io/xorm"
@@ -67,7 +68,7 @@ func newSyncResult(cursor int64, full bool) *ShoppingSyncResult {
 // server doesn't know (its database was restored from an older backup, say),
 // gets a full copy.
 func PullChanges(s *xorm.Session, a web.Auth, cursor int64) (*ShoppingSyncResult, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, err
 	}
 	latest, err := latestChangeID(s)

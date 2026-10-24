@@ -22,6 +22,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
 
@@ -104,7 +105,7 @@ func rejectionReason(err error) (string, bool) {
 // ApplySyncOps applies a phone's ops in order and returns the rejected ones.
 // An error means the whole batch failed and the transaction must roll back.
 func ApplySyncOps(s *xorm.Session, a web.Auth, ops []ShoppingSyncOp) ([]*ShoppingSyncRejection, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, err
 	}
 	u, err := user.GetFromAuth(a)

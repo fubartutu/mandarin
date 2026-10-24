@@ -29,7 +29,6 @@ import (
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/log"
-	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/web"
 
 	"github.com/SherClockHolmes/webpush-go"
@@ -48,13 +47,6 @@ func GetTables() []any {
 		&vapidKeys{},
 		&pendingShoppingAdd{},
 	}
-}
-
-func requireMember(a web.Auth) error {
-	if !household.IsMember(a) {
-		return models.ErrGenericForbidden{}
-	}
-	return nil
 }
 
 // vapidKeys is the server's key pair for signing pushes; one row.
@@ -85,7 +77,7 @@ func keys(s *xorm.Session) (*vapidKeys, error) {
 
 // PublicKey is what a device needs to subscribe (applicationServerKey).
 func PublicKey(s *xorm.Session, a web.Auth) (string, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return "", err
 	}
 	k, err := keys(s)

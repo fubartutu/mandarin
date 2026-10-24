@@ -19,6 +19,7 @@ package shopping
 import (
 	"time"
 
+	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/user"
 	"code.vikunja.io/api/pkg/web"
 
@@ -83,7 +84,7 @@ func getItem(s *xorm.Session, listID, id int64) (*ShoppingItem, error) {
 
 // CanRead lets every household member read every item.
 func (i *ShoppingItem) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, 0, err
 	}
 	stored, err := getItem(s, i.ListID, i.ID)
@@ -96,7 +97,7 @@ func (i *ShoppingItem) CanRead(s *xorm.Session, a web.Auth) (bool, int, error) {
 
 // CanCreate lets members add items to any existing list.
 func (i *ShoppingItem) CanCreate(s *xorm.Session, a web.Auth) (bool, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, err
 	}
 	if _, err := getListByID(s, i.ListID); err != nil {
@@ -116,7 +117,7 @@ func (i *ShoppingItem) CanDelete(s *xorm.Session, a web.Auth) (bool, error) {
 }
 
 func canWriteItem(s *xorm.Session, listID, id int64, a web.Auth) (bool, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return false, err
 	}
 	if _, err := getItem(s, listID, id); err != nil {
@@ -240,7 +241,7 @@ func (i *ShoppingItem) ReadOne(s *xorm.Session, _ web.Auth) error {
 // ReadAll returns the items on ListID: not-done first, then by position.
 // The frontend groups them by category.
 func (i *ShoppingItem) ReadAll(s *xorm.Session, a web.Auth, search string, page int, perPage int) (any, int, int64, error) {
-	if err := requireMember(a); err != nil {
+	if err := household.RequireMember(a); err != nil {
 		return nil, 0, 0, err
 	}
 	if _, err := getListByID(s, i.ListID); err != nil {
