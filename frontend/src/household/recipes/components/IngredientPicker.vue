@@ -86,6 +86,11 @@ const props = defineProps<{
 	factor: number
 }>()
 
+// Tells a dialog around the picker (the menu's "Add to list") it can close.
+const emit = defineEmits<{
+	added: []
+}>()
+
 const {t} = useI18n({useScope: 'global'})
 const sync = useShoppingSync()
 const {lists, categories, catalog} = useShoppingData()
@@ -141,6 +146,7 @@ function addToList() {
 		message: t('household.recipes.added', {count: added, list}, added) +
 			(plan.skipped.length ? ' ' + t('household.recipes.alreadyThere', {names: plan.skipped.join(', ')}) : ''),
 	})
+	emit('added')
 }
 </script>
 

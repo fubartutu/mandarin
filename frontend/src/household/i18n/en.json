@@ -299,7 +299,10 @@
 			"moveTo": "Move to…",
 			"moveTitle": "Move {entry}",
 			"move": "Move",
-			"moved": "Moved to {day}"
+			"moved": "Moved to {day}",
+			"addToList": "Add to list",
+			"addToListTitle": "Add {recipe} to a list",
+			"close": "Close"
 		},
 		"startPage": {
 			"label": "Start page",

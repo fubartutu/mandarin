@@ -21,3 +21,12 @@ export function menuWeekRoute(day: string, now: Date): RouteLocationRaw {
 export function plannedDayLabel(day: string, locale: string): string {
 	return fromKey(day).toLocaleDateString(locale, {weekday: 'short', day: 'numeric', month: 'short'})
 }
+
+/**
+ * How much of a recipe a planned entry needs: the entry's servings over the
+ * recipe's (recipe for 4, entry for 6 gives 1.5). When either isn't known
+ * (0), the recipe is used as written.
+ */
+export function entryFactor(entryServings: number, recipeServings: number): number {
+	return entryServings > 0 && recipeServings > 0 ? entryServings / recipeServings : 1
+}
