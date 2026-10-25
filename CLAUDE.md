@@ -59,10 +59,10 @@ another package), so in practice:
   `lang/en.json` or `Icon.ts`.
 - **Home and start page:** `household/HomeView.vue` replaces Vikunja's Overview on `/` (added in
   `setup.ts` with `router.addRoute` under the same name `home`, so `router/index.ts` is untouched):
-  quick add, shopping lists, recently viewed recipes (`recipes/recent.ts`, localStorage) and current
-  tasks. `HouseholdNavItems.vue` sits at the top of the menu (Home, Shopping, Recipes, then a "Tasks"
-  divider); the Overview entry was removed from `Navigation.vue` (FORK). The start page (Home,
-  Shopping or Recipes) is `household_start_page` in `frontend_settings`, picked in Settings → General
+  quick add, this week's menu (`menu/homeWeek.ts`), shopping lists, recently viewed recipes
+  (`recipes/recent.ts`, localStorage) and current tasks. `HouseholdNavItems.vue` sits at the top of
+  the menu (Home, Shopping, Recipes, Menu, then a "Tasks" divider); the Overview entry was removed
+  from `Navigation.vue` (FORK). The start page (Home, Shopping, Recipes or Menu) is `household_start_page` in `frontend_settings`, picked in Settings → General
   (`components/StartPageField.vue`, FORK in `GeneralSettingsForm.vue`) and applied by
   `startPage.ts` only when the app opens or after sign-in.
 - Production runs on **SQLite**, which allows one writer at a time: two requests that each read
@@ -90,6 +90,18 @@ another package), so in practice:
   Paperless-ngx scans and the AI (Anthropic or an OpenAI-compatible API via AI_API_KEY/AI_MODEL, else Ollama on sampc) are scraper-side only (`paperless.py`,
   `text_recipe.py` rules, `ai.py`; settings in `settings.py`); Mandarin proxies them under
   `/recipes/paperless`, and a scan's page picture is `paperless:documents/<id>/image`.
+- **Menu planning:** `pkg/household/menu` (online-only), routes in `household_menu.go`
+  (`/api/v2/menu`), frontend `frontend/src/household/menu` (`/menu/:week?`, weeks Monday to
+  Sunday in local time, `week.ts`). One `menu_entries` table: an entry is a recipe (`recipe_id`,
+  own `servings`: 0 when the recipe has none, else at least 1) or a free-text `note`, for a day's
+  breakfast, lunch or dinner (only dinner shown), ordered by `position` within the meal. Error
+  codes 903xx. `recipes` imports `menu`, never the other way round: deleting a recipe calls
+  `menu.RecipeDeleted` in the same transaction, which turns its entries into notes. "Add to list"
+  on an entry reuses the recipe page's ingredient picker scaled to the entry's servings.
+- **Cooking mode:** frontend only, `frontend/src/household/cooking` (`/recipes/:id/cook`,
+  `?servings=N` or `?scale=X`), teleported to `body` so it covers the top bar. Timers come from
+  times in step text (`steps.ts`) and are plain data with `endsAt`; resume state is per recipe in
+  localStorage for 6 hours (`resume.ts`). Wake lock via vueuse's `useWakeLock`.
 - **Offline tasks (read-only):** `registerOfflineApi()` in `household/sw.ts` keeps every JSON
   GET answer from /api/v1 and /api/v2 (NetworkFirst, 8 s, 500 entries) in the `mandarin-api`
   cache, served without signal. Deleted on logout (FORK in `stores/auth.ts`) and when another user
