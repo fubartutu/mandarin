@@ -293,9 +293,10 @@
 									:disabled="!canWrite"
 									@update:modelValue="saveTask($event)"
 								/>
-								<!-- FORK: Mandarin repeat end (until a date / a number of times) -->
-								<RepeatEndField
+								<!-- FORK: Mandarin repeat rules and ends (weekdays, nth weekday; until a date / a number of times) -->
+								<RepeatSettingsField
 									:task="task"
+									:save-task="saveTask"
 									:disabled="!canWrite"
 								/>
 							</div>
@@ -692,7 +693,7 @@ import PrioritySelect from '@/components/tasks/partials/PrioritySelect.vue'
 import RelatedTasks from '@/components/tasks/partials/RelatedTasks.vue'
 import Reminders from '@/components/tasks/partials/Reminders.vue'
 import RepeatAfter from '@/components/tasks/partials/RepeatAfter.vue'
-import RepeatEndField from '@/household/tasks/RepeatEndField.vue' // FORK: Mandarin repeat end
+import RepeatSettingsField from '@/household/tasks/RepeatSettingsField.vue' // FORK: Mandarin repeat rules and ends
 import TaskSubscription from '@/components/misc/Subscription.vue'
 import CustomTransition from '@/components/misc/CustomTransition.vue'
 import AssigneeList from '@/components/tasks/partials/AssigneeList.vue'

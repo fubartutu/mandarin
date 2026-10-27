@@ -42,7 +42,7 @@ func TestHouseholdTaskRepeat(t *testing.T) {
 	assert.Zero(t, re.RepeatsLeft)
 
 	rec = humaRequest(t, e, http.MethodPut, path,
-		`{"until":"2026-11-05T23:59:59Z","repeats_left":5}`, user1, "")
+		`{"rule":"","until":"2026-11-05T23:59:59Z","repeats_left":5}`, user1, "")
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 
 	rec = humaRequest(t, e, http.MethodGet, path, "", user1, "")
@@ -60,8 +60,22 @@ func TestHouseholdTaskRepeat(t *testing.T) {
 	assert.Zero(t, re.RepeatsLeft)
 	assert.NotNil(t, re.Until)
 
+	t.Run("a rule", func(t *testing.T) {
+		rec := humaRequest(t, e, http.MethodPatch, path, `{"rule":"FREQ=WEEKLY;BYDAY=MO,TH"}`, user1, "application/merge-patch+json")
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		re := decode[models.TaskRepeat](t, rec.Body.Bytes())
+		assert.Equal(t, "FREQ=WEEKLY;BYDAY=MO,TH", re.Rule)
+		assert.NotNil(t, re.Until, "PATCH keeps the end")
+
+		rec = humaRequest(t, e, http.MethodPatch, path, `{"rule":"FREQ=DAILY"}`, user1, "application/merge-patch+json")
+		assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+	})
+	t.Run("PUT needs the rule, so a client can't drop it by accident", func(t *testing.T) {
+		rec := humaRequest(t, e, http.MethodPut, path, `{"until":null,"repeats_left":2}`, user1, "")
+		assert.Equal(t, http.StatusUnprocessableEntity, rec.Code, rec.Body.String())
+	})
 	t.Run("count out of range", func(t *testing.T) {
-		rec := humaRequest(t, e, http.MethodPut, path, `{"until":null,"repeats_left":5000}`, user1, "")
+		rec := humaRequest(t, e, http.MethodPut, path, `{"rule":"","until":null,"repeats_left":5000}`, user1, "")
 		assert.GreaterOrEqual(t, rec.Code, 400)
 		assert.Less(t, rec.Code, 500)
 	})
@@ -69,7 +83,7 @@ func TestHouseholdTaskRepeat(t *testing.T) {
 		user2 := humaTokenFor(t, &testuser2)
 		rec := humaRequest(t, e, http.MethodGet, path, "", user2, "")
 		assert.Equal(t, http.StatusForbidden, rec.Code, rec.Body.String())
-		rec = humaRequest(t, e, http.MethodPut, path, `{"until":null,"repeats_left":2}`, user2, "")
+		rec = humaRequest(t, e, http.MethodPut, path, `{"rule":"","until":null,"repeats_left":2}`, user2, "")
 		assert.Equal(t, http.StatusForbidden, rec.Code, rec.Body.String())
 	})
 }

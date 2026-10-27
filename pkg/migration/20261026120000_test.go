@@ -42,7 +42,7 @@ func TestTaskRepeats20261026120000(t *testing.T) {
 	}
 	_, err = x.Exec("INSERT INTO task_repeats (task_id, repeat_until, repeats_left) VALUES (1, ?, 3)", "2026-11-05 23:59:59")
 	require.NoError(t, err)
-	ends := []models.TaskRepeat{}
+	ends := []taskRepeats20261026120000{} // as this migration made it, without later columns
 	require.NoError(t, x.Find(&ends))
 	require.Len(t, ends, 1)
 	assert.Equal(t, 3, ends[0].RepeatsLeft)
