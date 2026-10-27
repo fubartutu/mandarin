@@ -1,0 +1,15 @@
+// Mandarin: fixes to Vikunja's Kanban view, kept out of ProjectKanban.vue
+// (no FORK lines). Imported by setup.ts. These selectors outrank the
+// component's scoped ones (more classes), so no !important is needed.
+
+// "Create a bucket" was a normal-height button at the top of its column,
+// so its label sat about 11px above the bucket titles next to it. The
+// bucket headers render 3.5rem tall (their tallest item, the ⋮ menu, plus
+// padding), so the button and the input it turns into get the same height
+// and centre on the same line.
+.kanban .bucket.new-bucket {
+	> .button,
+	> .input {
+		min-block-size: 3.5rem;
+	}
+}
