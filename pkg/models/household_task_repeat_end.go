@@ -48,7 +48,7 @@ type TaskRepeatEnd struct {
 }
 
 // TableName holds the table name
-func (TaskRepeatEnd) TableName() string {
+func (*TaskRepeatEnd) TableName() string {
 	return "task_repeat_ends"
 }
 
@@ -148,9 +148,10 @@ func nextRepeatDate(task *Task, now time.Time) time.Time {
 		return addOneMonthToDate(ref)
 	case TaskRepeatModeFromCurrentDate:
 		return now.Add(interval)
-	default:
+	case TaskRepeatModeDefault:
 		return addRepeatIntervalToTime(now, ref, interval)
 	}
+	return addRepeatIntervalToTime(now, ref, interval)
 }
 
 // deleteTaskRepeatEnd removes the end when a task is permanently deleted.
