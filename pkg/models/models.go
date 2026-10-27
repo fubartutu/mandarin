@@ -77,6 +77,7 @@ func GetTables() []interface{} {
 		&TimeEntry{},
 		&UserInviteLink{},
 		&UserInviteLinkTeam{},
+		&TaskRepeat{}, // FORK: Mandarin repeat end (household_task_repeat.go)
 	}
 }
 

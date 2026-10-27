@@ -3772,6 +3772,25 @@ export type TaskReminder = {
     reminder?: string;
 };
 
+export type TaskRepeat = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * How many occurrences are left, the current one included. Completing the task with 1 left ends the series; 0 means no limit.
+     */
+    repeats_left?: number;
+    /**
+     * The task these settings belong to.
+     */
+    readonly task_id?: number;
+    /**
+     * The latest an occurrence may be due. Completing the task when its next due date would be later ends the series. Null means no end date.
+     */
+    until?: string | null;
+};
+
 export type Team = {
     /**
      * A URL to the JSON Schema for this object.
@@ -6349,6 +6368,17 @@ export type TaskRelationWritable = {
      * The kind of relation, describing the direction from the base task to the other task (e.g. subtask, blocking, related). The inverse relation is created automatically.
      */
     relation_kind?: 'subtask' | 'parenttask' | 'related' | 'duplicateof' | 'duplicates' | 'blocking' | 'blocked' | 'precedes' | 'follows' | 'copiedfrom' | 'copiedto';
+};
+
+export type TaskRepeatWritable = {
+    /**
+     * How many occurrences are left, the current one included. Completing the task with 1 left ends the series; 0 means no limit.
+     */
+    repeats_left?: number;
+    /**
+     * The latest an occurrence may be due. Completing the task when its next due date would be later ends the series. Null means no end date.
+     */
+    until?: string | null;
 };
 
 export type TeamWritable = {
@@ -13504,6 +13534,96 @@ export type TasksRelationsDeleteResponses = {
 };
 
 export type TasksRelationsDeleteResponse = TasksRelationsDeleteResponses[keyof TasksRelationsDeleteResponses];
+
+export type TasksRepeatReadData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: never;
+    url: '/tasks/{task}/repeat';
+};
+
+export type TasksRepeatReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksRepeatReadError = TasksRepeatReadErrors[keyof TasksRepeatReadErrors];
+
+export type TasksRepeatReadResponses = {
+    /**
+     * OK
+     */
+    200: TaskRepeat;
+};
+
+export type TasksRepeatReadResponse = TasksRepeatReadResponses[keyof TasksRepeatReadResponses];
+
+export type PatchTasksRepeatReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: never;
+    url: '/tasks/{task}/repeat';
+};
+
+export type PatchTasksRepeatReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchTasksRepeatReadError = PatchTasksRepeatReadErrors[keyof PatchTasksRepeatReadErrors];
+
+export type PatchTasksRepeatReadResponses = {
+    /**
+     * OK
+     */
+    200: TaskRepeat;
+};
+
+export type PatchTasksRepeatReadResponse = PatchTasksRepeatReadResponses[keyof PatchTasksRepeatReadResponses];
+
+export type TasksRepeatUpdateData = {
+    body: TaskRepeatWritable;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: never;
+    url: '/tasks/{task}/repeat';
+};
+
+export type TasksRepeatUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksRepeatUpdateError = TasksRepeatUpdateErrors[keyof TasksRepeatUpdateErrors];
+
+export type TasksRepeatUpdateResponses = {
+    /**
+     * OK
+     */
+    200: TaskRepeat;
+};
+
+export type TasksRepeatUpdateResponse = TasksRepeatUpdateResponses[keyof TasksRepeatUpdateResponses];
 
 export type TeamsListData = {
     body?: never;

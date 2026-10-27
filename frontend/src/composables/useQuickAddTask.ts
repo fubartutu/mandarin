@@ -16,6 +16,7 @@ import {parseTaskText, PREFIXES} from '@/modules/quickAddMagic'
 import {buildQuickAddTask} from '@/helpers/task'
 import {getRandomColorHex} from '@/helpers/color/randomColor'
 import {runWrites} from '@/helpers/runWrites'
+import {applyHouseholdMagic, readHouseholdMagic, saveHouseholdMagic} from '@/household/tasks/quickAdd' // FORK: Mandarin quick add phrases
 import {error} from '@/message'
 import {i18n} from '@/i18n'
 import {taskRemindersFromSettings} from '@/helpers/userSettings'
@@ -89,7 +90,8 @@ export function useQuickAddTask() {
 
 	async function build(input: Partial<Task>, context: ClientRequestContext) {
 		const mode = auth.settings.frontend_settings.quick_add_magic_mode
-		const parsed = parseTaskText(input.title ?? '', mode)
+		const {text: title, magic} = readHouseholdMagic(input.title ?? '', mode) // FORK: Mandarin quick add phrases ("until 5 Nov", "every!", "p1")
+		const parsed = parseTaskText(title, mode)
 		// A title that is only magic stays a literal title: nothing parsed out of it may move or decorate the task.
 		const magicOnly = !parsed.text
 		const project_id = await findProjectId({
@@ -107,15 +109,17 @@ export function useQuickAddTask() {
 		}))
 		assertClientRequestContext(context)
 		const defaults = taskRemindersFromSettings(auth.settings.frontend_settings.quick_add_default_reminders)
+		const household = magicOnly ? null : magic // FORK: Mandarin quick add phrases
 		return {
-			task: buildQuickAddTask(
+			task: applyHouseholdMagic(buildQuickAddTask( // FORK: Mandarin quick add phrases
 				parsed,
 				{...input, project_id},
 				PREFIXES[mode],
 				matches.filter(user => user !== undefined),
 				defaults,
-			),
+			), household),
 			parsedLabels: magicOnly ? [] : parsed.labels,
+			household, // FORK: Mandarin quick add phrases
 		}
 	}
 
@@ -137,10 +141,12 @@ export function useQuickAddTask() {
 			assertClientRequestContext(context)
 			return addAssignee.mutateAsync({taskId: task.id!, user: {...user, id: user.id!}})
 		}, config.concurrent_writes)
-		return addLabelsToTask(
+		const result = await addLabelsToTask(
 			{task: {...task, assignees: built.task.assignees}, parsedLabels: built.parsedLabels},
 			context,
 		)
+		await saveHouseholdMagic(task, built.household) // FORK: Mandarin repeat end, after the other writes
+		return result
 	}
 
 	async function createNewTask(input: Partial<Task>) {

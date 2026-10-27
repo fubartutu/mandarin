@@ -311,6 +311,18 @@
 			"shopping": "Shopping",
 			"recipes": "Recipes",
 			"menu": "Menu"
+		},
+		"tasks": {
+			"repeatEnd": {
+				"until": "Ends on",
+				"timesLeft": "Times left",
+				"noLimit": "No limit",
+				"forever": "Repeats until you remove the repeat.",
+				"summaryUntil": "Stops after {date}",
+				"summaryCount": "Stops after this time | {count} times left, this one included",
+				"or": ", or ",
+				"saveFailed": "The task was added, but its repeat end couldn't be saved. Set it on the task."
+			}
 		}
 	},
 	"ready": {

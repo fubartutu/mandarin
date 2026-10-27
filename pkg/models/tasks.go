@@ -1413,6 +1413,10 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		return err
 	}
 
+	if err := applyTaskRepeatEnd(s, &ot, t, &colsToUpdate); err != nil { // FORK: Mandarin repeat end (household_task_repeat.go)
+		return err
+	}
+
 	// If the task is being moved between projects, make sure to move the bucket + index as well
 	if t.ProjectID != 0 && ot.ProjectID != t.ProjectID {
 		// Another task may already hold this retired address; the latest holder wins.
@@ -2214,6 +2218,10 @@ func (t *Task) Delete(s *xorm.Session, a web.Auth) (err error) {
 // It does not dispatch a TaskDeletedEvent — that already happened when the
 // task was soft-deleted by the user.
 func hardDeleteTask(s *xorm.Session, t *Task) (err error) {
+
+	if err = deleteTaskRepeat(s, t.ID); err != nil { // FORK: Mandarin repeat end
+		return err
+	}
 
 	// Delete assignees
 	if _, err = s.Where("task_id = ?", t.ID).Delete(&TaskAssginee{}); err != nil {

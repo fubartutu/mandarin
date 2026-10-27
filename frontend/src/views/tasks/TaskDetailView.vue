@@ -293,6 +293,11 @@
 									:disabled="!canWrite"
 									@update:modelValue="saveTask($event)"
 								/>
+								<!-- FORK: Mandarin repeat end (until a date / a number of times) -->
+								<RepeatEndField
+									:task="task"
+									:disabled="!canWrite"
+								/>
 							</div>
 						</CustomTransition>
 						<CustomTransition
@@ -687,6 +692,7 @@ import PrioritySelect from '@/components/tasks/partials/PrioritySelect.vue'
 import RelatedTasks from '@/components/tasks/partials/RelatedTasks.vue'
 import Reminders from '@/components/tasks/partials/Reminders.vue'
 import RepeatAfter from '@/components/tasks/partials/RepeatAfter.vue'
+import RepeatEndField from '@/household/tasks/RepeatEndField.vue' // FORK: Mandarin repeat end
 import TaskSubscription from '@/components/misc/Subscription.vue'
 import CustomTransition from '@/components/misc/CustomTransition.vue'
 import AssigneeList from '@/components/tasks/partials/AssigneeList.vue'

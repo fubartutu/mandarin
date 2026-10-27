@@ -137,6 +137,20 @@ another package), so in practice:
   button next to the add-task field (FORK in `components/tasks/AddTask.vue`) and the shopping
   add bar (`AddItemBar.vue`), only shown where the browser has speech recognition; what's said
   goes into the field for quick add magic or `parseItemInput` to parse.
+- **Repeat ends:** a repeating task can stop on a date and/or after a number of times, kept in
+  `task_repeats` (one row per task, for household repeat settings beyond Vikunja's interval; model
+  `TaskRepeat` in `pkg/models/household_task_repeat.go`, a new file because it uses unexported task
+  helpers; routes `household_task_repeat.go`, `/api/v2/tasks/{task}/repeat`).
+  FORK lines: the call in `Task.Update` before buckets and rescheduling, `hardDeleteTask`, and
+  `models.GetTables()`. Completing the last occurrence clears the task's repeat so it stays done.
+  `repeats_left` counts the open occurrence too. Frontend `household/tasks/`: `RepeatEndField.vue`
+  (FORK in `TaskDetailView.vue`) and the quick add phrases in `repeatEnd.ts` ("until 5 Nov",
+  "10 times", "x6", "for 3 weeks").
+- **Household quick add magic:** `household/tasks/quickAdd.ts` reads Todoist phrases off the title
+  before Vikunja's magic (FORK lines in `useQuickAddTask.ts`), then applies them to the built task:
+  repeat ends, "every! 3 days" (repeat from completion; months/years are 30/365 days),
+  "starting nov 1" (drops "starting" so the date becomes the first due date) and "p1"-"p4"
+  (urgent/high/medium/low; Vikunja's "!3" wins). Off when quick add magic is disabled.
 - **No Teams:** one household, so Teams is hidden from the UI only (backend untouched): menu entry
   (`Navigation.vue`), its shortcut listing (`shortcuts.ts`), team sharing (`ProjectSettingsShare.vue`)
   and quick-action team search and "New team" (`QuickActions.vue`), all FORK lines. The routes stay.
