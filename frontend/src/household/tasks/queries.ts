@@ -4,9 +4,10 @@
 
 import {queryOptions, useMutation} from '@tanstack/vue-query'
 
-import {tasksRepeatRead, tasksRepeatUpdate} from '@/client/generated'
+import {tasksRepeatRead, tasksRepeatUpdate, tasksSkip} from '@/client/generated'
 import type {TaskRepeat} from '@/client/generated'
 import {contextMutationOptions} from '@/client/queries/contextMutation'
+import {invalidateTaskMembership, replaceTaskEverywhere} from '@/client/queries/taskCache'
 import {endOfDay} from './repeatEnd'
 
 export interface RepeatSettings {
@@ -16,6 +17,8 @@ export interface RepeatSettings {
 	until: Date | null
 	/** Occurrences left, the current one included. 0 = no limit. */
 	repeatsLeft: number
+	/** When it would next be due if done or skipped now (from the server; null when the series would end). */
+	next?: Date | null
 }
 
 export const repeatKeys = {
@@ -28,6 +31,7 @@ export function normalizeRepeat(e: TaskRepeat): RepeatSettings {
 		rule: e.rule ?? '',
 		until: e.until ? new Date(e.until) : null,
 		repeatsLeft: e.repeats_left ?? 0,
+		next: e.next ? new Date(e.next) : null,
 	}
 }
 
@@ -53,5 +57,17 @@ export function useSaveRepeatMutation() {
 	return useMutation(contextMutationOptions({
 		mutationFn: ({taskId, settings}: {taskId: number, settings: RepeatSettings}) => saveRepeat(taskId, settings),
 		onSettled: (_input, client) => client.invalidateQueries({queryKey: repeatKeys.all}),
+	}))
+}
+
+/** Moves a repeating task to its next occurrence without completing it (POST .../skip). */
+export function useSkipOccurrenceMutation() {
+	return useMutation(contextMutationOptions({
+		mutationFn: async (taskId: number) => (await tasksSkip({path: {task: taskId}})).data,
+		onSuccess: (task, _taskId, client) => replaceTaskEverywhere(client, task),
+		onSettled: (taskId, client) => Promise.all([
+			invalidateTaskMembership(client, taskId),
+			client.invalidateQueries({queryKey: repeatKeys.task(taskId)}),
+		]),
 	}))
 }

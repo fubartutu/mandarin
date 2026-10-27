@@ -151,6 +151,15 @@ another package), so in practice:
   Removing the repeat removes the row. Other FORK lines: `hardDeleteTask`, `models.GetTables()`.
   Frontend `household/tasks/`: `RepeatSettingsField.vue` (FORK in `TaskDetailView.vue`, gets its
   `saveTask`), `repeatRule.ts` (rules, first date, quick add phrases) and `repeatEnd.ts`.
+- **Reschedule and skip:** task rows' due-date popup is `household/tasks/RescheduleMenu.vue` (a FORK
+  import swap for Vikunja's `DeferTask` in `SingleTaskInProject.vue`, same props and emit): Today,
+  Tomorrow, Weekend, Next week (absolute days at the task's time, `reschedule.ts`), the calendar, and
+  "Skip to <next>" on repeating tasks. Skip is `POST /api/v2/tasks/{task}/skip` (`SkipTaskOccurrence`):
+  dates and reminders move as completing would, not done, `repeats_left` unchanged; past `until` the
+  series ends. `GET .../repeat` returns `next` for the label. Task page: `SkipOccurrenceButton.vue`
+  next to Mark done (FORK); it hands the skipped task to `seedTask`, because TaskDetailView keeps its
+  own copy of the dates and would save the old ones back. `task_repeats` isn't in Vikunja's fixture
+  list (`setup_tests.go`), so household tests empty it themselves.
 - **Household quick add magic:** `household/tasks/quickAdd.ts` reads Todoist phrases off the title
   before Vikunja's magic (FORK lines in `useQuickAddTask.ts`), then applies them to the built task:
   calendar rules ("every mon, thu", "every weekday", "every 2nd tuesday", "every 15th", "every 3 months",

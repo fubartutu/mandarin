@@ -213,7 +213,7 @@ import type {Task as ITask} from '@/client/generated'
 import PriorityLabel from '@/components/tasks/partials/PriorityLabel.vue'
 import Labels from '@/components/tasks/partials/Labels.vue'
 import TaskGlanceTooltip from '@/components/tasks/partials/TaskGlanceTooltip.vue'
-import DeferTask from '@/components/tasks/partials/DeferTask.vue'
+import DeferTask from '@/household/tasks/RescheduleMenu.vue' // FORK: Mandarin quick reschedule (Today, Tomorrow, …, Skip)
 import ChecklistSummary from '@/components/tasks/partials/ChecklistSummary.vue'
 import CommentCount from '@/components/tasks/partials/CommentCount.vue'
 
