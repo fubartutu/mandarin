@@ -137,18 +137,25 @@ another package), so in practice:
   button next to the add-task field (FORK in `components/tasks/AddTask.vue`) and the shopping
   add bar (`AddItemBar.vue`), only shown where the browser has speech recognition; what's said
   goes into the field for quick add magic or `parseItemInput` to parse.
-- **Repeat ends:** a repeating task can stop on a date and/or after a number of times, kept in
-  `task_repeats` (one row per task, for household repeat settings beyond Vikunja's interval; model
-  `TaskRepeat` in `pkg/models/household_task_repeat.go`, a new file because it uses unexported task
-  helpers; routes `household_task_repeat.go`, `/api/v2/tasks/{task}/repeat`).
-  FORK lines: the call in `Task.Update` before buckets and rescheduling, `hardDeleteTask`, and
-  `models.GetTables()`. Completing the last occurrence clears the task's repeat so it stays done.
-  `repeats_left` counts the open occurrence too. Frontend `household/tasks/`: `RepeatEndField.vue`
-  (FORK in `TaskDetailView.vue`) and the quick add phrases in `repeatEnd.ts` ("until 5 Nov",
-  "10 times", "x6", "for 3 weeks").
+- **Repeat rules and ends:** a repeating task's household settings are one row in `task_repeats`
+  (model `TaskRepeat` in `pkg/models/household_task_repeat.go`, a new file because it uses unexported
+  task helpers; routes `household_task_repeat.go`, `/api/v2/tasks/{task}/repeat`). `rule` is an RRULE
+  subset (FREQ WEEKLY/MONTHLY/YEARLY, INTERVAL, BYDAY, BYMONTHDAY, BYSETPOS; rrule-go, server time
+  zone) that picks the next date when the task is done: `applyTaskRepeat` (FORK call in `Task.Update`
+  before buckets) sets the interval to the exact gap for that update so Vikunja's `updateDone` moves
+  the dates and reminders, and the returned restore (FORK line right after `updateDone`) puts the
+  stored interval back. A task with a rule keeps a stand-in `repeat_after` (7/30/365 days × interval)
+  so Vikunja, CalDAV and other clients see it repeat; the frontend saves it through the task first,
+  the server only sets it on tasks that don't repeat. `until`/`repeats_left` end the series
+  (`repeats_left` counts the open occurrence; completing the last clears the repeat so it stays done).
+  Removing the repeat removes the row. Other FORK lines: `hardDeleteTask`, `models.GetTables()`.
+  Frontend `household/tasks/`: `RepeatSettingsField.vue` (FORK in `TaskDetailView.vue`, gets its
+  `saveTask`), `repeatRule.ts` (rules, first date, quick add phrases) and `repeatEnd.ts`.
 - **Household quick add magic:** `household/tasks/quickAdd.ts` reads Todoist phrases off the title
   before Vikunja's magic (FORK lines in `useQuickAddTask.ts`), then applies them to the built task:
-  repeat ends, "every! 3 days" (repeat from completion; months/years are 30/365 days),
+  calendar rules ("every mon, thu", "every weekday", "every 2nd tuesday", "every 15th", "every 3 months",
+  "yearly"; swapped for Vikunja's own "weekly"/"monthly"/"yearly" so its date and reminder handling
+  still runs), repeat ends, "every! 3 days" (repeat from completion; months/years are 30/365 days),
   "starting nov 1" (drops "starting" so the date becomes the first due date) and "p1"-"p4"
   (urgent/high/medium/low; Vikunja's "!3" wins). Off when quick add magic is disabled.
 - **No Teams:** one household, so Teams is hidden from the UI only (backend untouched): menu entry

@@ -230,8 +230,24 @@ function fillFrom(rule: RepeatRule) {
 	}
 }
 
+const parseDue = (value?: string | null) => value && +new Date(value) > 0 ? new Date(value) : null
+
+// The due date rule changes count from: the one the task had before this
+// page moved it to fit a rule. Counting from the moved date instead, each
+// tweak (2nd, then Tuesday) would start from the last one's pick and the
+// date would creep forward. A due date set by hand becomes the new base.
+const baseDue = ref<Date | null>(null)
+let movedTo: Date | null = null
+watch(taskId, () => {
+	movedTo = null
+})
+watch(() => props.task.due_date, value => {
+	const due = parseDue(value)
+	if (!movedTo || !due || +due !== +movedTo) baseDue.value = due
+}, {immediate: true})
+
 /** The due date, else today: what a new rule's defaults come from. */
-const anchor = computed(() => props.task.due_date && +new Date(props.task.due_date) > 0 ? new Date(props.task.due_date) : new Date())
+const anchor = computed(() => baseDue.value ?? new Date())
 
 function changeKind() {
 	const d = anchor.value
@@ -246,8 +262,10 @@ function changeKind() {
 }
 
 function toggleDay(day: Weekday) {
+	// A weekly rule needs a day: the last one stays.
+	if (days.value.length === 1 && days.value[0] === day) return
 	days.value = days.value.includes(day) ? days.value.filter(d => d !== day) : [...days.value, day]
-	if (days.value.length) save()
+	save()
 }
 
 const draft = computed<RepeatRule | null>(() => {
@@ -287,12 +305,13 @@ async function save() {
 	if (rule) {
 		// The task itself first (chained, not at once: SQLite takes one writer):
 		// the stand-in interval other apps see, and the due date on a day the rule falls on.
-		const due = props.task.due_date && +new Date(props.task.due_date) > 0 ? new Date(props.task.due_date) : null
-		const firstDue = due ? firstOccurrence(rule, due) : null
+		const due = parseDue(props.task.due_date)
+		const firstDue = baseDue.value ? firstOccurrence(rule, baseDue.value) : null
 		const standIn = standInSeconds(rule)
 		if (props.task.repeat_after !== standIn
 			|| props.task.repeat_mode !== TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT
-			|| (due && firstDue && +firstDue !== +due)) {
+			|| (firstDue && (!due || +firstDue !== +due))) {
+			movedTo = firstDue
 			await props.saveTask({
 				...props.task,
 				repeat_after: standIn,
