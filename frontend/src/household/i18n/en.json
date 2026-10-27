@@ -361,6 +361,15 @@
 					"years": "Every year on the due date | Every {n} years on the due date"
 				},
 				"overrides": "This decides the dates, not the interval above."
+			},
+			"reschedule": {
+				"title": "Reschedule",
+				"today": "Today",
+				"tomorrow": "Tomorrow",
+				"weekend": "Weekend",
+				"nextWeek": "Next week",
+				"skipTo": "Skip to {date}",
+				"skipped": "Skipped to the next time. It still counts as not done."
 			}
 		}
 	},
@@ -452,6 +461,9 @@
 		"quickAddMagic": {
 			"quickEntryHint": "Use magic prefixes for dates, labels & more. Open the main Mandarin app and check the tooltip on the task input for more details.",
 			"label2": "Mandarin will first check if the label already exist and create it if not."
+		},
+		"deferDueDate": {
+			"title": "Reschedule"
 		}
 	},
 	"apiConfig": {

@@ -456,6 +456,12 @@
 						>
 							{{ task.done ? $t('task.detail.undone') : $t('task.detail.done') }}
 						</XButton>
+						<!-- FORK: Mandarin skip a repeating task's occurrence -->
+						<SkipOccurrenceButton
+							v-if="!task.done"
+							:task="task"
+							@skipped="seedTask(mergeTask(task, $event)); setActiveFields()"
+						/>
 						<TaskSubscription
 							entity="task"
 							:entity-id="task.id"
@@ -694,6 +700,7 @@ import RelatedTasks from '@/components/tasks/partials/RelatedTasks.vue'
 import Reminders from '@/components/tasks/partials/Reminders.vue'
 import RepeatAfter from '@/components/tasks/partials/RepeatAfter.vue'
 import RepeatSettingsField from '@/household/tasks/RepeatSettingsField.vue' // FORK: Mandarin repeat rules and ends
+import SkipOccurrenceButton from '@/household/tasks/SkipOccurrenceButton.vue' // FORK: Mandarin skip an occurrence
 import TaskSubscription from '@/components/misc/Subscription.vue'
 import CustomTransition from '@/components/misc/CustomTransition.vue'
 import AssigneeList from '@/components/tasks/partials/AssigneeList.vue'

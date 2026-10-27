@@ -26,6 +26,7 @@ import (
 	"net/http"
 
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/models"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -56,6 +57,18 @@ func RegisterHouseholdTaskRepeatRoutes(api huma.API) {
 		Path:   "/tasks/{task}/repeat",
 		Tags:   tags,
 	}, tasksRepeatUpdate)
+	Register(api, huma.Operation{
+		OperationID: "tasks-skip",
+		Summary:     "Skip a repeating task's occurrence",
+		Description: "Moves a repeating task to its next occurrence without marking it done: dates and reminders " +
+			"move as completing would move them, and the number of times left doesn't count down. When the " +
+			"end date comes before the next occurrence, the series ends: the task is completed and stops " +
+			"repeating. 400 for a task that doesn't repeat. Needs write access to the task.",
+		Method:        http.MethodPost,
+		Path:          "/tasks/{task}/skip",
+		DefaultStatus: http.StatusOK, // an action, not a create
+		Tags:          tags,
+	}, tasksSkip)
 }
 
 func tasksRepeatRead(ctx context.Context, in *struct {
@@ -77,6 +90,9 @@ func tasksRepeatRead(ctx context.Context, in *struct {
 	}
 	re, err := models.GetTaskRepeat(s, in.TaskID)
 	if err != nil {
+		return nil, translateDomainError(err)
+	}
+	if err := re.FillNext(s); err != nil {
 		return nil, translateDomainError(err)
 	}
 	return &singleBody[models.TaskRepeat]{Body: re}, nil
@@ -108,8 +124,47 @@ func tasksRepeatUpdate(ctx context.Context, in *struct {
 		_ = s.Rollback()
 		return nil, translateDomainError(err)
 	}
+	if err := re.FillNext(s); err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
 	if err := s.Commit(); err != nil {
 		return nil, translateDomainError(err)
 	}
 	return &singleBody[models.TaskRepeat]{Body: re}, nil
+}
+
+func tasksSkip(ctx context.Context, in *struct {
+	TaskID int64 `path:"task" doc:"The numeric id of the task."`
+}) (*singleBody[models.Task], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s := db.NewSession()
+	defer s.Close()
+
+	can, err := (&models.Task{ID: in.TaskID}).CanUpdate(s, a)
+	if err != nil {
+		_ = s.Rollback()
+		return nil, translateDomainError(err)
+	}
+	if !can {
+		_ = s.Rollback()
+		return nil, huma.Error403Forbidden("forbidden")
+	}
+	task, err := models.SkipTaskOccurrence(s, a, in.TaskID)
+	if err != nil {
+		_ = s.Rollback()
+		events.CleanupPending(s)
+		return nil, translateDomainError(err)
+	}
+	if err := s.Commit(); err != nil {
+		events.CleanupPending(s)
+		return nil, translateDomainError(err)
+	}
+	// Task.Update queued its TaskUpdatedEvent on the session; send it now
+	// it's committed, so open apps refresh.
+	events.DispatchPending(ctx, s)
+	return &singleBody[models.Task]{Body: task}, nil
 }

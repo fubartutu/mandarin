@@ -55,6 +55,8 @@ type TaskRepeat struct {
 	// RepeatsLeft counts the occurrences still to do, the open one included:
 	// completing a task with 1 left ends the series. 0 means no limit.
 	RepeatsLeft int `xorm:"int not null default 0" json:"repeats_left" minimum:"0" maximum:"1000" doc:"How many occurrences are left, the current one included. Completing the task with 1 left ends the series; 0 means no limit."`
+	// Next is worked out on read, for labels like "Skip to Thu 30 Oct".
+	Next *time.Time `xorm:"-" json:"next" readOnly:"true" doc:"When the task would next be due if it were done or skipped now. Null when it doesn't repeat or the series would end. Set by the server; ignored on write."`
 }
 
 // TableName holds the table name
@@ -340,5 +342,143 @@ func (err ErrInvalidTaskRepeatRule) HTTPError() web.HTTPError {
 		HTTPCode: http.StatusBadRequest,
 		Code:     ErrCodeInvalidTaskRepeatRule,
 		Message:  "The repeat rule must be an RRULE with FREQ WEEKLY, MONTHLY or YEARLY and only INTERVAL (at most 100), BYDAY, BYMONTHDAY or BYSETPOS.",
+	}
+}
+
+// nextOccurrence is when the task would next be due if it were done or
+// skipped now: from its rule, else Vikunja's interval. Zero when it doesn't
+// repeat or its end comes first. re may be nil (no settings).
+func nextOccurrence(task *Task, re *TaskRepeat, now time.Time) (time.Time, error) {
+	if !task.isRepeating() {
+		return time.Time{}, nil
+	}
+	next := nextRepeatDate(task, now)
+	if re != nil && re.Rule != "" {
+		var err error
+		if next, err = nextRuleDate(re.Rule, repeatRef(task, now), now); err != nil {
+			return time.Time{}, err
+		}
+	}
+	if re != nil && re.Until != nil && next.After(*re.Until) {
+		return time.Time{}, nil
+	}
+	return next, nil
+}
+
+// FillNext sets re.Next for the task it belongs to.
+func (re *TaskRepeat) FillNext(s *xorm.Session) error {
+	task, err := GetTaskSimple(s, &Task{ID: re.TaskID})
+	if err != nil {
+		return err
+	}
+	next, err := nextOccurrence(&task, re, time.Now())
+	if err != nil || next.IsZero() {
+		re.Next = nil
+		return err
+	}
+	re.Next = &next
+	return nil
+}
+
+// SkipTaskOccurrence moves a repeating task to its next occurrence without
+// marking it done: the dates and reminders move as completing would move
+// them, done_at stays, and "times left" doesn't count down (a skipped
+// occurrence still has to be done). When the end date comes before the next
+// occurrence, the series is over: the task is completed the usual way, which
+// clears its repeat. Permission checks are the caller's.
+func SkipTaskOccurrence(s *xorm.Session, a web.Auth, taskID int64) (*Task, error) {
+	task, err := GetTaskSimple(s, &Task{ID: taskID})
+	if err != nil {
+		return nil, err
+	}
+	if !task.isRepeating() {
+		return nil, ErrTaskDoesNotRepeat{TaskID: taskID}
+	}
+	re, err := GetTaskRepeat(s, taskID)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now()
+	next, err := nextOccurrence(&task, re, now)
+	if err != nil {
+		return nil, err
+	}
+
+	if next.IsZero() {
+		done := &Task{ID: taskID, Done: true}
+		if err := done.updateSingleTask(s, a, []string{"done"}); err != nil {
+			return nil, err
+		}
+		return readTaskAfterSkip(s, a, taskID)
+	}
+
+	// Vikunja's repeat helpers change the reminders they're given in place,
+	// so they work on copies.
+	reminders, err := getRemindersForTasks(s, []int64{taskID})
+	if err != nil {
+		return nil, err
+	}
+	old := task
+	old.Reminders = make([]*TaskReminder, len(reminders))
+	for i, r := range reminders {
+		c := *r
+		old.Reminders[i] = &c
+	}
+	if re.Rule != "" {
+		// As when completing: the exact gap, so the default mode lands on next.
+		old.RepeatAfter = int64(next.Sub(repeatRef(&task, now)) / time.Second)
+		old.RepeatMode = TaskRepeatModeDefault
+	}
+	moved := old
+	switch old.RepeatMode {
+	case TaskRepeatModeMonth:
+		setTaskDatesMonthRepeat(&old, &moved)
+	case TaskRepeatModeFromCurrentDate:
+		setTaskDatesFromCurrentDateRepeat(&old, &moved)
+	case TaskRepeatModeDefault:
+		setTaskDatesDefault(&old, &moved)
+	}
+
+	update := &Task{
+		ID:          taskID,
+		DueDate:     moved.DueDate,
+		StartDate:   moved.StartDate,
+		EndDate:     moved.EndDate,
+		Reminders:   moved.Reminders,
+		Description: resetDescriptionChecklist(task.Description),
+	}
+	fields := []string{"due_date", "start_date", "end_date", "reminders", "description"}
+	if err := update.updateSingleTask(s, a, fields); err != nil {
+		return nil, err
+	}
+	return readTaskAfterSkip(s, a, taskID)
+}
+
+func readTaskAfterSkip(s *xorm.Session, a web.Auth, taskID int64) (*Task, error) {
+	task := &Task{ID: taskID}
+	if err := task.ReadOne(s, a); err != nil {
+		return nil, err
+	}
+	return task, nil
+}
+
+// ErrTaskDoesNotRepeat is returned when skipping a task that doesn't repeat.
+type ErrTaskDoesNotRepeat struct {
+	TaskID int64
+}
+
+func (err ErrTaskDoesNotRepeat) Error() string {
+	return fmt.Sprintf("Task does not repeat [TaskID: %d]", err.TaskID)
+}
+
+// ErrCodeTaskDoesNotRepeat holds the unique world-error code of this error.
+const ErrCodeTaskDoesNotRepeat = 90403
+
+// HTTPError holds the http error description
+func (err ErrTaskDoesNotRepeat) HTTPError() web.HTTPError {
+	return web.HTTPError{
+		HTTPCode: http.StatusBadRequest,
+		Code:     ErrCodeTaskDoesNotRepeat,
+		Message:  "Only a repeating task can skip to its next occurrence.",
 	}
 }

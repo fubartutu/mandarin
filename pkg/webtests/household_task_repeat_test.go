@@ -20,17 +20,31 @@ import (
 	"net/http"
 	"testing"
 
+	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/models"
 
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // Mandarin: /api/v2/tasks/{task}/repeat webtests.
 
-func TestHouseholdTaskRepeat(t *testing.T) {
+// setupRepeatEnv is setupTestEnv with task_repeats emptied: it has no
+// fixture file, so rows from an earlier test would otherwise stay.
+func setupRepeatEnv(t *testing.T) *echo.Echo {
+	t.Helper()
 	e, err := setupTestEnv()
 	require.NoError(t, err)
+	x, err := db.CreateTestEngine()
+	require.NoError(t, err)
+	_, err = x.Exec("DELETE FROM task_repeats")
+	require.NoError(t, err)
+	return e
+}
+
+func TestHouseholdTaskRepeat(t *testing.T) {
+	e := setupRepeatEnv(t)
 	user1 := humaTokenFor(t, &testuser1)
 	const path = "/api/v2/tasks/28/repeat"
 
@@ -84,6 +98,32 @@ func TestHouseholdTaskRepeat(t *testing.T) {
 		rec := humaRequest(t, e, http.MethodGet, path, "", user2, "")
 		assert.Equal(t, http.StatusForbidden, rec.Code, rec.Body.String())
 		rec = humaRequest(t, e, http.MethodPut, path, `{"rule":"","until":null,"repeats_left":2}`, user2, "")
+		assert.Equal(t, http.StatusForbidden, rec.Code, rec.Body.String())
+	})
+}
+
+func TestHouseholdTaskSkip(t *testing.T) {
+	e := setupRepeatEnv(t)
+	user1 := humaTokenFor(t, &testuser1)
+
+	// Fixture task 28 repeats hourly; next is filled in on read.
+	rec := humaRequest(t, e, http.MethodGet, "/api/v2/tasks/28/repeat", "", user1, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	re := decode[models.TaskRepeat](t, rec.Body.Bytes())
+	require.NotNil(t, re.Next)
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/tasks/28/skip", "", user1, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	task := decode[models.Task](t, rec.Body.Bytes())
+	assert.False(t, task.Done)
+	assert.True(t, task.DueDate.Equal(*re.Next), "lands on the next it announced: %s vs %s", task.DueDate, re.Next)
+
+	t.Run("a task that doesn't repeat", func(t *testing.T) {
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/tasks/1/skip", "", user1, "")
+		assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+	})
+	t.Run("someone else's task", func(t *testing.T) {
+		rec := humaRequest(t, e, http.MethodPost, "/api/v2/tasks/28/skip", "", humaTokenFor(t, &testuser2), "")
 		assert.Equal(t, http.StatusForbidden, rec.Code, rec.Body.String())
 	})
 }

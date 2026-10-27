@@ -3778,6 +3778,10 @@ export type TaskRepeat = {
      */
     readonly $schema?: string;
     /**
+     * When the task would next be due if it were done or skipped now. Null when it doesn't repeat or the series would end. Set by the server; ignored on write.
+     */
+    readonly next?: string | null;
+    /**
      * How many occurrences are left, the current one included. Completing the task with 1 left ends the series; 0 means no limit.
      */
     repeats_left?: number;
@@ -13632,6 +13636,36 @@ export type TasksRepeatUpdateResponses = {
 };
 
 export type TasksRepeatUpdateResponse = TasksRepeatUpdateResponses[keyof TasksRepeatUpdateResponses];
+
+export type TasksSkipData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: never;
+    url: '/tasks/{task}/skip';
+};
+
+export type TasksSkipErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksSkipError = TasksSkipErrors[keyof TasksSkipErrors];
+
+export type TasksSkipResponses = {
+    /**
+     * OK
+     */
+    200: Task;
+};
+
+export type TasksSkipResponse = TasksSkipResponses[keyof TasksSkipResponses];
 
 export type TeamsListData = {
     body?: never;
