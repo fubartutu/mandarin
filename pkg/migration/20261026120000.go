@@ -24,15 +24,15 @@ import (
 )
 
 // Mandarin: when a repeating task stops repeating. Frozen copy of
-// models.TaskRepeatEnd as it was at this migration.
-type taskRepeatEnds20261026120000 struct {
+// models.TaskRepeat as it was at this migration.
+type taskRepeats20261026120000 struct {
 	TaskID      int64      `xorm:"bigint not null unique pk"`
 	Until       *time.Time `xorm:"datetime null 'repeat_until'"`
 	RepeatsLeft int        `xorm:"int not null default 0"`
 }
 
-func (taskRepeatEnds20261026120000) TableName() string {
-	return "task_repeat_ends"
+func (taskRepeats20261026120000) TableName() string {
+	return "task_repeats"
 }
 
 func init() {
@@ -41,10 +41,10 @@ func init() {
 		Description: "Mandarin: repeat ends for repeating tasks",
 		Migrate: func(tx *xorm.Engine) error {
 			// A brand-new table, so plain Sync is safe.
-			return tx.Sync(taskRepeatEnds20261026120000{}) //nolint:forbidigo // new table only
+			return tx.Sync(taskRepeats20261026120000{}) //nolint:forbidigo // new table only
 		},
 		Rollback: func(tx *xorm.Engine) error {
-			return tx.DropTables(taskRepeatEnds20261026120000{})
+			return tx.DropTables(taskRepeats20261026120000{})
 		},
 	})
 }

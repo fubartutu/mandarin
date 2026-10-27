@@ -3,8 +3,8 @@
 
 import {queryOptions, useMutation} from '@tanstack/vue-query'
 
-import {tasksRepeatEndRead, tasksRepeatEndUpdate} from '@/client/generated'
-import type {TaskRepeatEnd} from '@/client/generated'
+import {tasksRepeatRead, tasksRepeatUpdate} from '@/client/generated'
+import type {TaskRepeat} from '@/client/generated'
 import {contextMutationOptions} from '@/client/queries/contextMutation'
 import {endOfDay, type RepeatEnd} from './repeatEnd'
 
@@ -13,7 +13,7 @@ export const repeatEndKeys = {
 	task: (taskId: number) => [...repeatEndKeys.all, taskId] as const,
 }
 
-export function normalizeRepeatEnd(e: TaskRepeatEnd): RepeatEnd {
+export function normalizeRepeatEnd(e: TaskRepeat): RepeatEnd {
 	return {
 		until: e.until ? new Date(e.until) : null,
 		repeatsLeft: e.repeats_left ?? 0,
@@ -23,7 +23,7 @@ export function normalizeRepeatEnd(e: TaskRepeatEnd): RepeatEnd {
 export function taskRepeatEndQuery(taskId: number) {
 	return queryOptions({
 		queryKey: repeatEndKeys.task(taskId),
-		queryFn: async () => (await tasksRepeatEndRead({path: {task: taskId}})).data,
+		queryFn: async () => (await tasksRepeatRead({path: {task: taskId}})).data,
 		select: normalizeRepeatEnd,
 	})
 }
@@ -34,7 +34,7 @@ export async function saveRepeatEnd(taskId: number, end: RepeatEnd): Promise<Rep
 		until: end.until ? endOfDay(end.until).toISOString() : null,
 		repeats_left: end.repeatsLeft,
 	}
-	return normalizeRepeatEnd((await tasksRepeatEndUpdate({path: {task: taskId}, body})).data)
+	return normalizeRepeatEnd((await tasksRepeatUpdate({path: {task: taskId}, body})).data)
 }
 
 export function useSaveRepeatEndMutation() {

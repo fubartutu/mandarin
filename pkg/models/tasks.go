@@ -1413,7 +1413,7 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		return err
 	}
 
-	if err := applyTaskRepeatEnd(s, &ot, t, &colsToUpdate); err != nil { // FORK: Mandarin repeat end (household_task_repeat_end.go)
+	if err := applyTaskRepeatEnd(s, &ot, t, &colsToUpdate); err != nil { // FORK: Mandarin repeat end (household_task_repeat.go)
 		return err
 	}
 
@@ -2219,7 +2219,7 @@ func (t *Task) Delete(s *xorm.Session, a web.Auth) (err error) {
 // task was soft-deleted by the user.
 func hardDeleteTask(s *xorm.Session, t *Task) (err error) {
 
-	if err = deleteTaskRepeatEnd(s, t.ID); err != nil { // FORK: Mandarin repeat end
+	if err = deleteTaskRepeat(s, t.ID); err != nil { // FORK: Mandarin repeat end
 		return err
 	}
 

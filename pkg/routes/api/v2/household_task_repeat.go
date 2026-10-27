@@ -16,8 +16,8 @@
 
 package apiv2
 
-// Mandarin: /api/v2 routes for a repeating task's end (an end date and/or a
-// number of times). A new file; the model is pkg/models/household_task_repeat_end.go.
+// Mandarin: /api/v2 routes for a repeating task's household settings: its end
+// (an end date and/or a number of times). A new file; the model is pkg/models/household_task_repeat.go.
 // Not CRUDable (one row per task, no list), so the handlers check the task's
 // permissions themselves.
 
@@ -31,36 +31,36 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-func init() { AddRouteRegistrar(RegisterHouseholdTaskRepeatEndRoutes) }
+func init() { AddRouteRegistrar(RegisterHouseholdTaskRepeatRoutes) }
 
-// RegisterHouseholdTaskRepeatEndRoutes wires a task's repeat end onto the Huma API.
-func RegisterHouseholdTaskRepeatEndRoutes(api huma.API) {
+// RegisterHouseholdTaskRepeatRoutes wires a task's repeat settings onto the Huma API.
+func RegisterHouseholdTaskRepeatRoutes(api huma.API) {
 	tags := []string{"tasks"}
 
 	Register(api, huma.Operation{
-		OperationID: "tasks-repeat-end-read",
-		Summary:     "Get a task's repeat end",
-		Description: "When a repeating task stops repeating. A task without one gets an empty end " +
+		OperationID: "tasks-repeat-read",
+		Summary:     "Get a task's repeat settings",
+		Description: "When a repeating task stops repeating. A task without settings gets empty ones " +
 			"(until null, repeats_left 0) rather than a 404. Needs read access to the task.",
 		Method: http.MethodGet,
-		Path:   "/tasks/{task}/repeat-end",
+		Path:   "/tasks/{task}/repeat",
 		Tags:   tags,
-	}, tasksRepeatEndRead)
+	}, tasksRepeatRead)
 	Register(api, huma.Operation{
-		OperationID: "tasks-repeat-end-update",
-		Summary:     "Set a task's repeat end",
-		Description: "Replaces the task's repeat end; an empty one removes it. It only has an effect while the " +
+		OperationID: "tasks-repeat-update",
+		Summary:     "Set a task's repeat settings",
+		Description: "Replaces the task's repeat settings; empty ones remove them. It only has an effect while the " +
 			"task repeats. Completing the last occurrence clears the task's repeat and this end, " +
 			"so the task stays done. Needs write access to the task.",
 		Method: http.MethodPut,
-		Path:   "/tasks/{task}/repeat-end",
+		Path:   "/tasks/{task}/repeat",
 		Tags:   tags,
-	}, tasksRepeatEndUpdate)
+	}, tasksRepeatUpdate)
 }
 
-func tasksRepeatEndRead(ctx context.Context, in *struct {
+func tasksRepeatRead(ctx context.Context, in *struct {
 	TaskID int64 `path:"task" doc:"The numeric id of the task."`
-}) (*singleBody[models.TaskRepeatEnd], error) {
+}) (*singleBody[models.TaskRepeat], error) {
 	a, err := authFromCtx(ctx)
 	if err != nil {
 		return nil, err
@@ -75,17 +75,17 @@ func tasksRepeatEndRead(ctx context.Context, in *struct {
 	if !can {
 		return nil, huma.Error403Forbidden("forbidden")
 	}
-	re, err := models.GetTaskRepeatEnd(s, in.TaskID)
+	re, err := models.GetTaskRepeat(s, in.TaskID)
 	if err != nil {
 		return nil, translateDomainError(err)
 	}
-	return &singleBody[models.TaskRepeatEnd]{Body: re}, nil
+	return &singleBody[models.TaskRepeat]{Body: re}, nil
 }
 
-func tasksRepeatEndUpdate(ctx context.Context, in *struct {
+func tasksRepeatUpdate(ctx context.Context, in *struct {
 	TaskID int64 `path:"task" doc:"The numeric id of the task."`
-	Body   models.TaskRepeatEnd
-}) (*singleBody[models.TaskRepeatEnd], error) {
+	Body   models.TaskRepeat
+}) (*singleBody[models.TaskRepeat], error) {
 	a, err := authFromCtx(ctx)
 	if err != nil {
 		return nil, err
@@ -104,12 +104,12 @@ func tasksRepeatEndUpdate(ctx context.Context, in *struct {
 	}
 	re := &in.Body
 	re.TaskID = in.TaskID // the URL wins over the body
-	if err := models.SetTaskRepeatEnd(s, re); err != nil {
+	if err := models.SetTaskRepeat(s, re); err != nil {
 		_ = s.Rollback()
 		return nil, translateDomainError(err)
 	}
 	if err := s.Commit(); err != nil {
 		return nil, translateDomainError(err)
 	}
-	return &singleBody[models.TaskRepeatEnd]{Body: re}, nil
+	return &singleBody[models.TaskRepeat]{Body: re}, nil
 }

@@ -31,11 +31,11 @@ func TestTaskRepeatEnd(t *testing.T) {
 	u := &user.User{ID: 1}
 
 	// Fixture task 28 repeats hourly and belongs to user 1.
-	setEnd := func(t *testing.T, re *TaskRepeatEnd) {
+	setEnd := func(t *testing.T, re *TaskRepeat) {
 		s := db.NewSession()
 		defer s.Close()
 		re.TaskID = 28
-		require.NoError(t, SetTaskRepeatEnd(s, re))
+		require.NoError(t, SetTaskRepeat(s, re))
 		require.NoError(t, s.Commit())
 	}
 	complete := func(t *testing.T, task *Task, fields []string) {
@@ -46,19 +46,19 @@ func TestTaskRepeatEnd(t *testing.T) {
 		require.NoError(t, task.updateSingleTask(s, u, fields))
 		require.NoError(t, s.Commit())
 	}
-	read := func(t *testing.T) (*Task, *TaskRepeatEnd) {
+	read := func(t *testing.T) (*Task, *TaskRepeat) {
 		s := db.NewSession()
 		defer s.Close()
 		task := &Task{ID: 28}
 		require.NoError(t, task.ReadOne(s, u))
-		re, err := GetTaskRepeatEnd(s, 28)
+		re, err := GetTaskRepeat(s, 28)
 		require.NoError(t, err)
 		return task, re
 	}
 
 	t.Run("a count above one reopens the task and counts down", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
-		setEnd(t, &TaskRepeatEnd{RepeatsLeft: 3})
+		setEnd(t, &TaskRepeat{RepeatsLeft: 3})
 		complete(t, &Task{RepeatAfter: 3600}, nil)
 
 		task, re := read(t)
@@ -68,7 +68,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 	})
 	t.Run("the last occurrence stays done and stops repeating", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
-		setEnd(t, &TaskRepeatEnd{RepeatsLeft: 1})
+		setEnd(t, &TaskRepeat{RepeatsLeft: 1})
 		complete(t, &Task{RepeatAfter: 3600}, nil)
 
 		task, re := read(t)
@@ -80,7 +80,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 	t.Run("an end date before the next occurrence ends the series", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
 		until := time.Now() // the next occurrence is always after now
-		setEnd(t, &TaskRepeatEnd{Until: &until})
+		setEnd(t, &TaskRepeat{Until: &until})
 		complete(t, &Task{RepeatAfter: 3600}, nil)
 
 		task, _ := read(t)
@@ -90,7 +90,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 	t.Run("an end date after the next occurrence keeps repeating", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
 		until := time.Now().Add(48 * time.Hour)
-		setEnd(t, &TaskRepeatEnd{Until: &until})
+		setEnd(t, &TaskRepeat{Until: &until})
 		complete(t, &Task{RepeatAfter: 3600}, nil)
 
 		task, re := read(t)
@@ -100,7 +100,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 	})
 	t.Run("ends the series when only done is sent", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
-		setEnd(t, &TaskRepeatEnd{RepeatsLeft: 1})
+		setEnd(t, &TaskRepeat{RepeatsLeft: 1})
 		complete(t, &Task{}, []string{"done"})
 
 		task, _ := read(t)
@@ -109,23 +109,23 @@ func TestTaskRepeatEnd(t *testing.T) {
 	})
 	t.Run("removing the repeat removes the end", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
-		setEnd(t, &TaskRepeatEnd{RepeatsLeft: 3})
+		setEnd(t, &TaskRepeat{RepeatsLeft: 3})
 		s := db.NewSession()
 		defer s.Close()
 		task := &Task{ID: 28, RepeatAfter: 0}
 		require.NoError(t, task.updateSingleTask(s, u, []string{"repeat_after"}))
 		require.NoError(t, s.Commit())
-		db.AssertMissing(t, "task_repeat_ends", map[string]any{"task_id": 28})
+		db.AssertMissing(t, "task_repeats", map[string]any{"task_id": 28})
 	})
 	t.Run("an empty end is deleted, a bad count refused", func(t *testing.T) {
 		db.LoadAndAssertFixtures(t)
-		setEnd(t, &TaskRepeatEnd{RepeatsLeft: 4})
-		setEnd(t, &TaskRepeatEnd{})
-		db.AssertMissing(t, "task_repeat_ends", map[string]any{"task_id": 28})
+		setEnd(t, &TaskRepeat{RepeatsLeft: 4})
+		setEnd(t, &TaskRepeat{})
+		db.AssertMissing(t, "task_repeats", map[string]any{"task_id": 28})
 
 		s := db.NewSession()
 		defer s.Close()
-		err := SetTaskRepeatEnd(s, &TaskRepeatEnd{TaskID: 28, RepeatsLeft: -1})
-		assert.ErrorAs(t, err, &ErrInvalidTaskRepeatEnd{})
+		err := SetTaskRepeat(s, &TaskRepeat{TaskID: 28, RepeatsLeft: -1})
+		assert.ErrorAs(t, err, &ErrInvalidTaskRepeat{})
 	})
 }

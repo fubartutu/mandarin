@@ -137,9 +137,10 @@ another package), so in practice:
   button next to the add-task field (FORK in `components/tasks/AddTask.vue`) and the shopping
   add bar (`AddItemBar.vue`), only shown where the browser has speech recognition; what's said
   goes into the field for quick add magic or `parseItemInput` to parse.
-- **Repeat ends:** a repeating task can stop on a date and/or after a number of times, in its own
-  table `task_repeat_ends` (model `pkg/models/household_task_repeat_end.go`, a new file because it uses
-  unexported task helpers; routes `household_task_repeat_end.go`, `/api/v2/tasks/{task}/repeat-end`).
+- **Repeat ends:** a repeating task can stop on a date and/or after a number of times, kept in
+  `task_repeats` (one row per task, for household repeat settings beyond Vikunja's interval; model
+  `TaskRepeat` in `pkg/models/household_task_repeat.go`, a new file because it uses unexported task
+  helpers; routes `household_task_repeat.go`, `/api/v2/tasks/{task}/repeat`).
   FORK lines: the call in `Task.Update` before buckets and rescheduling, `hardDeleteTask`, and
   `models.GetTables()`. Completing the last occurrence clears the task's repeat so it stays done.
   `repeats_left` counts the open occurrence too. Frontend `household/tasks/`: `RepeatEndField.vue`

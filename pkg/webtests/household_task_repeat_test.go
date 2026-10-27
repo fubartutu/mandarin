@@ -26,18 +26,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Mandarin: /api/v2/tasks/{task}/repeat-end webtests.
+// Mandarin: /api/v2/tasks/{task}/repeat webtests.
 
-func TestHouseholdTaskRepeatEnd(t *testing.T) {
+func TestHouseholdTaskRepeat(t *testing.T) {
 	e, err := setupTestEnv()
 	require.NoError(t, err)
 	user1 := humaTokenFor(t, &testuser1)
-	const path = "/api/v2/tasks/28/repeat-end"
+	const path = "/api/v2/tasks/28/repeat"
 
 	// A task without an end reads as an empty one.
 	rec := humaRequest(t, e, http.MethodGet, path, "", user1, "")
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	re := decode[models.TaskRepeatEnd](t, rec.Body.Bytes())
+	re := decode[models.TaskRepeat](t, rec.Body.Bytes())
 	assert.Nil(t, re.Until)
 	assert.Zero(t, re.RepeatsLeft)
 
@@ -47,7 +47,7 @@ func TestHouseholdTaskRepeatEnd(t *testing.T) {
 
 	rec = humaRequest(t, e, http.MethodGet, path, "", user1, "")
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	re = decode[models.TaskRepeatEnd](t, rec.Body.Bytes())
+	re = decode[models.TaskRepeat](t, rec.Body.Bytes())
 	assert.Equal(t, int64(28), re.TaskID)
 	assert.Equal(t, 5, re.RepeatsLeft)
 	require.NotNil(t, re.Until)
@@ -56,7 +56,7 @@ func TestHouseholdTaskRepeatEnd(t *testing.T) {
 	// PATCH comes for free and keeps what isn't sent.
 	rec = humaRequest(t, e, http.MethodPatch, path, `{"repeats_left":0}`, user1, "application/merge-patch+json")
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	re = decode[models.TaskRepeatEnd](t, rec.Body.Bytes())
+	re = decode[models.TaskRepeat](t, rec.Body.Bytes())
 	assert.Zero(t, re.RepeatsLeft)
 	assert.NotNil(t, re.Until)
 

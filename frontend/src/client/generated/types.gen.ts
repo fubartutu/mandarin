@@ -3772,7 +3772,7 @@ export type TaskReminder = {
     reminder?: string;
 };
 
-export type TaskRepeatEnd = {
+export type TaskRepeat = {
     /**
      * A URL to the JSON Schema for this object.
      */
@@ -3782,7 +3782,7 @@ export type TaskRepeatEnd = {
      */
     repeats_left?: number;
     /**
-     * The task this end belongs to.
+     * The task these settings belong to.
      */
     readonly task_id?: number;
     /**
@@ -6370,7 +6370,7 @@ export type TaskRelationWritable = {
     relation_kind?: 'subtask' | 'parenttask' | 'related' | 'duplicateof' | 'duplicates' | 'blocking' | 'blocked' | 'precedes' | 'follows' | 'copiedfrom' | 'copiedto';
 };
 
-export type TaskRepeatEndWritable = {
+export type TaskRepeatWritable = {
     /**
      * How many occurrences are left, the current one included. Completing the task with 1 left ends the series; 0 means no limit.
      */
@@ -13535,7 +13535,7 @@ export type TasksRelationsDeleteResponses = {
 
 export type TasksRelationsDeleteResponse = TasksRelationsDeleteResponses[keyof TasksRelationsDeleteResponses];
 
-export type TasksRepeatEndReadData = {
+export type TasksRepeatReadData = {
     body?: never;
     path: {
         /**
@@ -13544,28 +13544,28 @@ export type TasksRepeatEndReadData = {
         task: number;
     };
     query?: never;
-    url: '/tasks/{task}/repeat-end';
+    url: '/tasks/{task}/repeat';
 };
 
-export type TasksRepeatEndReadErrors = {
+export type TasksRepeatReadErrors = {
     /**
      * Error
      */
     default: VikunjaErrorModel;
 };
 
-export type TasksRepeatEndReadError = TasksRepeatEndReadErrors[keyof TasksRepeatEndReadErrors];
+export type TasksRepeatReadError = TasksRepeatReadErrors[keyof TasksRepeatReadErrors];
 
-export type TasksRepeatEndReadResponses = {
+export type TasksRepeatReadResponses = {
     /**
      * OK
      */
-    200: TaskRepeatEnd;
+    200: TaskRepeat;
 };
 
-export type TasksRepeatEndReadResponse = TasksRepeatEndReadResponses[keyof TasksRepeatEndReadResponses];
+export type TasksRepeatReadResponse = TasksRepeatReadResponses[keyof TasksRepeatReadResponses];
 
-export type PatchTasksRepeatEndReadData = {
+export type PatchTasksRepeatReadData = {
     body: Array<JsonPatchOp> | null;
     path: {
         /**
@@ -13574,29 +13574,29 @@ export type PatchTasksRepeatEndReadData = {
         task: number;
     };
     query?: never;
-    url: '/tasks/{task}/repeat-end';
+    url: '/tasks/{task}/repeat';
 };
 
-export type PatchTasksRepeatEndReadErrors = {
+export type PatchTasksRepeatReadErrors = {
     /**
      * Error
      */
     default: VikunjaErrorModel;
 };
 
-export type PatchTasksRepeatEndReadError = PatchTasksRepeatEndReadErrors[keyof PatchTasksRepeatEndReadErrors];
+export type PatchTasksRepeatReadError = PatchTasksRepeatReadErrors[keyof PatchTasksRepeatReadErrors];
 
-export type PatchTasksRepeatEndReadResponses = {
+export type PatchTasksRepeatReadResponses = {
     /**
      * OK
      */
-    200: TaskRepeatEnd;
+    200: TaskRepeat;
 };
 
-export type PatchTasksRepeatEndReadResponse = PatchTasksRepeatEndReadResponses[keyof PatchTasksRepeatEndReadResponses];
+export type PatchTasksRepeatReadResponse = PatchTasksRepeatReadResponses[keyof PatchTasksRepeatReadResponses];
 
-export type TasksRepeatEndUpdateData = {
-    body: TaskRepeatEndWritable;
+export type TasksRepeatUpdateData = {
+    body: TaskRepeatWritable;
     path: {
         /**
          * The numeric id of the task.
@@ -13604,26 +13604,26 @@ export type TasksRepeatEndUpdateData = {
         task: number;
     };
     query?: never;
-    url: '/tasks/{task}/repeat-end';
+    url: '/tasks/{task}/repeat';
 };
 
-export type TasksRepeatEndUpdateErrors = {
+export type TasksRepeatUpdateErrors = {
     /**
      * Error
      */
     default: VikunjaErrorModel;
 };
 
-export type TasksRepeatEndUpdateError = TasksRepeatEndUpdateErrors[keyof TasksRepeatEndUpdateErrors];
+export type TasksRepeatUpdateError = TasksRepeatUpdateErrors[keyof TasksRepeatUpdateErrors];
 
-export type TasksRepeatEndUpdateResponses = {
+export type TasksRepeatUpdateResponses = {
     /**
      * OK
      */
-    200: TaskRepeatEnd;
+    200: TaskRepeat;
 };
 
-export type TasksRepeatEndUpdateResponse = TasksRepeatEndUpdateResponses[keyof TasksRepeatEndUpdateResponses];
+export type TasksRepeatUpdateResponse = TasksRepeatUpdateResponses[keyof TasksRepeatUpdateResponses];
 
 export type TeamsListData = {
     body?: never;

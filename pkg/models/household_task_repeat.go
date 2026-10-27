@@ -16,8 +16,9 @@
 
 package models
 
-// Mandarin: an end for a repeating task, either a last date ("until 5 November")
-// or a number of times ("10 times"), like Todoist. A new file in Vikunja's
+// Mandarin: a repeating task's own settings beyond Vikunja's interval. For now
+// its end: a last date ("until 5 November") or a number of times ("10 times"),
+// like Todoist. A new file in Vikunja's
 // package (not pkg/household) because it hooks into Task.Update and uses its
 // unexported date helpers; Vikunja's Task struct and task routes stay untouched.
 
@@ -35,10 +36,11 @@ import (
 // MaxTaskRepeatsLeft caps the count: more than this is "forever" in practice.
 const MaxTaskRepeatsLeft = 1000
 
-// TaskRepeatEnd says when a repeating task stops repeating. Either or both
-// may be set; whichever comes first ends the series. No row means no end.
-type TaskRepeatEnd struct {
-	TaskID int64 `xorm:"bigint not null unique pk" json:"task_id" readOnly:"true" doc:"The task this end belongs to."`
+// TaskRepeat holds a repeating task's household repeat settings, one row per
+// task. Until and RepeatsLeft say when it stops: either or both may be set,
+// and whichever comes first ends the series. No row means no end.
+type TaskRepeat struct {
+	TaskID int64 `xorm:"bigint not null unique pk" json:"task_id" readOnly:"true" doc:"The task these settings belong to."`
 	// Until is the last moment an occurrence may fall on. The frontend sends
 	// the end of the chosen day, so an occurrence that evening still counts.
 	Until *time.Time `xorm:"datetime null 'repeat_until'" json:"until" doc:"The latest an occurrence may be due. Completing the task when its next due date would be later ends the series. Null means no end date."`
@@ -48,36 +50,36 @@ type TaskRepeatEnd struct {
 }
 
 // TableName holds the table name
-func (*TaskRepeatEnd) TableName() string {
-	return "task_repeat_ends"
+func (*TaskRepeat) TableName() string {
+	return "task_repeats"
 }
 
-// IsEmpty is true when nothing would ever end the series.
-func (re *TaskRepeatEnd) IsEmpty() bool {
+// IsEmpty is true when there's nothing to store: no end.
+func (re *TaskRepeat) IsEmpty() bool {
 	return re.Until == nil && re.RepeatsLeft == 0
 }
 
-// GetTaskRepeatEnd returns the task's repeat end, or an empty one (not an
+// GetTaskRepeat returns the task's repeat settings, or empty ones (not an
 // error) when it has none.
-func GetTaskRepeatEnd(s *xorm.Session, taskID int64) (*TaskRepeatEnd, error) {
-	re := &TaskRepeatEnd{TaskID: taskID}
+func GetTaskRepeat(s *xorm.Session, taskID int64) (*TaskRepeat, error) {
+	re := &TaskRepeat{TaskID: taskID}
 	if _, err := s.Where("task_id = ?", taskID).Get(re); err != nil {
 		return nil, err
 	}
 	return re, nil
 }
 
-// SetTaskRepeatEnd stores re, replacing what the task had. An empty one
+// SetTaskRepeat stores re, replacing what the task had. An empty one
 // deletes the row. Permission checks are the caller's.
-func SetTaskRepeatEnd(s *xorm.Session, re *TaskRepeatEnd) error {
+func SetTaskRepeat(s *xorm.Session, re *TaskRepeat) error {
 	if re.RepeatsLeft < 0 || re.RepeatsLeft > MaxTaskRepeatsLeft {
-		return ErrInvalidTaskRepeatEnd{RepeatsLeft: re.RepeatsLeft}
+		return ErrInvalidTaskRepeat{RepeatsLeft: re.RepeatsLeft}
 	}
 	if re.IsEmpty() {
-		_, err := s.Where("task_id = ?", re.TaskID).Delete(&TaskRepeatEnd{})
+		_, err := s.Where("task_id = ?", re.TaskID).Delete(&TaskRepeat{})
 		return err
 	}
-	has, err := s.Where("task_id = ?", re.TaskID).Exist(&TaskRepeatEnd{})
+	has, err := s.Where("task_id = ?", re.TaskID).Exist(&TaskRepeat{})
 	if err != nil {
 		return err
 	}
@@ -98,12 +100,12 @@ func SetTaskRepeatEnd(s *xorm.Session, re *TaskRepeatEnd) error {
 // removes its end too, so it doesn't come back with a later repeat.
 func applyTaskRepeatEnd(s *xorm.Session, ot, t *Task, colsToUpdate *[]string) error {
 	if ot.isRepeating() && !t.isRepeating() {
-		return deleteTaskRepeatEnd(s, ot.ID)
+		return deleteTaskRepeat(s, ot.ID)
 	}
 	if ot.Done || !t.Done || !ot.isRepeating() {
 		return nil
 	}
-	re, err := GetTaskRepeatEnd(s, ot.ID)
+	re, err := GetTaskRepeat(s, ot.ID)
 	if err != nil || re.IsEmpty() {
 		return err
 	}
@@ -127,7 +129,7 @@ func applyTaskRepeatEnd(s *xorm.Session, ot, t *Task, colsToUpdate *[]string) er
 			*colsToUpdate = append(*colsToUpdate, col)
 		}
 	}
-	_, err = s.Where("task_id = ?", ot.ID).Delete(&TaskRepeatEnd{})
+	_, err = s.Where("task_id = ?", ot.ID).Delete(&TaskRepeat{})
 	return err
 }
 
@@ -154,30 +156,30 @@ func nextRepeatDate(task *Task, now time.Time) time.Time {
 	return addRepeatIntervalToTime(now, ref, interval)
 }
 
-// deleteTaskRepeatEnd removes the end when a task is permanently deleted.
-func deleteTaskRepeatEnd(s *xorm.Session, taskID int64) error {
-	_, err := s.Where("task_id = ?", taskID).Delete(&TaskRepeatEnd{})
+// deleteTaskRepeat removes the end when a task is permanently deleted.
+func deleteTaskRepeat(s *xorm.Session, taskID int64) error {
+	_, err := s.Where("task_id = ?", taskID).Delete(&TaskRepeat{})
 	return err
 }
 
-// ErrInvalidTaskRepeatEnd is returned for a count out of range.
-type ErrInvalidTaskRepeatEnd struct {
+// ErrInvalidTaskRepeat is returned for a count out of range.
+type ErrInvalidTaskRepeat struct {
 	RepeatsLeft int
 }
 
-func (err ErrInvalidTaskRepeatEnd) Error() string {
+func (err ErrInvalidTaskRepeat) Error() string {
 	return fmt.Sprintf("Invalid task repeat end [RepeatsLeft: %d]", err.RepeatsLeft)
 }
 
-// ErrCodeInvalidTaskRepeatEnd holds the unique world-error code of this error.
+// ErrCodeInvalidTaskRepeat holds the unique world-error code of this error.
 // Mandarin's task error codes are 904xx (menu has 903xx).
-const ErrCodeInvalidTaskRepeatEnd = 90401
+const ErrCodeInvalidTaskRepeat = 90401
 
 // HTTPError holds the http error description
-func (err ErrInvalidTaskRepeatEnd) HTTPError() web.HTTPError {
+func (err ErrInvalidTaskRepeat) HTTPError() web.HTTPError {
 	return web.HTTPError{
 		HTTPCode: http.StatusBadRequest,
-		Code:     ErrCodeInvalidTaskRepeatEnd,
+		Code:     ErrCodeInvalidTaskRepeat,
 		Message:  fmt.Sprintf("The number of repeats must be between 0 and %d.", MaxTaskRepeatsLeft),
 	}
 }
