@@ -28,6 +28,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// loadRepeatFixtures loads Vikunja's fixtures and empties task_repeats,
+// which has no fixture file in Vikunja's list (setup_tests.go), so rows
+// from an earlier test would otherwise stay.
+func loadRepeatFixtures(t *testing.T) {
+	t.Helper()
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+	_, err := s.Where("1 = 1").Delete(&TaskRepeat{})
+	require.NoError(t, err)
+	require.NoError(t, s.Commit())
+}
+
 func TestTaskRepeatEnd(t *testing.T) {
 	u := &user.User{ID: 1}
 
@@ -58,7 +71,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 	}
 
 	t.Run("a count above one reopens the task and counts down", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		setEnd(t, &TaskRepeat{RepeatsLeft: 3})
 		complete(t, &Task{RepeatAfter: 3600}, nil)
 
@@ -68,7 +81,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 		assert.Equal(t, 2, re.RepeatsLeft)
 	})
 	t.Run("the last occurrence stays done and stops repeating", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		setEnd(t, &TaskRepeat{RepeatsLeft: 1})
 		complete(t, &Task{RepeatAfter: 3600}, nil)
 
@@ -79,7 +92,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 		assert.True(t, re.IsEmpty(), "the end is removed with the repeat")
 	})
 	t.Run("an end date before the next occurrence ends the series", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		until := time.Now() // the next occurrence is always after now
 		setEnd(t, &TaskRepeat{Until: &until})
 		complete(t, &Task{RepeatAfter: 3600}, nil)
@@ -89,7 +102,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 		assert.Equal(t, int64(0), task.RepeatAfter)
 	})
 	t.Run("an end date after the next occurrence keeps repeating", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		until := time.Now().Add(48 * time.Hour)
 		setEnd(t, &TaskRepeat{Until: &until})
 		complete(t, &Task{RepeatAfter: 3600}, nil)
@@ -100,7 +113,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 		assert.WithinDuration(t, until, *re.Until, time.Second)
 	})
 	t.Run("ends the series when only done is sent", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		setEnd(t, &TaskRepeat{RepeatsLeft: 1})
 		complete(t, &Task{}, []string{"done"})
 
@@ -109,7 +122,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 		assert.Equal(t, int64(0), task.RepeatAfter)
 	})
 	t.Run("removing the repeat removes the end", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		setEnd(t, &TaskRepeat{RepeatsLeft: 3})
 		s := db.NewSession()
 		defer s.Close()
@@ -119,7 +132,7 @@ func TestTaskRepeatEnd(t *testing.T) {
 		db.AssertMissing(t, "task_repeats", map[string]any{"task_id": 28})
 	})
 	t.Run("an empty end is deleted, a bad count refused", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		setEnd(t, &TaskRepeat{RepeatsLeft: 4})
 		setEnd(t, &TaskRepeat{})
 		db.AssertMissing(t, "task_repeats", map[string]any{"task_id": 28})
@@ -191,7 +204,7 @@ func TestTaskRepeatRule(t *testing.T) {
 	}
 
 	t.Run("the rule picks the next date; the interval stays", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		// Fixture task 28 repeats hourly, due 2 December 2018 22:25:24.
 		setRepeat(t, 28, &TaskRepeat{Rule: "FREQ=WEEKLY;BYDAY=MO,TH"})
 		before := read(t, 28)
@@ -210,7 +223,7 @@ func TestTaskRepeatRule(t *testing.T) {
 		assert.True(t, task.StartDate.After(before.StartDate), "the start date moves too")
 	})
 	t.Run("the rule's last occurrence by count stays done", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		setRepeat(t, 28, &TaskRepeat{Rule: "FREQ=MONTHLY;BYDAY=2TU", RepeatsLeft: 1})
 		complete(t)
 
@@ -220,14 +233,14 @@ func TestTaskRepeatRule(t *testing.T) {
 		db.AssertMissing(t, "task_repeats", map[string]any{"task_id": 28})
 	})
 	t.Run("an end date before the rule's next date ends the series", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		until := time.Now()
 		setRepeat(t, 28, &TaskRepeat{Rule: "FREQ=YEARLY", Until: &until})
 		complete(t)
 		assert.True(t, read(t, 28).Done)
 	})
 	t.Run("a count with a rule counts down", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		setRepeat(t, 28, &TaskRepeat{Rule: "FREQ=WEEKLY;BYDAY=FR", RepeatsLeft: 3})
 		complete(t)
 
@@ -239,7 +252,7 @@ func TestTaskRepeatRule(t *testing.T) {
 		assert.Equal(t, "FREQ=WEEKLY;BYDAY=FR", re.Rule)
 	})
 	t.Run("a rule makes a task that didn't repeat repeat", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		// Fixture task 1 doesn't repeat.
 		setRepeat(t, 1, &TaskRepeat{Rule: "rrule:freq=monthly;interval=2"})
 
@@ -252,12 +265,91 @@ func TestTaskRepeatRule(t *testing.T) {
 		assert.Equal(t, "FREQ=MONTHLY;INTERVAL=2", re.Rule, "stored in its canonical form")
 	})
 	t.Run("rules outside the subset are refused", func(t *testing.T) {
-		db.LoadAndAssertFixtures(t)
+		loadRepeatFixtures(t)
 		s := db.NewSession()
 		defer s.Close()
 		for _, rule := range []string{"FREQ=DAILY", "FREQ=WEEKLY;BYHOUR=9", "FREQ=WEEKLY;COUNT=3", "FREQ=MONTHLY;INTERVAL=500", "nonsense"} {
 			err := SetTaskRepeat(s, &TaskRepeat{TaskID: 28, Rule: rule})
 			assert.ErrorAs(t, err, &ErrInvalidTaskRepeatRule{}, rule)
 		}
+	})
+}
+
+func TestSkipTaskOccurrence(t *testing.T) {
+	u := &user.User{ID: 1}
+
+	setRepeat := func(t *testing.T, re *TaskRepeat) {
+		s := db.NewSession()
+		defer s.Close()
+		re.TaskID = 28
+		require.NoError(t, SetTaskRepeat(s, re))
+		require.NoError(t, s.Commit())
+	}
+	skip := func(t *testing.T, taskID int64) (*Task, error) {
+		s := db.NewSession()
+		defer s.Close()
+		task, err := SkipTaskOccurrence(s, u, taskID)
+		if err != nil {
+			return nil, err
+		}
+		require.NoError(t, s.Commit())
+		return task, nil
+	}
+
+	t.Run("moves to the next occurrence without completing it", func(t *testing.T) {
+		loadRepeatFixtures(t)
+		// Fixture task 28 repeats hourly, due 2 December 2018.
+		task, err := skip(t, 28)
+		require.NoError(t, err)
+		assert.False(t, task.Done)
+		assert.True(t, task.DoneAt.IsZero(), "a skip isn't a completion")
+		assert.True(t, task.DueDate.After(time.Now()))
+		assert.True(t, task.DueDate.Before(time.Now().Add(time.Hour+time.Minute)), "due %s, now %s", task.DueDate, time.Now())
+		assert.Equal(t, int64(3600), task.RepeatAfter)
+	})
+	t.Run("follows the rule and keeps the count", func(t *testing.T) {
+		loadRepeatFixtures(t)
+		setRepeat(t, &TaskRepeat{Rule: "FREQ=WEEKLY;BYDAY=MO,TH", RepeatsLeft: 3})
+		task, err := skip(t, 28)
+		require.NoError(t, err)
+		due := task.DueDate.In(config.GetTimeZone())
+		assert.Contains(t, []time.Weekday{time.Monday, time.Thursday}, due.Weekday())
+		assert.Equal(t, int64(3600), task.RepeatAfter, "the stored interval stays")
+
+		s := db.NewSession()
+		defer s.Close()
+		re, err := GetTaskRepeat(s, 28)
+		require.NoError(t, err)
+		assert.Equal(t, 3, re.RepeatsLeft, "skipping doesn't count down")
+	})
+	t.Run("past the end date the series is over", func(t *testing.T) {
+		loadRepeatFixtures(t)
+		until := time.Now()
+		setRepeat(t, &TaskRepeat{Until: &until})
+		task, err := skip(t, 28)
+		require.NoError(t, err)
+		assert.True(t, task.Done)
+		assert.Equal(t, int64(0), task.RepeatAfter)
+	})
+	t.Run("a task that doesn't repeat can't be skipped", func(t *testing.T) {
+		loadRepeatFixtures(t)
+		_, err := skip(t, 1)
+		assert.ErrorAs(t, err, &ErrTaskDoesNotRepeat{})
+	})
+	t.Run("next is worked out on read", func(t *testing.T) {
+		loadRepeatFixtures(t)
+		setRepeat(t, &TaskRepeat{Rule: "FREQ=WEEKLY;BYDAY=FR"})
+		s := db.NewSession()
+		defer s.Close()
+		re, err := GetTaskRepeat(s, 28)
+		require.NoError(t, err)
+		require.NoError(t, re.FillNext(s))
+		require.NotNil(t, re.Next)
+		assert.Equal(t, time.Friday, re.Next.In(config.GetTimeZone()).Weekday())
+
+		until := time.Now()
+		re.Until = &until
+		require.NoError(t, re.FillNext(s))
+		assert.Nil(t, re.Next, "no next once the end comes first")
 	})
 }
