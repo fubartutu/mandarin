@@ -16,6 +16,7 @@ import {parseTaskText, PREFIXES} from '@/modules/quickAddMagic'
 import {buildQuickAddTask} from '@/helpers/task'
 import {getRandomColorHex} from '@/helpers/color/randomColor'
 import {runWrites} from '@/helpers/runWrites'
+import {extractQuickAddRepeatEnd, saveQuickAddRepeatEnd} from '@/household/tasks/quickAdd' // FORK: Mandarin repeat end
 import {error} from '@/message'
 import {i18n} from '@/i18n'
 import {taskRemindersFromSettings} from '@/helpers/userSettings'
@@ -89,7 +90,8 @@ export function useQuickAddTask() {
 
 	async function build(input: Partial<Task>, context: ClientRequestContext) {
 		const mode = auth.settings.frontend_settings.quick_add_magic_mode
-		const parsed = parseTaskText(input.title ?? '', mode)
+		const {text: title, end: repeatEnd} = extractQuickAddRepeatEnd(input.title ?? '', mode) // FORK: Mandarin repeat end ("daily until 5 Nov")
+		const parsed = parseTaskText(title, mode)
 		// A title that is only magic stays a literal title: nothing parsed out of it may move or decorate the task.
 		const magicOnly = !parsed.text
 		const project_id = await findProjectId({
@@ -116,6 +118,7 @@ export function useQuickAddTask() {
 				defaults,
 			),
 			parsedLabels: magicOnly ? [] : parsed.labels,
+			repeatEnd: magicOnly ? null : repeatEnd, // FORK: Mandarin repeat end
 		}
 	}
 
@@ -137,10 +140,12 @@ export function useQuickAddTask() {
 			assertClientRequestContext(context)
 			return addAssignee.mutateAsync({taskId: task.id!, user: {...user, id: user.id!}})
 		}, config.concurrent_writes)
-		return addLabelsToTask(
+		const result = await addLabelsToTask(
 			{task: {...task, assignees: built.task.assignees}, parsedLabels: built.parsedLabels},
 			context,
 		)
+		await saveQuickAddRepeatEnd(task, built.repeatEnd) // FORK: Mandarin repeat end, after the other writes
+		return result
 	}
 
 	async function createNewTask(input: Partial<Task>) {
