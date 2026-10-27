@@ -3782,6 +3782,10 @@ export type TaskRepeat = {
      */
     repeats_left?: number;
     /**
+     * An iCalendar RRULE deciding the next date when the task is done, e.g. FREQ=WEEKLY;BYDAY=MO,TH or FREQ=MONTHLY;BYDAY=2TU. Only FREQ (WEEKLY, MONTHLY, YEARLY), INTERVAL, BYDAY, BYMONTHDAY and BYSETPOS. Empty means Vikunja's repeat_after decides. Setting one on a task that doesn't repeat makes it repeat.
+     */
+    rule: string;
+    /**
      * The task these settings belong to.
      */
     readonly task_id?: number;
@@ -6375,6 +6379,10 @@ export type TaskRepeatWritable = {
      * How many occurrences are left, the current one included. Completing the task with 1 left ends the series; 0 means no limit.
      */
     repeats_left?: number;
+    /**
+     * An iCalendar RRULE deciding the next date when the task is done, e.g. FREQ=WEEKLY;BYDAY=MO,TH or FREQ=MONTHLY;BYDAY=2TU. Only FREQ (WEEKLY, MONTHLY, YEARLY), INTERVAL, BYDAY, BYMONTHDAY and BYSETPOS. Empty means Vikunja's repeat_after decides. Setting one on a task that doesn't repeat makes it repeat.
+     */
+    rule: string;
     /**
      * The latest an occurrence may be due. Completing the task when its next due date would be later ends the series. Null means no end date.
      */

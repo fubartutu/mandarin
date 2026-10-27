@@ -322,6 +322,45 @@
 				"summaryCount": "Stops after this time | {count} times left, this one included",
 				"or": ", or ",
 				"saveFailed": "The task was added, but its repeat end couldn't be saved. Set it on the task."
+			},
+			"repeat": {
+				"on": "Repeat on",
+				"kinds": {
+					"interval": "The interval above",
+					"weekly": "Days of the week",
+					"monthDay": "A day of the month",
+					"monthWeekday": "A weekday of the month",
+					"months": "Every few months",
+					"years": "Every few years"
+				},
+				"day": "Day",
+				"lastDay": "Last day",
+				"the": "The",
+				"which": "Which one",
+				"weekday": "Weekday",
+				"every": "Every",
+				"units": {
+					"weeks": "week | weeks",
+					"months": "month | months",
+					"years": "year | years"
+				},
+				"nth": {
+					"1": "1st",
+					"2": "2nd",
+					"3": "3rd",
+					"4": "4th",
+					"-1": "Last"
+				},
+				"weekdays": "weekday",
+				"summary": {
+					"weekly": "Every {days} | Every {n} weeks on {days}",
+					"monthDay": "Monthly on day {day} | Every {n} months on day {day}",
+					"lastDay": "Monthly on the last day | Every {n} months on the last day",
+					"monthWeekday": "Monthly on the {nth} {weekday} | Every {n} months on the {nth} {weekday}",
+					"months": "Every month on the due date's day | Every {n} months on the due date's day",
+					"years": "Every year on the due date | Every {n} years on the due date"
+				},
+				"overrides": "This decides the dates, not the interval above."
 			}
 		}
 	},

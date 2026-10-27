@@ -1413,7 +1413,8 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 		return err
 	}
 
-	if err := applyTaskRepeatEnd(s, &ot, t, &colsToUpdate); err != nil { // FORK: Mandarin repeat end (household_task_repeat.go)
+	restoreRepeat, err := applyTaskRepeat(s, &ot, t, &colsToUpdate) // FORK: Mandarin repeat rules and ends (household_task_repeat.go)
+	if err != nil {
 		return err
 	}
 
@@ -1529,6 +1530,7 @@ func (t *Task) updateSingleTask(s *xorm.Session, a web.Auth, fields []string) (e
 
 	// When a repeating task is marked as done, we update all deadlines and reminders and set it as undone
 	updateDoneAt := updateDone(&ot, t)
+	restoreRepeat() // FORK: Mandarin repeat rules, put the stored interval back
 	if updateDoneAt {
 		colsToUpdate = append(colsToUpdate, "done_at")
 	}

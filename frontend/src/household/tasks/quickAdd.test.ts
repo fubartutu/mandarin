@@ -98,10 +98,50 @@ describe('household quick add magic', () => {
 		})
 	})
 
+	describe('calendar rules', () => {
+		const DAY = 24 * 3600
+
+		it('puts the first due date on the next matching day', () => {
+			const {task, magic} = quickAdd('bins every mon, thu at 7pm')
+			expect(task.title).toBe('bins')
+			expect(magic.rule).toEqual({kind: 'weekly', interval: 1, days: ['MO', 'TH']})
+			expect(new Date(task.due_date!)).toEqual(new Date(2026, 9, 29, 19, 0)) // Thursday
+			expect(task.repeat_after).toBe(7 * DAY)
+			expect(task.repeat_mode).toBe(TASK_REPEAT_MODES.REPEAT_MODE_DEFAULT)
+		})
+
+		it('fixes Vikunja\'s "every 2 months" and "yearly", which never repeated', () => {
+			expect(quickAdd('water bill every 3 months').task.repeat_after).toBe(90 * DAY)
+			const {task} = quickAdd('car rego yearly starting nov 5')
+			expect(task.repeat_after).toBe(365 * DAY)
+			const due = new Date(task.due_date!)
+			expect([due.getMonth(), due.getDate()]).toEqual([10, 5])
+		})
+
+		it('takes an end with it', () => {
+			const {task, magic} = quickAdd('book club every 2nd tuesday until 1 mar')
+			expect(task.title).toBe('book club')
+			expect(new Date(task.due_date!).getDate()).toBe(10) // 2nd Tuesday of November
+			expect(magic.repeatEnd?.until).toEqual(new Date(2027, 2, 1, 23, 59, 59))
+		})
+
+		it('counts from a typed start date', () => {
+			const {task} = quickAdd('pay rent every 15th starting dec 1')
+			expect(new Date(task.due_date!).getMonth()).toBe(11)
+			expect(new Date(task.due_date!).getDate()).toBe(15)
+		})
+
+		it('a title that is only a rule stays literal', () => {
+			const {text, magic} = readHouseholdMagic('every monday', PrefixMode.Default, NOW())
+			expect(parseTaskText(text, PrefixMode.Default, NOW()).text).toBe('')
+			expect(magic.rule).not.toBeNull() // useQuickAddTask drops it: the title is magic only
+		})
+	})
+
 	it('does nothing when quick add magic is off', () => {
 		expect(readHouseholdMagic('fix it p1 every! day until nov 5', PrefixMode.Disabled, NOW())).toEqual({
 			text: 'fix it p1 every! day until nov 5',
-			magic: {repeatEnd: null, fromCompletion: 0, priority: null},
+			magic: {rule: null, repeatEnd: null, fromCompletion: 0, priority: null},
 		})
 	})
 
