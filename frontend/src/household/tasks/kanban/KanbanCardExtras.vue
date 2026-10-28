@@ -1,5 +1,5 @@
 <template>
-	<!-- Mandarin: a Kanban card's subtitle and its hover comments. One FORK insert under the title in KanbanCard.vue. -->
+	<!-- Mandarin: a Kanban card's subtitle, urgency stripe and hover comments. One FORK insert under the title in KanbanCard.vue. -->
 	<p
 		v-if="subtitle"
 		ref="subtitleRef"
@@ -53,8 +53,10 @@ import {commentsQuery} from '@/client/queries/comments'
 import CustomTransition from '@/components/misc/CustomTransition.vue'
 import {getTopLayerContainer} from '@/helpers/getTopLayerContainer'
 import {formatDateSince} from '@/helpers/time/formatDate'
+import {useGlobalNow} from '@/composables/useGlobalNow'
 import {getDisplayName} from '@/helpers/user'
 import {commentText, firstLine} from './cardText'
+import {urgencyOf} from './urgency'
 
 const props = defineProps<{
 	task: Task
@@ -64,6 +66,11 @@ const HOVER_DELAY = 1000 // like Vikunja's TaskGlanceTooltip
 const SHOWN = 3 // the newest comments
 
 const subtitle = computed(() => firstLine(props.task.description))
+
+// The stripe colour (household/kanban.scss styles the card by it). The shared
+// clock ticks every minute, so "due today" turns into "overdue" on its own.
+const {now} = useGlobalNow()
+const urgency = computed(() => urgencyOf(props.task, now.value))
 
 // Taps on phones fake a mouseenter; only real pointers get the popup.
 const canHover = useMediaQuery('(hover: hover) and (pointer: fine)')
@@ -122,9 +129,17 @@ watch(comments, () => {
 	if (showComments.value) place()
 })
 
-// The card itself is Vikunja's (KanbanCard.vue): listen on it rather than wrap it.
+function markUrgency() {
+	if (!card) return
+	if (urgency.value) card.dataset.householdUrgency = urgency.value
+	else delete card.dataset.householdUrgency
+}
+watch(urgency, markUrgency)
+
+// The card itself is Vikunja's (KanbanCard.vue): mark it and listen on it rather than wrap it.
 onMounted(() => {
 	card = subtitleRef.value?.closest('.task') ?? null
+	markUrgency()
 	card?.addEventListener('mouseenter', show)
 	card?.addEventListener('mouseleave', hide)
 	// Picking a card up to drag it closes the popup.
@@ -133,6 +148,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
 	hide()
+	if (card) delete card.dataset.householdUrgency
 	card?.removeEventListener('mouseenter', show)
 	card?.removeEventListener('mouseleave', hide)
 	card?.removeEventListener('pointerdown', hide)

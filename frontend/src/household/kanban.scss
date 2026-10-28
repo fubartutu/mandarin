@@ -1,4 +1,4 @@
-// Mandarin: fixes to Vikunja's Kanban view, kept out of ProjectKanban.vue
+// Mandarin: changes to Vikunja's Kanban view, kept out of its components
 // (no FORK lines). Imported by setup.ts. These selectors outrank the
 // component's scoped ones (more classes), so no !important is needed.
 
@@ -12,4 +12,26 @@
 	> .input {
 		min-block-size: 3.5rem;
 	}
+}
+
+// A card's urgency (household/tasks/kanban/urgency.ts: priority or due date,
+// whichever is more urgent) as a stripe down its left edge. An inset shadow
+// in front of Vikunja's own card shadow: nothing moves, and it shows on cards
+// with their own background colour too.
+.kanban .task[data-household-urgency] {
+	--household-urgency: transparent;
+
+	box-shadow: inset 4px 0 0 var(--household-urgency), var(--shadow-xs);
+}
+
+.kanban .task[data-household-urgency="red"] {
+	--household-urgency: var(--danger);
+}
+
+.kanban .task[data-household-urgency="orange"] {
+	--household-urgency: var(--warning);
+}
+
+.kanban .task[data-household-urgency="yellow"] {
+	--household-urgency: hsl(45deg 100% 50%); // amber; the theme has no yellow
 }

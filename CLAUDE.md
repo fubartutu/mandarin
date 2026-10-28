@@ -184,7 +184,10 @@ another package), so in practice:
   `KanbanCard.vue`) shows the description's first line as a one-line subtitle (`cardText.ts`) and,
   after a 1 s hover with a real pointer, the latest 3 comments (Vikunja's `commentsQuery`, newest
   first, fetched on first hover; nothing for tasks without comments). It listens on the card it sits
-  in (`closest('.task')`) instead of wrapping it; a pointerdown (drag) closes the popup.
+  in (`closest('.task')`) instead of wrapping it; a pointerdown (drag) closes the popup. It also sets
+  `data-household-urgency` (red/orange/yellow, `urgency.ts`: priority or due date, the more urgent
+  wins, never on done tasks; re-checked every minute via `useGlobalNow`) on the card, which
+  `household/kanban.scss` draws as an inset stripe on the left in front of Vikunja's card shadow.
 - **Task row subtitles:** List view rows (and Home's current tasks, Upcoming: all `SingleTaskInProject`)
   show the same first line under the title, `household/tasks/TaskSubtitle.vue` (one FORK insert).
 - **Last view per project:** Vikunja keeps it only in localStorage (`helpers/projectView.ts`), which
