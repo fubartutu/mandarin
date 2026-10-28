@@ -143,6 +143,8 @@
 				</span>
 
 				<ChecklistSummary :task="task" />
+				<!-- FORK: Mandarin subtitle (description's first line) -->
+				<TaskSubtitle :description="task.description" />
 			</div>
 
 			<ProgressBar
@@ -215,6 +217,7 @@ import Labels from '@/components/tasks/partials/Labels.vue'
 import TaskGlanceTooltip from '@/components/tasks/partials/TaskGlanceTooltip.vue'
 import DeferTask from '@/household/tasks/RescheduleMenu.vue' // FORK: Mandarin quick reschedule (Today, Tomorrow, …, Skip)
 import ChecklistSummary from '@/components/tasks/partials/ChecklistSummary.vue'
+import TaskSubtitle from '@/household/tasks/TaskSubtitle.vue' // FORK: Mandarin row subtitle
 import CommentCount from '@/components/tasks/partials/CommentCount.vue'
 
 import ProgressBar from '@/components/misc/ProgressBar.vue'
