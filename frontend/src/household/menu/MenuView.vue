@@ -7,7 +7,7 @@
 			<nav class="week-nav">
 				<RouterLink
 					class="button is-small"
-					:to="weekRoute(shiftWeek(monday, -1))"
+					:to="startRoute(addDays(start, -7))"
 					:title="$t('household.menu.previousWeek')"
 					:aria-label="$t('household.menu.previousWeek')"
 				>
@@ -16,18 +16,18 @@
 				<span class="week-label">{{ weekLabel }}</span>
 				<RouterLink
 					class="button is-small"
-					:to="weekRoute(shiftWeek(monday, 1))"
+					:to="startRoute(addDays(start, 7))"
 					:title="$t('household.menu.nextWeek')"
 					:aria-label="$t('household.menu.nextWeek')"
 				>
 					<Icon icon="chevron-right" />
 				</RouterLink>
 				<RouterLink
-					v-if="monday !== mondayOf(now)"
+					v-if="start !== today"
 					class="button is-small"
-					:to="weekRoute(mondayOf(now))"
+					:to="startRoute(today)"
 				>
-					{{ $t('household.menu.thisWeek') }}
+					{{ $t('household.menu.backToToday') }}
 				</RouterLink>
 			</nav>
 		</header>
@@ -52,7 +52,6 @@
 			<li
 				v-for="day in days"
 				:key="day"
-				:ref="el => setDayRef(day, el)"
 				class="day-card"
 				:class="`is-${dayStatus(day, today)}`"
 				:aria-current="day === today ? 'date' : undefined"
@@ -248,7 +247,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, ref, watch, type ComponentPublicInstance} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useQuery} from '@tanstack/vue-query'
 import {useNow} from '@vueuse/core'
@@ -274,11 +273,11 @@ import {
 	type MenuEntryResponse,
 	type NewEntry,
 } from './queries'
-import {dayKey, dayStatus, dinnersByDay, fromKey, mondayOf, shiftWeek, weekDays} from './week'
+import {addDays, dayKey, dayStatus, dinnersByDay, fromKey, weekDays} from './week'
 
 const props = defineProps<{
-	/** Any day of the week to show, YYYY-MM-DD; empty for this week. */
-	week: string
+	/** The first of the 7 days shown, YYYY-MM-DD; empty for today. */
+	start: string
 }>()
 
 const {t, locale} = useI18n({useScope: 'global'})
@@ -288,16 +287,18 @@ useTitle(() => t('household.menu.title'))
 const now = useNow({interval: 60 * 1000})
 const today = computed(() => dayKey(now.value))
 
-const monday = computed(() => mondayOf(props.week ? fromKey(props.week) : now.value))
-const days = computed(() => weekDays(monday.value))
+// The 7 days from today, or from the day in the address (earlier or later pages).
+const start = computed(() => props.start || today.value)
+const days = computed(() => weekDays(start.value))
 
 const entries = useQuery(computed(() => menuRangeQuery(days.value[0], days.value[6])))
 const dinners = computed(() => dinnersByDay(entries.data.value ?? [], days.value))
 
-function weekRoute(weekMonday: string) {
-	return weekMonday === mondayOf(now.value)
+// Plain /menu for today, so a bookmark keeps starting on the current day.
+function startRoute(day: string) {
+	return day === today.value
 		? {name: 'menu'}
-		: {name: 'menu', params: {week: weekMonday}}
+		: {name: 'menu', params: {start: day}}
 }
 
 function dayLabel(day: string) {
@@ -309,23 +310,6 @@ const weekLabel = computed(() => {
 	// formatRange writes "19–25 Oct 2026" or "28 Dec 2026 – 3 Jan 2027" as the locale prefers.
 	return new Intl.DateTimeFormat(locale.value, options).formatRange(fromKey(days.value[0]), fromKey(days.value[6]))
 })
-
-// ---- Today scrolled into view ----
-
-const dayRefs = new Map<string, HTMLElement>()
-function setDayRef(day: string, el: Element | ComponentPublicInstance | null) {
-	if (el instanceof HTMLElement) dayRefs.set(day, el)
-	else dayRefs.delete(day)
-}
-
-// Once per week shown, when its days are on screen.
-let scrolledFor = ''
-watch(() => [monday.value, entries.data.value !== undefined] as const, async ([shown, loaded]) => {
-	if (!loaded || scrolledFor === shown) return
-	scrolledFor = shown
-	await nextTick()
-	dayRefs.get(today.value)?.scrollIntoView({block: 'center'})
-}, {immediate: true})
 
 // ---- Adding notes and recipes ----
 

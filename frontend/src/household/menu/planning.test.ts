@@ -3,16 +3,17 @@ import {describe, expect, it} from 'vitest'
 import {cookRoute, entryFactor, menuWeekRoute, plannedDayLabel} from './planning'
 
 describe('menuWeekRoute', () => {
-	const now = new Date(2026, 9, 24, 12, 0) // Saturday 24 Oct 2026, week of Mon 19 Oct
+	const now = new Date(2026, 9, 28, 12, 0) // Wednesday 28 Oct 2026
 
-	it('is the plain menu page for a day in this week', () => {
-		expect(menuWeekRoute('2026-10-25', now)).toEqual({name: 'menu'})
-		expect(menuWeekRoute('2026-10-19', now)).toEqual({name: 'menu'})
+	it('is the plain menu page for the next 7 days', () => {
+		expect(menuWeekRoute('2026-10-28', now)).toEqual({name: 'menu'})
+		expect(menuWeekRoute('2026-11-03', now)).toEqual({name: 'menu'})
 	})
 
-	it('names the Monday of another week', () => {
-		expect(menuWeekRoute('2026-10-29', now)).toEqual({name: 'menu', params: {week: '2026-10-26'}})
-		expect(menuWeekRoute('2026-10-18', now)).toEqual({name: 'menu', params: {week: '2026-10-12'}})
+	it('names the first day of the page that day is on', () => {
+		expect(menuWeekRoute('2026-11-04', now)).toEqual({name: 'menu', params: {start: '2026-11-04'}})
+		expect(menuWeekRoute('2026-11-06', now)).toEqual({name: 'menu', params: {start: '2026-11-04'}})
+		expect(menuWeekRoute('2026-10-26', now)).toEqual({name: 'menu', params: {start: '2026-10-21'}})
 	})
 })
 

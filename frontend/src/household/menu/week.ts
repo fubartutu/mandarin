@@ -19,27 +19,35 @@ export function fromKey(day: string): Date {
 	return new Date(year, month - 1, date)
 }
 
-function addDays(day: string, days: number): string {
+/** The day `days` days after (or before, when negative) a YYYY-MM-DD day. */
+export function addDays(day: string, days: number): string {
 	const date = fromKey(day)
 	date.setDate(date.getDate() + days)
 	return dayKey(date)
 }
 
-/** The Monday of the week a date falls in (weeks run Monday to Sunday). */
-export function mondayOf(date: Date): string {
-	// getDay() is 0 for Sunday, 1 for Monday … 6 for Saturday.
-	const sinceMonday = (date.getDay() + 6) % 7
-	return addDays(dayKey(date), -sinceMonday)
+/** Whole days from one YYYY-MM-DD day to another (negative when `to` is earlier). */
+export function daysBetween(from: string, to: string): number {
+	// Both as UTC midnights, so a daylight-saving change can't make a day 23 hours.
+	const utc = (day: string) => {
+		const [year, month, date] = day.split('-').map(Number)
+		return Date.UTC(year, month - 1, date)
+	}
+	return Math.round((utc(to) - utc(from)) / 86_400_000)
 }
 
-/** The seven days of the week starting on that Monday. */
-export function weekDays(monday: string): string[] {
-	return Array.from({length: 7}, (_, i) => addDays(monday, i))
+/** The seven days starting on `start` (the menu shows a week from any day, usually today). */
+export function weekDays(start: string): string[] {
+	return Array.from({length: 7}, (_, i) => addDays(start, i))
 }
 
-/** The Monday `weeks` weeks before (negative) or after. */
-export function shiftWeek(monday: string, weeks: number): string {
-	return addDays(monday, weeks * 7)
+/**
+ * The first day of the menu page showing `day`, when its pages are 7 days
+ * each starting from today: today itself for the next 7 days, else today
+ * plus or minus a whole number of weeks.
+ */
+export function pageStart(day: string, today: string): string {
+	return addDays(today, Math.floor(daysBetween(today, day) / 7) * 7)
 }
 
 /** YYYY-MM-DD strings sort like the dates they are, so they compare directly. */

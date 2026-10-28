@@ -1,8 +1,7 @@
-// What the Home page's menu card shows: tonight's dinner, then the days
-// after it up to Sunday that have a dinner planned. Days already past
-// aren't shown, so they don't count towards "planned" either.
+// What the Home page's menu card shows: tonight's dinner, then the next
+// six days that have a dinner planned (the same 7 days as the Menu page).
 
-import {dinnersByDay, fromKey, mondayOf, weekDays} from './week'
+import {dinnersByDay, weekDays} from './week'
 
 interface DayEntry {
 	day: string
@@ -13,15 +12,15 @@ interface DayEntry {
 export interface HomeWeek<T> {
 	/** Tonight's dinner entries, in position order. */
 	tonight: T[]
-	/** Tomorrow … Sunday, only the days with dinner entries. */
+	/** Tomorrow and the five days after it, only those with dinner entries. */
 	rest: {day: string, entries: T[]}[]
-	/** Nothing planned from tonight to Sunday. */
+	/** Nothing planned in the next 7 days. */
 	empty: boolean
 }
 
-/** `entries` from this week's menu, `today` as YYYY-MM-DD. */
+/** `entries` from the next 7 days' menu, `today` as YYYY-MM-DD. */
 export function homeWeek<T extends DayEntry>(entries: T[], today: string): HomeWeek<T> {
-	const days = weekDays(mondayOf(fromKey(today))).filter(day => day >= today)
+	const days = weekDays(today)
 	const dinners = dinnersByDay(entries, days)
 	const tonight = dinners.get(today) ?? []
 	const rest = days

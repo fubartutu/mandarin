@@ -78,18 +78,18 @@ import Card from '@/components/misc/Card.vue'
 
 import {homeWeek} from '../homeWeek'
 import {menuRangeQuery} from '../queries'
-import {dayKey, fromKey, mondayOf, weekDays} from '../week'
+import {dayKey, fromKey, weekDays} from '../week'
 import MenuEntryInline from './MenuEntryInline.vue'
 
-// The Home page's "This week" card: tonight's dinner and the rest of the week.
+// The Home page's "Next 7 days" card: tonight's dinner and the six days after it.
 
 const {locale} = useI18n({useScope: 'global'})
 
 // Re-checked every minute, so "tonight" moves on at midnight with the page open.
 const now = useNow({interval: 60 * 1000})
-const days = computed(() => weekDays(mondayOf(now.value)))
+const days = computed(() => weekDays(dayKey(now.value)))
 
-// The same query (and so the same cache entry) as this week on the Menu page.
+// The same query (and so the same cache entry) as the Menu page opened on today.
 const entries = useQuery(computed(() => menuRangeQuery(days.value[0], days.value[6])))
 const week = computed(() => homeWeek(entries.data.value ?? [], dayKey(now.value)))
 

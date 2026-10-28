@@ -4,17 +4,19 @@
 
 import type {RouteLocationRaw} from 'vue-router'
 
-import {fromKey, mondayOf} from './week'
+import {dayKey, fromKey, pageStart} from './week'
 
 /**
- * The menu page showing the week a YYYY-MM-DD day is in: plain /menu for
- * this week (so it stays "this week" tomorrow), else /menu/<that Monday>.
+ * The menu page showing a YYYY-MM-DD day. Pages are 7 days starting from
+ * today: plain /menu for the next 7 days (so it moves on with the days),
+ * else /menu/<first day of that page>, a whole number of weeks from today.
  */
 export function menuWeekRoute(day: string, now: Date): RouteLocationRaw {
-	const monday = mondayOf(fromKey(day))
-	return monday === mondayOf(now)
+	const today = dayKey(now)
+	const start = pageStart(day, today)
+	return start === today
 		? {name: 'menu'}
-		: {name: 'menu', params: {week: monday}}
+		: {name: 'menu', params: {start}}
 }
 
 /** "Tue, 27 Oct" (in the locale's own order and words). */
