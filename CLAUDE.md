@@ -174,6 +174,9 @@ another package), so in practice:
   `node install.mjs` copies it into the HOME vault). Talks to /api/v2 with a Mandarin API token
   plus Cloudflare Access service-token headers, through Obsidian's `requestUrl`. Pure text logic is in
   `markdown.ts` (tested); `api.integration.test.ts` runs against a server when MANDARIN_TEST_URL is set.
+- **Top bar project title:** Vikunja clears the current project only for its own pages (a route-name
+  list in `ContentAuth.vue`). `household/projectHeader.ts` clears it on every route in `household/routes.ts`,
+  so a new household route is covered without a FORK edit.
 - **iPhone/iPad:** `household/ios.ts` (from `setup.ts`) adds `maximum-scale=1` to the viewport on
   Apple touch devices only, so Safari doesn't zoom into fields with text under 16px (and stay zoomed).
   iOS still allows pinch-zoom; Android would not, so it's never added there.
