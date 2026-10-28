@@ -35,6 +35,7 @@ export interface FrontendSettings {
 	time_tracking_default_start?: string
 	default_due_time?: string
 	household_start_page?: string // FORK: Mandarin start page (see household/startPage.ts)
+	household_project_views?: Record<string, number> // FORK: Mandarin last view per project (see household/projectViews.ts)
 }
 
 export function taskRemindersFromSettings(

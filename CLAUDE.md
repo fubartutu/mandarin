@@ -185,6 +185,14 @@ another package), so in practice:
   after a 1 s hover with a real pointer, the latest 3 comments (Vikunja's `commentsQuery`, newest
   first, fetched on first hover; nothing for tasks without comments). It listens on the card it sits
   in (`closest('.task')`) instead of wrapping it; a pointerdown (drag) closes the popup.
+- **Task row subtitles:** List view rows (and Home's current tasks, Upcoming: all `SingleTaskInProject`)
+  show the same first line under the title, `household/tasks/TaskSubtitle.vue` (one FORK insert).
+- **Last view per project:** Vikunja keeps it only in localStorage (`helpers/projectView.ts`), which
+  logout clears. `household/projectViews.ts` (registered in `setup.ts`, no Vikunja edits) also keeps
+  it in `frontend_settings.household_project_views` (`{projectId: viewId}`, type FORK in
+  `helpers/userSettings.ts`): a router guard swaps in the saved view when Vikunja's redirect has none
+  (view id 0), and an `afterEach` saves the shown view 1.5 s later if it changed, through Vikunja's
+  own settings mutation. A deleted view falls back to Vikunja's default view.
 - **API-token permissions:** since upstream v2.7.1, start-up panics if two routes would share a
   token permission key. A new household resource with both a list and a read-one route must be
   added to `crudResources` in `pkg/models/api_routes.go` (FORK block). The household webtests catch it.
