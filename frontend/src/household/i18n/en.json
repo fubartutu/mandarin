@@ -370,6 +370,9 @@
 				"nextWeek": "Next week",
 				"skipTo": "Skip to {date}",
 				"skipped": "Skipped to the next time. It still counts as not done."
+			},
+			"kanban": {
+				"recentComments": "1 comment | Latest of {count} comments"
 			}
 		}
 	},
