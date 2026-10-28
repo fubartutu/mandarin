@@ -64,6 +64,8 @@
 					{{ task.title }}
 				</RouterLink>
 			</h3>
+			<!-- FORK: Mandarin subtitle (description's first line) and recent comments on hover -->
+			<KanbanCardExtras :task="task" />
 			
 			<span
 				v-if="projectTitle"
@@ -134,6 +136,7 @@ import Done from '@/components/misc/Done.vue'
 import Labels from '@/components/tasks/partials/Labels.vue'
 import ChecklistSummary from './ChecklistSummary.vue'
 import CommentCount from './CommentCount.vue'
+import KanbanCardExtras from '@/household/tasks/kanban/KanbanCardExtras.vue' // FORK: Mandarin card subtitle and comments
 
 import {getHexColor, getTaskIdentifier} from '@/helpers/task'
 import type {Task as ITask} from '@/client/generated'

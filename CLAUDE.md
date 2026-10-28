@@ -180,6 +180,11 @@ another package), so in practice:
 - **Layout fixes to Vikunja views** go in household stylesheets imported by `setup.ts`, with selectors
   that outrank the component's scoped ones, instead of FORK edits: `household/kanban.scss` (the
   "Create a bucket" button at the bucket headers' height).
+- **Kanban cards:** `household/tasks/kanban/KanbanCardExtras.vue` (one FORK insert under the title in
+  `KanbanCard.vue`) shows the description's first line as a one-line subtitle (`cardText.ts`) and,
+  after a 1 s hover with a real pointer, the latest 3 comments (Vikunja's `commentsQuery`, newest
+  first, fetched on first hover; nothing for tasks without comments). It listens on the card it sits
+  in (`closest('.task')`) instead of wrapping it; a pointerdown (drag) closes the popup.
 - **API-token permissions:** since upstream v2.7.1, start-up panics if two routes would share a
   token permission key. A new household resource with both a list and a read-one route must be
   added to `crudResources` in `pkg/models/api_routes.go` (FORK block). The household webtests catch it.
