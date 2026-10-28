@@ -374,6 +374,17 @@
 			"kanban": {
 				"recentComments": "1 comment | Latest of {count} comments"
 			}
+		},
+		"whatsNew": {
+			"title": "What's new",
+			"version": "Running version {version}",
+			"kind": {
+				"new": "New",
+				"improved": "Improved",
+				"fixed": "Fixed"
+			},
+			"updated": "Mandarin has been updated.",
+			"see": "See what's new"
 		}
 	},
 	"ready": {

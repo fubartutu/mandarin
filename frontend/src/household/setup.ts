@@ -72,3 +72,11 @@ router.addRoute('user.settings', {
 	name: 'user.settings.household-notifications',
 	component: () => import('./push/NotificationsSettings.vue'),
 })
+
+// What's new: the changelog (whatsnew/changelog.ts), linked from the user menu
+// (FORK line in AppHeader.vue) and from a notice on Home after an update.
+router.addRoute({
+	path: '/whats-new',
+	name: 'household.whats-new',
+	component: () => import('./whatsnew/WhatsNewView.vue'),
+})

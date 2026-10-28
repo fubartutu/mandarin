@@ -202,6 +202,10 @@ another package), so in practice:
   `helpers/userSettings.ts`): a router guard swaps in the saved view when Vikunja's redirect has none
   (view id 0), and an `afterEach` saves the shown view 1.5 s later if it changed, through Vikunja's
   own settings mutation. A deleted view falls back to Vikunja's default view.
+- **What's new:** `frontend/src/household/whatsnew/changelog.ts` is the changelog shown at
+  `/whats-new` (route in `setup.ts`, user-menu FORK in `AppHeader.vue`; Home shows a notice until
+  it's opened, `seen.ts`). With every change people would notice, add a plain-English line under
+  today's date (newest first); skip refactors, docs and CI.
 - **API-token permissions:** since upstream v2.7.1, start-up panics if two routes would share a
   token permission key. A new household resource with both a list and a read-one route must be
   added to `crudResources` in `pkg/models/api_routes.go` (FORK block). The household webtests catch it.

@@ -116,6 +116,10 @@
 				<DropdownItem @click="baseStore.setKeyboardShortcutsActive(true)">
 					{{ $t('keyboardShortcuts.title') }}
 				</DropdownItem>
+				<!-- FORK: Mandarin's changelog, see household/whatsnew -->
+				<DropdownItem :to="{ name: 'household.whats-new' }">
+					{{ $t('household.whatsNew.title') }}
+				</DropdownItem>
 				<DropdownItem :to="{ name: 'about' }">
 					{{ $t('about.title') }}
 				</DropdownItem>

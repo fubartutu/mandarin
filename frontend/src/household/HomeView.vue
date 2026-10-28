@@ -23,6 +23,16 @@
 			</RouterLink>
 		</Message>
 
+		<Message
+			v-if="whatsNew.unseen.value.length > 0"
+			class="mbe-4"
+		>
+			{{ $t('household.whatsNew.updated') }}
+			<RouterLink :to="{name: 'household.whats-new'}">
+				{{ $t('household.whatsNew.see') }}
+			</RouterLink>
+		</Message>
+
 		<AddTask @tasksAdded="showTasksKey++" />
 
 		<div class="home-cards">
@@ -149,6 +159,7 @@ import {useRecentRecipes} from './recipes/recent'
 import type {ShoppingItemResponse} from './shopping/queries'
 import {useShoppingData} from './shopping/useShopping'
 import {useShoppingSync} from './shopping/sync/useShoppingSync'
+import {useWhatsNew} from './whatsnew/seen'
 
 // Replaces Vikunja's Overview (views/Home.vue) on "/": the same greeting,
 // quick add and current tasks, with this week's menu, the shopping lists and recipes in place
@@ -161,6 +172,9 @@ const authStore = useAuthStore()
 const projectList = useProjects()
 const route = useRoute()
 const router = useRouter()
+
+// "Mandarin has been updated" until the What's new page has been opened.
+const whatsNew = useWhatsNew()
 
 const deletionScheduledAt = computed(() => parseDateOrNull(authStore.info?.deletion_scheduled_at))
 
