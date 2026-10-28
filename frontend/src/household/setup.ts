@@ -33,6 +33,7 @@ import {registerOfflineStart} from './offline'
 import {mountOfflineBanner} from './offlineTasks'
 import {registerStartPage} from './startPage'
 import {registerProjectViewMemory} from './projectViews'
+import {registerIosFixes} from './ios'
 
 library.add(
 	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
@@ -57,6 +58,7 @@ registerOfflineStart(router)
 // Otherwise open on the page chosen in Settings → General.
 registerStartPage(router)
 registerProjectViewMemory(router)
+registerIosFixes()
 
 // "Offline: showing what you last opened" on task pages without signal.
 mountOfflineBanner(router)

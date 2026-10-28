@@ -59,7 +59,7 @@ another package), so in practice:
   `lang/en.json` or `Icon.ts`.
 - **Home and start page:** `household/HomeView.vue` replaces Vikunja's Overview on `/` (added in
   `setup.ts` with `router.addRoute` under the same name `home`, so `router/index.ts` is untouched):
-  quick add, this week's menu (`menu/homeWeek.ts`), shopping lists, recently viewed recipes
+  quick add, the next 7 days' menu (`menu/homeWeek.ts`), shopping lists, recently viewed recipes
   (`recipes/recent.ts`, localStorage) and current tasks. `HouseholdNavItems.vue` sits at the top of
   the menu (Home, Shopping, Recipes, Menu, then a "Tasks" divider); the Overview entry was removed
   from `Navigation.vue` (FORK). The start page (Home, Shopping, Recipes or Menu) is `household_start_page` in `frontend_settings`, picked in Settings → General
@@ -91,8 +91,8 @@ another package), so in practice:
   `text_recipe.py` rules, `ai.py`; settings in `settings.py`); Mandarin proxies them under
   `/recipes/paperless`, and a scan's page picture is `paperless:documents/<id>/image`.
 - **Menu planning:** `pkg/household/menu` (online-only), routes in `household_menu.go`
-  (`/api/v2/menu`), frontend `frontend/src/household/menu` (`/menu/:week?`, weeks Monday to
-  Sunday in local time, `week.ts`). One `menu_entries` table: an entry is a recipe (`recipe_id`,
+  (`/api/v2/menu`), frontend `frontend/src/household/menu` (`/menu/:start?`: 7 days from today,
+  or from `start`; arrows move 7 days; local time, `week.ts`). One `menu_entries` table: an entry is a recipe (`recipe_id`,
   own `servings`: 0 when the recipe has none, else at least 1) or a free-text `note`, for a day's
   breakfast, lunch or dinner (only dinner shown), ordered by `position` within the meal. Error
   codes 903xx. `recipes` imports `menu`, never the other way round: deleting a recipe calls
@@ -174,6 +174,9 @@ another package), so in practice:
   `node install.mjs` copies it into the HOME vault). Talks to /api/v2 with a Mandarin API token
   plus Cloudflare Access service-token headers, through Obsidian's `requestUrl`. Pure text logic is in
   `markdown.ts` (tested); `api.integration.test.ts` runs against a server when MANDARIN_TEST_URL is set.
+- **iPhone/iPad:** `household/ios.ts` (from `setup.ts`) adds `maximum-scale=1` to the viewport on
+  Apple touch devices only, so Safari doesn't zoom into fields with text under 16px (and stay zoomed).
+  iOS still allows pinch-zoom; Android would not, so it's never added there.
 - **Colours:** `household/theme.scss` (imported by `setup.ts`) overrides Vikunja's `--primary-*`
   tokens with mandarin orange, checked for WCAG contrast in light and dark mode; `index.html` and
   `vite.config.ts` carry the matching `theme-color` (FORK).

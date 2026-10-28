@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {dayKey, dayStatus, dinnersByDay, mondayOf, shiftWeek, weekDays} from './week'
+import {addDays, dayKey, daysBetween, dayStatus, dinnersByDay, pageStart, weekDays} from './week'
 
 describe('dayKey', () => {
 	it('is the local calendar day, not the UTC one', () => {
@@ -10,23 +10,13 @@ describe('dayKey', () => {
 	})
 })
 
-describe('mondayOf', () => {
-	it.each([
-		['Monday itself', new Date(2026, 9, 19), '2026-10-19'],
-		['a Wednesday', new Date(2026, 9, 21, 18, 0), '2026-10-19'],
-		['Sunday belongs to the week before it', new Date(2026, 9, 25, 20, 0), '2026-10-19'],
-		['across a month end', new Date(2026, 10, 1), '2026-10-26'],
-		['across a year end', new Date(2027, 0, 2), '2026-12-28'],
-	])('%s', (_name, date, monday) => {
-		expect(mondayOf(date)).toBe(monday)
-	})
-})
-
 describe('weekDays', () => {
-	it('runs Monday to Sunday', () => {
+	it('is seven days from any day', () => {
 		expect(weekDays('2026-10-19')).toEqual([
 			'2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25',
 		])
+		// A Wednesday start runs to the next Tuesday.
+		expect(weekDays('2026-10-28').at(-1)).toBe('2026-11-03')
 	})
 
 	it('stays on whole days over a daylight-saving change', () => {
@@ -37,11 +27,39 @@ describe('weekDays', () => {
 	})
 })
 
-describe('shiftWeek', () => {
-	it('moves a week back or forward', () => {
-		expect(shiftWeek('2026-10-19', -1)).toBe('2026-10-12')
-		expect(shiftWeek('2026-10-19', 1)).toBe('2026-10-26')
-		expect(shiftWeek('2026-12-28', 1)).toBe('2027-01-04')
+describe('addDays', () => {
+	it('moves back or forward across months and years', () => {
+		expect(addDays('2026-10-28', -7)).toBe('2026-10-21')
+		expect(addDays('2026-10-28', 7)).toBe('2026-11-04')
+		expect(addDays('2026-12-28', 7)).toBe('2027-01-04')
+	})
+})
+
+describe('daysBetween', () => {
+	it('counts whole days, even over a daylight-saving change', () => {
+		expect(daysBetween('2026-10-28', '2026-10-28')).toBe(0)
+		expect(daysBetween('2026-10-28', '2026-11-04')).toBe(7)
+		expect(daysBetween('2026-11-04', '2026-10-28')).toBe(-7)
+		expect(daysBetween('2026-09-30', '2026-10-07')).toBe(7) // Sydney's clocks go forward on 4 Oct
+		expect(daysBetween('2026-12-31', '2027-01-01')).toBe(1)
+	})
+})
+
+describe('pageStart', () => {
+	// Pages are 7 days each, starting from today (Wednesday 28 Oct 2026).
+	const today = '2026-10-28'
+
+	it('is today for the next 7 days', () => {
+		expect(pageStart('2026-10-28', today)).toBe(today)
+		expect(pageStart('2026-11-03', today)).toBe(today)
+	})
+
+	it('is a whole number of weeks from today otherwise', () => {
+		expect(pageStart('2026-11-04', today)).toBe('2026-11-04')
+		expect(pageStart('2026-11-12', today)).toBe('2026-11-11')
+		expect(pageStart('2026-10-27', today)).toBe('2026-10-21')
+		expect(pageStart('2026-10-21', today)).toBe('2026-10-21')
+		expect(pageStart('2026-10-20', today)).toBe('2026-10-14')
 	})
 })
 
