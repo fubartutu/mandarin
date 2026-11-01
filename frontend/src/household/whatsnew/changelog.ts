@@ -18,6 +18,12 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
 	{
+		date: '2026-11-01',
+		changes: [
+			{kind: 'fixed', text: 'On a recipe, the Cook and Edit buttons now line up with Plan and Keep screen on, and look the same.'},
+		],
+	},
+	{
 		date: '2026-10-29',
 		changes: [
 			{kind: 'new', text: 'This What\'s new page, in the menu under your name. Home shows a note when there\'s something new.'},

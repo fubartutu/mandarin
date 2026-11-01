@@ -55,13 +55,12 @@
 				</h1>
 				<div class="recipe-actions">
 					<!-- Opens at the servings shown below. -->
-					<RouterLink
+					<XButton
 						:to="{name: 'recipe.cook', params: {recipeId: data.id}, query: cookingQuery(data.servings, amount)}"
-						class="button is-primary"
+						icon="utensils"
 					>
-						<Icon icon="utensils" />
-						<span>{{ $t('household.cooking.open') }}</span>
-					</RouterLink>
+						{{ $t('household.cooking.open') }}
+					</XButton>
 					<XButton
 						variant="secondary"
 						icon="calendar"
@@ -79,13 +78,13 @@
 					>
 						{{ $t('household.recipes.keepAwake') }}
 					</XButton>
-					<RouterLink
+					<XButton
 						:to="{name: 'recipe.edit', params: {recipeId: data.id}}"
-						class="button is-secondary"
+						variant="secondary"
+						icon="pen"
 					>
-						<Icon icon="pen" />
-						<span>{{ $t('household.recipes.edit') }}</span>
-					</RouterLink>
+						{{ $t('household.recipes.edit') }}
+					</XButton>
 				</div>
 			</header>
 
