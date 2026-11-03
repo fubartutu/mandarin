@@ -5,7 +5,7 @@ import {parseTaskText, PrefixMode, PREFIXES} from '@/modules/quickAddMagic'
 import {buildQuickAddTask} from '@/helpers/task'
 import {PRIORITIES} from '@/constants/priorities'
 import {TASK_REPEAT_MODES} from '@/types/IRepeatMode'
-import {applyHouseholdMagic, readHouseholdMagic} from './quickAdd'
+import {applyHouseholdMagic, readHouseholdMagic, withColonTimes} from './quickAdd'
 
 // Tuesday 27 October 2026, 10:00 local time.
 const NOW = () => new Date(2026, 9, 27, 10, 0)
@@ -70,6 +70,32 @@ describe('household quick add magic', () => {
 		it('only applies to repeating tasks with a date after it', () => {
 			expect(quickAdd('starting line paint').text).toBe('starting line paint')
 			expect(quickAdd('daily starting gun check').text).toBe('daily starting gun check')
+		})
+	})
+
+	describe('hh.mm times', () => {
+		it('reads "at 9.30" like "at 9:30"', () => {
+			const dot = quickAdd('Call mum tomorrow at 9.30').task
+			const colon = quickAdd('Call mum tomorrow at 9:30').task
+			expect(dot.due_date).toBe(colon.due_date)
+			expect(new Date(dot.due_date!).getHours()).toBe(9)
+			expect(new Date(dot.due_date!).getMinutes()).toBe(30)
+			expect(dot.title).toBe('Call mum')
+		})
+
+		it('works with am/pm, @ and 24-hour times', () => {
+			expect(new Date(quickAdd('Bins tomorrow at 7.15pm').task.due_date!).getHours()).toBe(19)
+			expect(new Date(quickAdd('Bins tomorrow @ 18.45').task.due_date!).getMinutes()).toBe(45)
+			expect(quickAdd('Dentist friday at 14.00').task.title).toBe('Dentist')
+		})
+
+		it('leaves other numbers with dots alone', () => {
+			expect(withColonTimes('Update to v1.2 at 9.30')).toBe('Update to v1.2 at 9:30')
+			expect(withColonTimes('Buy 2.5 kg flour')).toBe('Buy 2.5 kg flour')
+			expect(withColonTimes('Read chapter at 1.2.3')).toBe('Read chapter at 1.2.3')
+			expect(withColonTimes('Meet at 25.30')).toBe('Meet at 25.30')
+			expect(withColonTimes('Meet at 9.75')).toBe('Meet at 9.75')
+			expect(withColonTimes('Chat at 9.30.')).toBe('Chat at 9:30.')
 		})
 	})
 

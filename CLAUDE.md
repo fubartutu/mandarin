@@ -172,7 +172,8 @@ another package), so in practice:
   "yearly"; swapped for Vikunja's own "weekly"/"monthly"/"yearly" so its date and reminder handling
   still runs), repeat ends, "every! 3 days" (repeat from completion; months/years are 30/365 days),
   "starting nov 1" (drops "starting" so the date becomes the first due date) and "p1"-"p4"
-  (urgent/high/medium/low; Vikunja's "!3" wins). Off when quick add magic is disabled.
+  (urgent/high/medium/low; Vikunja's "!3" wins), and turns "at 9.30" into "at 9:30" (`withColonTimes`;
+  Vikunja only reads hh:mm after "at"/"@"). Off when quick add magic is disabled.
 - **No Teams:** one household, so Teams is hidden from the UI only (backend untouched): menu entry
   (`Navigation.vue`), its shortcut listing (`shortcuts.ts`), team sharing (`ProjectSettingsShare.vue`)
   and quick-action team search and "New team" (`QuickActions.vue`), all FORK lines. The routes stay.
