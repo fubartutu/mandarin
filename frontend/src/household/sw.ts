@@ -11,6 +11,12 @@ import {NavigationRoute, registerRoute} from 'workbox-routing'
 import {NetworkFirst} from 'workbox-strategies'
 import type {WorkboxPlugin} from 'workbox-core'
 
+import {
+	isNotificationAction,
+	runNotificationAction,
+	type NotificationButton,
+} from './push/notificationActions'
+
 declare let self: ServiceWorkerGlobalScope
 
 /** The cache of server answers. The app deletes it on logout (offlineTasks.ts). */
@@ -77,14 +83,26 @@ export function registerOfflineApi() {
 }
 
 // ---- Push notifications ----
-// The server (pkg/household/push) sends {title, body, url, tag}. A push must
-// always show a notification (Safari stops delivering otherwise).
+// The server (pkg/household/push) sends {title, body, url, tag}, and for a
+// single task also Done and Snooze buttons with the token they send back
+// (push/notificationActions.ts). A push must always show a notification
+// (Safari stops delivering otherwise). Safari shows no buttons; Android, a
+// Galaxy Watch it forwards to, and desktop Chrome do.
 
 interface PushMessage {
 	title?: string
 	body?: string
 	url?: string
 	tag?: string
+	actions?: NotificationButton[]
+	action_token?: string
+}
+
+// actions and renotify are in the Notification API but not in TypeScript's
+// NotificationOptions yet.
+type MandarinNotificationOptions = NotificationOptions & {
+	actions?: NotificationButton[]
+	renotify?: boolean
 }
 
 export function registerPush() {
@@ -96,21 +114,51 @@ export function registerPush() {
 			msg = {body: event.data?.text()}
 		}
 		const icon = new URL('images/household/android-chrome-192x192.png', self.registration.scope).href
-		event.waitUntil(self.registration.showNotification(msg.title || 'Mandarin', {
+		const hasActions = Boolean(msg.actions?.length && msg.action_token)
+		const options: MandarinNotificationOptions = {
 			body: msg.body,
 			tag: msg.tag,
 			icon,
-			data: {mandarinUrl: msg.url || '/'},
-		}))
+			data: {mandarinUrl: msg.url || '/', mandarinActionToken: msg.action_token},
+			...(hasActions ? {
+				actions: msg.actions,
+				// A snoozed reminder reuses the task's tag: buzz again even if
+				// the earlier one is still showing.
+				renotify: Boolean(msg.tag),
+			} : {}),
+		}
+		event.waitUntil(self.registration.showNotification(msg.title || 'Mandarin', options))
 	})
 
 	// Tapping a notification opens its page: in an open Mandarin window if
-	// there is one, else a new one. (Vikunja's own notificationclick handler
+	// there is one, else a new one. Its buttons are handled below. (Vikunja's own notificationclick handler
 	// in sw.ts only reacts to its "show-task" action, which ours don't have.)
 	self.addEventListener('notificationclick', event => {
 		const path = event.notification.data?.mandarinUrl
 		if (typeof path !== 'string') return
 		event.notification.close()
+
+		// Done or Snooze: done in the background, without opening the app. If it
+		// fails (no signal, Cloudflare login expired), a notification says so,
+		// and tapping that one opens the task.
+		const token = event.notification.data?.mandarinActionToken
+		const action = event.action
+		if (isNotificationAction(action) && typeof token === 'string') {
+			const {title, tag} = event.notification
+			event.waitUntil((async () => {
+				const failed = await runNotificationAction(self.registration.scope, action, token, title)
+				if (failed) {
+					await self.registration.showNotification(failed.title, {
+						body: failed.body,
+						tag,
+						icon: new URL('images/household/android-chrome-192x192.png', self.registration.scope).href,
+						data: {mandarinUrl: path},
+					})
+				}
+			})())
+			return
+		}
+
 		const target = new URL(path.replace(/^\//, ''), self.registration.scope).href
 		event.waitUntil((async () => {
 			const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true})

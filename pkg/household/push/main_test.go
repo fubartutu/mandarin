@@ -26,8 +26,11 @@ import (
 
 	"code.vikunja.io/api/pkg/config"
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/events"
+	"code.vikunja.io/api/pkg/files"
 	"code.vikunja.io/api/pkg/household/shopping"
 	"code.vikunja.io/api/pkg/log"
+	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/user"
 
 	"github.com/stretchr/testify/require"
@@ -43,7 +46,12 @@ func TestMain(m *testing.M) {
 	log.InitLogger()
 	config.InitDefaultConfig()
 	config.ServicePublicURL.Set("https://mandarin.example.com/")
+	files.InitTests()
 	user.InitTests()
+	// Tasks and projects, for the Done and Snooze buttons. Last, because each
+	// InitTests replaces the fixture set; this one includes users.
+	models.SetupTests()
+	events.Fake()
 	x, err := db.CreateTestEngine()
 	if err != nil {
 		log.Fatal(err)
@@ -59,7 +67,7 @@ func setup(t *testing.T) *xorm.Session {
 	require.NoError(t, db.LoadFixtures())
 	s := db.NewSession()
 	t.Cleanup(func() { s.Close() })
-	for _, table := range []string{"push_devices", "push_preferences", "push_vapid_keys", "push_shopping_pending"} {
+	for _, table := range []string{"push_devices", "push_preferences", "push_vapid_keys", "push_shopping_pending", "push_snoozes"} {
 		_, err := s.Exec("DELETE FROM " + table)
 		require.NoError(t, err)
 	}

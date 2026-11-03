@@ -38,9 +38,17 @@ type Message struct {
 	URL string `json:"url"`
 	// Tag replaces an earlier notification with the same tag instead of stacking.
 	Tag string `json:"tag,omitempty"`
+	// Actions are the notification's buttons (Done and Snooze on a task), and
+	// ActionToken is what the service worker sends back when one is tapped.
+	Actions     []Action `json:"actions,omitempty"`
+	ActionToken string   `json:"action_token,omitempty"`
 
 	ttl     time.Duration
 	urgency webpush.Urgency
+	// taskID and taskDue are the one task the message is about, if any: it
+	// gets the Done and Snooze buttons (addTaskActions).
+	taskID  int64
+	taskDue time.Time
 }
 
 // httpClient sends the pushes. Tests replace it.
