@@ -138,7 +138,10 @@ another package), so in practice:
   `service.secret`, 48 h, user + task + due date) for the public `POST /api/v2/push/actions` (listed in
   `unauthenticatedAPIPaths`, FORK). A token whose task is done or whose due date moved does nothing, so
   Done can't skip two occurrences. Done is `models.MarkTaskDone` (new file `household_push_done.go`);
-  snoozes are per user in `push_snoozes`, re-sent by a per-minute cron. Taps: `push/notificationActions.ts`.
+  snoozes are per user in `push_snoozes`, re-sent by a per-minute cron. Taps: `push/notificationActions.ts`
+  (a snooze is confirmed by a quiet "Snoozed until 10:40" notification). The task page shows the viewer's
+  own snooze with a Cancel link (`push/SnoozeNotice.vue`, FORK under Mark done in `TaskDetailView.vue`;
+  `GET`/`DELETE /api/v2/tasks/{task}/snooze`).
 - **Dictation:** `household/dictation/` (browser speech recognition, Web Speech API). A mic
   button next to the add-task field (FORK in `components/tasks/AddTask.vue`) and the shopping
   add bar (`AddItemBar.vue`), only shown where the browser has speech recognition; what's said

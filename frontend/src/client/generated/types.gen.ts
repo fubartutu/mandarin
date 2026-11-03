@@ -3217,6 +3217,17 @@ export type ShoppingSyncResult = {
     rejected?: Array<ShoppingSyncRejection> | null;
 };
 
+export type SnoozeState = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When the snoozed reminder comes back; null when it isn't snoozed. Only the caller's own snooze.
+     */
+    snoozed_until?: string | null;
+};
+
 export type Status = {
     /**
      * A URL to the JSON Schema for this object.
@@ -6270,6 +6281,13 @@ export type ShoppingSyncResultWritable = {
      * Ops from this request that were dropped.
      */
     rejected?: Array<ShoppingSyncRejection> | null;
+};
+
+export type SnoozeStateWritable = {
+    /**
+     * When the snoozed reminder comes back; null when it isn't snoozed. Only the caller's own snooze.
+     */
+    snoozed_until?: string | null;
 };
 
 export type TaskWritable = {
@@ -13743,6 +13761,66 @@ export type TasksSkipResponses = {
 };
 
 export type TasksSkipResponse = TasksSkipResponses[keyof TasksSkipResponses];
+
+export type TasksSnoozeDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: never;
+    url: '/tasks/{task}/snooze';
+};
+
+export type TasksSnoozeDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksSnoozeDeleteError = TasksSnoozeDeleteErrors[keyof TasksSnoozeDeleteErrors];
+
+export type TasksSnoozeDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type TasksSnoozeDeleteResponse = TasksSnoozeDeleteResponses[keyof TasksSnoozeDeleteResponses];
+
+export type TasksSnoozeReadData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: never;
+    url: '/tasks/{task}/snooze';
+};
+
+export type TasksSnoozeReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksSnoozeReadError = TasksSnoozeReadErrors[keyof TasksSnoozeReadErrors];
+
+export type TasksSnoozeReadResponses = {
+    /**
+     * OK
+     */
+    200: SnoozeState;
+};
+
+export type TasksSnoozeReadResponse = TasksSnoozeReadResponses[keyof TasksSnoozeReadResponses];
 
 export type TeamsListData = {
     body?: never;

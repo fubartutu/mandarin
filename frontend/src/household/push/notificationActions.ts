@@ -6,6 +6,8 @@
 // A plain fetch, not the generated client: the client reads the login token
 // and API address from the page, and a service worker has no page.
 
+import {snoozeLabel} from './snoozeLabel'
+
 /** The buttons the server sends, as the Web Notification API takes them. */
 export interface NotificationButton {
 	action: string
@@ -19,15 +21,18 @@ export function isNotificationAction(action: string): action is NotificationActi
 	return (NOTIFICATION_ACTIONS as readonly string[]).includes(action)
 }
 
-/** A notification to show instead, when the tap didn't work. */
-export interface FallbackNotification {
+/** A notification to show after the tap: a confirmation or what went wrong. */
+export interface FollowUpNotification {
 	title: string
 	body: string
+	/** True for a confirmation: shown without a sound or buzz. */
+	quiet: boolean
 }
 
 /**
- * Sends the tapped button to the server. Returns null when it worked (or the
- * task had already moved on), else what to tell the person.
+ * Sends the tapped button to the server. Returns what to show next: "Snoozed
+ * until 10:40" after a snooze, a "couldn't" when it failed, or null (Done
+ * worked, or the task had already moved on: the notification just goes).
  */
 export async function runNotificationAction(
 	scope: string,
@@ -35,7 +40,8 @@ export async function runNotificationAction(
 	token: string,
 	taskTitle: string,
 	fetchFn: typeof fetch = fetch,
-): Promise<FallbackNotification | null> {
+	now: Date = new Date(),
+): Promise<FollowUpNotification | null> {
 	let status = 0
 	try {
 		const res = await fetchFn(new URL('api/v2/push/actions', scope).href, {
@@ -48,6 +54,14 @@ export async function runNotificationAction(
 			redirect: 'manual',
 		})
 		if (res.ok) {
+			const result: {result?: string, snoozed_until?: string} = await res.json().catch(() => ({}))
+			if (result.result === 'snoozed' && result.snoozed_until) {
+				return {
+					title: taskTitle,
+					body: `Snoozed until ${snoozeLabel(new Date(result.snoozed_until), now)}`,
+					quiet: true,
+				}
+			}
 			return null
 		}
 		status = res.status
@@ -59,5 +73,6 @@ export async function runNotificationAction(
 		body: status === 401
 			? 'This notification is too old for its buttons. Tap to open the task.'
 			: 'Tap to open the task.',
+		quiet: false,
 	}
 }

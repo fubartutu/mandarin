@@ -20,6 +20,7 @@ export const changelog: ChangelogEntry[] = [
 	{
 		date: '2026-11-03',
 		changes: [
+			{kind: 'improved', text: 'Snoozing a reminder shows "Snoozed until 10:40" in its place, and the task page shows the snooze with a Cancel link.'},
 			{kind: 'improved', text: 'Quick add understands times with a dot as well as a colon: "Call mum tomorrow at 9.30".'},
 			{kind: 'new', text: 'Task reminders have Done and Snooze 1h buttons, on Android phones and Galaxy Watches (iPhones don\'t show buttons on notifications). So does the overdue reminder when only one task is overdue.'},
 		],

@@ -115,6 +115,45 @@ func RegisterHouseholdPushRoutes(api huma.API) {
 		// in unauthenticatedAPIPaths (routes.go).
 		Security: []map[string][]string{},
 	}, pushAction)
+	Register(api, huma.Operation{
+		OperationID: "tasks-snooze-read",
+		Summary:     "Get my snooze on a task",
+		Description: "When the reminder snoozed from a notification comes back. Only the caller's own snooze; snoozed_until is null when there's none.",
+		Method:      http.MethodGet, Path: "/tasks/{task}/snooze", Tags: tags,
+	}, tasksSnoozeRead)
+	Register(api, huma.Operation{
+		OperationID: "tasks-snooze-delete",
+		Summary:     "Cancel my snooze on a task",
+		Description: "The snoozed reminder won't come back. Succeeds when there's no snooze too.",
+		Method:      http.MethodDelete, Path: "/tasks/{task}/snooze", Tags: tags,
+	}, tasksSnoozeDelete)
+}
+
+type taskSnoozeInput struct {
+	TaskID int64 `path:"task" doc:"The numeric id of the task."`
+}
+
+func tasksSnoozeRead(ctx context.Context, in *taskSnoozeInput) (*singleBody[push.SnoozeState], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	state, err := inPushSession(func(s *xorm.Session) (*push.SnoozeState, error) { return push.GetSnooze(s, a, in.TaskID) })
+	if err != nil {
+		return nil, err
+	}
+	return &singleBody[push.SnoozeState]{Body: state}, nil
+}
+
+func tasksSnoozeDelete(ctx context.Context, in *taskSnoozeInput) (*emptyBody, error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := inPushSession(func(s *xorm.Session) (struct{}, error) { return struct{}{}, push.CancelSnooze(s, a, in.TaskID) }); err != nil {
+		return nil, err
+	}
+	return &emptyBody{}, nil
 }
 
 // inPushSession runs fn in a committed session.

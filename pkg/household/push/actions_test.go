@@ -209,3 +209,28 @@ func TestSnoozedMessage(t *testing.T) {
 	assert.NotEmpty(t, msg.ActionToken)
 	assert.Empty(t, snoozes(t))
 }
+
+func TestSnoozeOnTaskPage(t *testing.T) {
+	setup(t)
+	s := setup0(t)
+	state, err := GetSnooze(s, user1, 1)
+	require.NoError(t, err)
+	assert.Nil(t, state.SnoozedUntil)
+
+	at := time.Date(2026, 11, 3, 10, 40, 0, 0, time.UTC)
+	require.NoError(t, snooze(s, 1, 1, at))
+	state, err = GetSnooze(s, user1, 1)
+	require.NoError(t, err)
+	require.NotNil(t, state.SnoozedUntil)
+	assert.True(t, state.SnoozedUntil.Equal(at))
+
+	_, err = GetSnooze(s, user2, 1)
+	require.ErrorAs(t, err, &models.ErrGenericForbidden{}, "user 2 can't see task 1")
+	require.ErrorAs(t, CancelSnooze(s, user2, 1), &models.ErrGenericForbidden{})
+
+	require.NoError(t, CancelSnooze(s, user1, 1))
+	state, err = GetSnooze(s, user1, 1)
+	require.NoError(t, err)
+	assert.Nil(t, state.SnoozedUntil)
+	require.NoError(t, CancelSnooze(s, user1, 1), "nothing to cancel")
+}
