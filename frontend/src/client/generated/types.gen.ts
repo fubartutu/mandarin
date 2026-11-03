@@ -735,6 +735,259 @@ export type File = {
     readonly size?: number;
 };
 
+export type Habit = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * An archived habit is kept with its history but left out of lists unless asked for.
+     */
+    archived?: boolean;
+    /**
+     * A hex colour without #, e.g. e8590c, or empty for the default.
+     */
+    color?: string;
+    /**
+     * When the habit was made. Its history counts from that day (or its first tick, if earlier).
+     */
+    readonly created?: string;
+    /**
+     * Ticks needed: per day for daily_count, per week for weekly (1–99). Always 1 for daily and bad habits.
+     */
+    goal?: number;
+    /**
+     * The routine (habit group) it belongs to, or 0 for none. Must be a group the caller can see.
+     */
+    group_id?: number;
+    /**
+     * The unique, numeric id of this habit.
+     */
+    readonly id?: number;
+    /**
+     * daily: once on each of its weekdays. daily_count: goal times on each of its weekdays. weekly: goal times a week, any days. bad: logged each time it happens, no goal or streak. Can't be changed after the habit is made.
+     */
+    kind?: 'daily' | 'daily_count' | 'weekly' | 'bad';
+    /**
+     * The user who made the habit.
+     */
+    readonly owner_id?: number;
+    /**
+     * Whether the habit is paused now (holidays, illness). Days while paused are neither done nor missed. Set to true to pause from today, false to carry on from today.
+     */
+    paused?: boolean;
+    /**
+     * Order in its group (or among ungrouped habits), lowest first.
+     */
+    position?: number;
+    /**
+     * How the habit is going as of today.
+     */
+    readonly progress?: Progress;
+    /**
+     * Times of day (HH:MM, 24-hour, the caller's time zone) to remind if the habit isn't done or skipped yet. At most 8.
+     */
+    reminder_times?: Array<string> | null;
+    /**
+     * true for a household routine: every household member sees and ticks it. false for a personal habit only its owner sees. Only the owner can make a household routine personal again.
+     */
+    shared?: boolean;
+    /**
+     * What the habit is, e.g. Stretch or Bins out.
+     */
+    title?: string;
+    /**
+     * When the habit was last changed. Ticks and skips don't change it.
+     */
+    readonly updated?: string;
+    /**
+     * Which days a daily or daily_count habit is due: seven 1s and 0s, Monday first, e.g. 1010100 for Mon/Wed/Fri. At least one 1. Always 1111111 for weekly and bad habits.
+     */
+    weekdays?: string;
+};
+
+export type HabitEntry = {
+    /**
+     * When the tick reached the server.
+     */
+    readonly created?: string;
+    /**
+     * The day it counts for, YYYY-MM-DD. Today or earlier.
+     */
+    day?: string;
+    /**
+     * The habit ticked.
+     */
+    readonly habit_id?: number;
+    /**
+     * The tick's id across devices: a UUID made by the app that ticked. Sending the same uid again changes nothing.
+     */
+    uid?: string;
+    /**
+     * Who ticked, e.g. who put the bins out for a household routine.
+     */
+    readonly user_id?: number;
+};
+
+export type HabitGroup = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When the group was made.
+     */
+    readonly created?: string;
+    /**
+     * The unique, numeric id of this group.
+     */
+    readonly id?: number;
+    /**
+     * The user who made the group.
+     */
+    readonly owner_id?: number;
+    /**
+     * Order among groups, lowest first.
+     */
+    position?: number;
+    /**
+     * true when every household member sees the group. Only the owner can make a shared group personal again.
+     */
+    shared?: boolean;
+    /**
+     * The routine's name, e.g. Morning.
+     */
+    title?: string;
+    /**
+     * When the group was last changed.
+     */
+    readonly updated?: string;
+};
+
+export type HabitReadBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * An archived habit is kept with its history but left out of lists unless asked for.
+     */
+    archived?: boolean;
+    /**
+     * A hex colour without #, e.g. e8590c, or empty for the default.
+     */
+    color?: string;
+    /**
+     * When the habit was made. Its history counts from that day (or its first tick, if earlier).
+     */
+    readonly created?: string;
+    /**
+     * Ticks needed: per day for daily_count, per week for weekly (1–99). Always 1 for daily and bad habits.
+     */
+    goal?: number;
+    /**
+     * The routine (habit group) it belongs to, or 0 for none. Must be a group the caller can see.
+     */
+    group_id?: number;
+    /**
+     * The unique, numeric id of this habit.
+     */
+    readonly id?: number;
+    /**
+     * daily: once on each of its weekdays. daily_count: goal times on each of its weekdays. weekly: goal times a week, any days. bad: logged each time it happens, no goal or streak. Can't be changed after the habit is made.
+     */
+    kind?: 'daily' | 'daily_count' | 'weekly' | 'bad';
+    /**
+     * The caller's permission on this habit; always 2 (admin) for one they can see.
+     */
+    readonly max_permission?: number;
+    /**
+     * The user who made the habit.
+     */
+    readonly owner_id?: number;
+    /**
+     * Whether the habit is paused now (holidays, illness). Days while paused are neither done nor missed. Set to true to pause from today, false to carry on from today.
+     */
+    paused?: boolean;
+    /**
+     * Order in its group (or among ungrouped habits), lowest first.
+     */
+    position?: number;
+    /**
+     * How the habit is going as of today.
+     */
+    readonly progress?: Progress;
+    /**
+     * Times of day (HH:MM, 24-hour, the caller's time zone) to remind if the habit isn't done or skipped yet. At most 8.
+     */
+    reminder_times?: Array<string> | null;
+    /**
+     * true for a household routine: every household member sees and ticks it. false for a personal habit only its owner sees. Only the owner can make a household routine personal again.
+     */
+    shared?: boolean;
+    /**
+     * What the habit is, e.g. Stretch or Bins out.
+     */
+    title?: string;
+    /**
+     * When the habit was last changed. Ticks and skips don't change it.
+     */
+    readonly updated?: string;
+    /**
+     * Which days a daily or daily_count habit is due: seven 1s and 0s, Monday first, e.g. 1010100 for Mon/Wed/Fri. At least one 1. Always 1111111 for weekly and bad habits.
+     */
+    weekdays?: string;
+};
+
+export type HabitSkip = {
+    /**
+     * When it was skipped.
+     */
+    readonly created?: string;
+    /**
+     * The day skipped; for a weekly habit the Monday of the week.
+     */
+    readonly day?: string;
+    /**
+     * The habit skipped.
+     */
+    readonly habit_id?: number;
+    /**
+     * Why, optional: ill, away, rest day.
+     */
+    reason?: string;
+    /**
+     * Who skipped it.
+     */
+    readonly user_id?: number;
+};
+
+export type HabitsEntriesCreateRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The day it counts for, YYYY-MM-DD: today or earlier.
+     */
+    day?: string;
+    /**
+     * A new UUID made by the app for this tick.
+     */
+    uid?: string;
+};
+
+export type HabitsSkipsUpdateRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Why, optional.
+     */
+    reason?: string;
+};
+
 export type HealthBodyBody = {
     /**
      * A URL to the JSON Schema for this object.
@@ -748,6 +1001,33 @@ export type HealthBodyBody = {
      * "OK" when the service and its dependencies are reachable, "degraded" when the service itself is healthy but at least one configured OpenID Connect provider is not available.
      */
     status?: 'OK' | 'degraded';
+};
+
+export type History = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The ticks in the range, oldest first.
+     */
+    entries?: Array<HabitEntry> | null;
+    /**
+     * The first day asked for.
+     */
+    from?: string;
+    /**
+     * One per day (per week, Monday first, for weekly habits) from the first to the last day, oldest first.
+     */
+    periods?: Array<Period> | null;
+    /**
+     * The skips in the range.
+     */
+    skips?: Array<HabitSkip> | null;
+    /**
+     * The last day asked for (no later than today).
+     */
+    to?: string;
 };
 
 export type Image = {
@@ -1350,6 +1630,30 @@ export type PaginatedDatabaseNotification = {
     total_pages?: number;
 };
 
+export type PaginatedHabit = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<Habit> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedHabitGroup = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<HabitGroup> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedImage = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1691,6 +1995,21 @@ export type PasswordTokenRequest = {
     email?: string;
 };
 
+export type Period = {
+    /**
+     * How many times it was ticked (or, for a bad habit, happened) in this period.
+     */
+    count?: number;
+    /**
+     * The day, or the Monday a week starts on, as YYYY-MM-DD.
+     */
+    start?: string;
+    /**
+     * done, partial (under the goal), missed, skipped, paused, rest (not one of the habit's days), pending (today or this week, not done yet), before (the habit didn't exist yet), or count (a bad habit's day).
+     */
+    status?: 'done' | 'partial' | 'missed' | 'skipped' | 'paused' | 'rest' | 'pending' | 'before' | 'count';
+};
+
 export type Preferences = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1739,6 +2058,65 @@ export type PreviewTask = {
     project?: string;
     start_date?: string;
     title?: string;
+};
+
+export type Progress = {
+    /**
+     * The longest streak so far, counted the same way.
+     */
+    best_streak?: number;
+    /**
+     * Days (weeks) done in the recent window. Not used for bad habits.
+     */
+    done?: number;
+    /**
+     * Whether today's (this week's) goal is reached.
+     */
+    done_today?: boolean;
+    /**
+     * Days (weeks) that were due in the recent window: the last 30 days or 12 weeks, leaving out skipped, paused and rest days, and today unless it's done. Not used for bad habits.
+     */
+    due?: number;
+    /**
+     * Whether today is one of the habit's days and it isn't paused or skipped. Weekly habits are due every day until their goal is reached.
+     */
+    due_today?: boolean;
+    /**
+     * The habit's goal for today (this week for weekly habits).
+     */
+    goal?: number;
+    /**
+     * Whether the current streak is only alive because a recent miss was forgiven.
+     */
+    grace_used?: boolean;
+    /**
+     * The same for all of last week.
+     */
+    last_week?: number;
+    /**
+     * Whether today (this week) is skipped.
+     */
+    skipped?: boolean;
+    /**
+     * Days (weeks) done in a row, counting only due ones. One missed day per 7 (one week per 4) is forgiven when the one before it was done. 0 for bad habits.
+     */
+    streak?: number;
+    /**
+     * Ticks (or, for a bad habit, times it happened) this week, Monday to today.
+     */
+    this_week?: number;
+    /**
+     * The day this was worked out for, in the caller's time zone.
+     */
+    today?: string;
+    /**
+     * Ticks today (this week for weekly habits).
+     */
+    today_count?: number;
+    /**
+     * The uids of today's ticks (this week's for weekly habits), oldest first. Delete the last one to take a tick off.
+     */
+    today_entries?: Array<string> | null;
 };
 
 export type Project = {
@@ -5132,6 +5510,151 @@ export type EntryChangesWritable = {
     servings?: number;
 };
 
+export type HabitWritable = {
+    /**
+     * An archived habit is kept with its history but left out of lists unless asked for.
+     */
+    archived?: boolean;
+    /**
+     * A hex colour without #, e.g. e8590c, or empty for the default.
+     */
+    color?: string;
+    /**
+     * Ticks needed: per day for daily_count, per week for weekly (1–99). Always 1 for daily and bad habits.
+     */
+    goal?: number;
+    /**
+     * The routine (habit group) it belongs to, or 0 for none. Must be a group the caller can see.
+     */
+    group_id?: number;
+    /**
+     * daily: once on each of its weekdays. daily_count: goal times on each of its weekdays. weekly: goal times a week, any days. bad: logged each time it happens, no goal or streak. Can't be changed after the habit is made.
+     */
+    kind?: 'daily' | 'daily_count' | 'weekly' | 'bad';
+    /**
+     * Whether the habit is paused now (holidays, illness). Days while paused are neither done nor missed. Set to true to pause from today, false to carry on from today.
+     */
+    paused?: boolean;
+    /**
+     * Order in its group (or among ungrouped habits), lowest first.
+     */
+    position?: number;
+    /**
+     * Times of day (HH:MM, 24-hour, the caller's time zone) to remind if the habit isn't done or skipped yet. At most 8.
+     */
+    reminder_times?: Array<string> | null;
+    /**
+     * true for a household routine: every household member sees and ticks it. false for a personal habit only its owner sees. Only the owner can make a household routine personal again.
+     */
+    shared?: boolean;
+    /**
+     * What the habit is, e.g. Stretch or Bins out.
+     */
+    title?: string;
+    /**
+     * Which days a daily or daily_count habit is due: seven 1s and 0s, Monday first, e.g. 1010100 for Mon/Wed/Fri. At least one 1. Always 1111111 for weekly and bad habits.
+     */
+    weekdays?: string;
+};
+
+export type HabitEntryWritable = {
+    /**
+     * The day it counts for, YYYY-MM-DD. Today or earlier.
+     */
+    day?: string;
+    /**
+     * The tick's id across devices: a UUID made by the app that ticked. Sending the same uid again changes nothing.
+     */
+    uid?: string;
+};
+
+export type HabitGroupWritable = {
+    /**
+     * Order among groups, lowest first.
+     */
+    position?: number;
+    /**
+     * true when every household member sees the group. Only the owner can make a shared group personal again.
+     */
+    shared?: boolean;
+    /**
+     * The routine's name, e.g. Morning.
+     */
+    title?: string;
+};
+
+export type HabitReadBodyWritable = {
+    /**
+     * An archived habit is kept with its history but left out of lists unless asked for.
+     */
+    archived?: boolean;
+    /**
+     * A hex colour without #, e.g. e8590c, or empty for the default.
+     */
+    color?: string;
+    /**
+     * Ticks needed: per day for daily_count, per week for weekly (1–99). Always 1 for daily and bad habits.
+     */
+    goal?: number;
+    /**
+     * The routine (habit group) it belongs to, or 0 for none. Must be a group the caller can see.
+     */
+    group_id?: number;
+    /**
+     * daily: once on each of its weekdays. daily_count: goal times on each of its weekdays. weekly: goal times a week, any days. bad: logged each time it happens, no goal or streak. Can't be changed after the habit is made.
+     */
+    kind?: 'daily' | 'daily_count' | 'weekly' | 'bad';
+    /**
+     * Whether the habit is paused now (holidays, illness). Days while paused are neither done nor missed. Set to true to pause from today, false to carry on from today.
+     */
+    paused?: boolean;
+    /**
+     * Order in its group (or among ungrouped habits), lowest first.
+     */
+    position?: number;
+    /**
+     * Times of day (HH:MM, 24-hour, the caller's time zone) to remind if the habit isn't done or skipped yet. At most 8.
+     */
+    reminder_times?: Array<string> | null;
+    /**
+     * true for a household routine: every household member sees and ticks it. false for a personal habit only its owner sees. Only the owner can make a household routine personal again.
+     */
+    shared?: boolean;
+    /**
+     * What the habit is, e.g. Stretch or Bins out.
+     */
+    title?: string;
+    /**
+     * Which days a daily or daily_count habit is due: seven 1s and 0s, Monday first, e.g. 1010100 for Mon/Wed/Fri. At least one 1. Always 1111111 for weekly and bad habits.
+     */
+    weekdays?: string;
+};
+
+export type HabitSkipWritable = {
+    /**
+     * Why, optional: ill, away, rest day.
+     */
+    reason?: string;
+};
+
+export type HabitsEntriesCreateRequestWritable = {
+    /**
+     * The day it counts for, YYYY-MM-DD: today or earlier.
+     */
+    day?: string;
+    /**
+     * A new UUID made by the app for this tick.
+     */
+    uid?: string;
+};
+
+export type HabitsSkipsUpdateRequestWritable = {
+    /**
+     * Why, optional.
+     */
+    reason?: string;
+};
+
 export type HealthBodyBodyWritable = {
     /**
      * Availability of each configured OpenID Connect provider, from cached state — this endpoint never contacts the providers. Omitted when OpenID Connect authentication is not configured or the providers have not been initialized yet right after startup.
@@ -5141,6 +5664,29 @@ export type HealthBodyBodyWritable = {
      * "OK" when the service and its dependencies are reachable, "degraded" when the service itself is healthy but at least one configured OpenID Connect provider is not available.
      */
     status?: 'OK' | 'degraded';
+};
+
+export type HistoryWritable = {
+    /**
+     * The ticks in the range, oldest first.
+     */
+    entries?: Array<HabitEntryWritable> | null;
+    /**
+     * The first day asked for.
+     */
+    from?: string;
+    /**
+     * One per day (per week, Monday first, for weekly habits) from the first to the last day, oldest first.
+     */
+    periods?: Array<Period> | null;
+    /**
+     * The skips in the range.
+     */
+    skips?: Array<HabitSkipWritable> | null;
+    /**
+     * The last day asked for (no later than today).
+     */
+    to?: string;
 };
 
 export type ImageWritable = {
@@ -5376,6 +5922,22 @@ export type PaginatedBucketWritable = {
 
 export type PaginatedDatabaseNotificationWritable = {
     items?: Array<unknown> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedHabitWritable = {
+    items?: Array<HabitWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedHabitGroupWritable = {
+    items?: Array<HabitGroupWritable> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -7739,6 +8301,451 @@ export type FiltersUpdateResponses = {
 };
 
 export type FiltersUpdateResponse = FiltersUpdateResponses[keyof FiltersUpdateResponses];
+
+export type HabitGroupsListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/habit-groups';
+};
+
+export type HabitGroupsListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitGroupsListError = HabitGroupsListErrors[keyof HabitGroupsListErrors];
+
+export type HabitGroupsListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedHabitGroup;
+};
+
+export type HabitGroupsListResponse = HabitGroupsListResponses[keyof HabitGroupsListResponses];
+
+export type HabitGroupsCreateData = {
+    body: HabitGroupWritable;
+    path?: never;
+    query?: never;
+    url: '/habit-groups';
+};
+
+export type HabitGroupsCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitGroupsCreateError = HabitGroupsCreateErrors[keyof HabitGroupsCreateErrors];
+
+export type HabitGroupsCreateResponses = {
+    /**
+     * Created
+     */
+    201: HabitGroup;
+};
+
+export type HabitGroupsCreateResponse = HabitGroupsCreateResponses[keyof HabitGroupsCreateResponses];
+
+export type HabitGroupsDeleteData = {
+    body?: never;
+    path: {
+        group: number;
+    };
+    query?: never;
+    url: '/habit-groups/{group}';
+};
+
+export type HabitGroupsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitGroupsDeleteError = HabitGroupsDeleteErrors[keyof HabitGroupsDeleteErrors];
+
+export type HabitGroupsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type HabitGroupsDeleteResponse = HabitGroupsDeleteResponses[keyof HabitGroupsDeleteResponses];
+
+export type HabitGroupsUpdateData = {
+    body: HabitGroupWritable;
+    path: {
+        group: number;
+    };
+    query?: never;
+    url: '/habit-groups/{group}';
+};
+
+export type HabitGroupsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitGroupsUpdateError = HabitGroupsUpdateErrors[keyof HabitGroupsUpdateErrors];
+
+export type HabitGroupsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: HabitGroup;
+};
+
+export type HabitGroupsUpdateResponse = HabitGroupsUpdateResponses[keyof HabitGroupsUpdateResponses];
+
+export type HabitsListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+        /**
+         * Include archived habits.
+         */
+        archived?: boolean;
+    };
+    url: '/habits';
+};
+
+export type HabitsListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsListError = HabitsListErrors[keyof HabitsListErrors];
+
+export type HabitsListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedHabit;
+};
+
+export type HabitsListResponse = HabitsListResponses[keyof HabitsListResponses];
+
+export type HabitsCreateData = {
+    body: HabitWritable;
+    path?: never;
+    query?: never;
+    url: '/habits';
+};
+
+export type HabitsCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsCreateError = HabitsCreateErrors[keyof HabitsCreateErrors];
+
+export type HabitsCreateResponses = {
+    /**
+     * Created
+     */
+    201: Habit;
+};
+
+export type HabitsCreateResponse = HabitsCreateResponses[keyof HabitsCreateResponses];
+
+export type HabitsDeleteData = {
+    body?: never;
+    path: {
+        habit: number;
+    };
+    query?: never;
+    url: '/habits/{habit}';
+};
+
+export type HabitsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsDeleteError = HabitsDeleteErrors[keyof HabitsDeleteErrors];
+
+export type HabitsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type HabitsDeleteResponse = HabitsDeleteResponses[keyof HabitsDeleteResponses];
+
+export type HabitsReadData = {
+    body?: never;
+    path: {
+        habit: number;
+    };
+    query?: never;
+    url: '/habits/{habit}';
+};
+
+export type HabitsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsReadError = HabitsReadErrors[keyof HabitsReadErrors];
+
+export type HabitsReadResponses = {
+    /**
+     * OK
+     */
+    200: HabitReadBody;
+};
+
+export type HabitsReadResponse = HabitsReadResponses[keyof HabitsReadResponses];
+
+export type PatchHabitsReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        habit: number;
+    };
+    query?: never;
+    url: '/habits/{habit}';
+};
+
+export type PatchHabitsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchHabitsReadError = PatchHabitsReadErrors[keyof PatchHabitsReadErrors];
+
+export type PatchHabitsReadResponses = {
+    /**
+     * OK
+     */
+    200: Habit;
+};
+
+export type PatchHabitsReadResponse = PatchHabitsReadResponses[keyof PatchHabitsReadResponses];
+
+export type HabitsUpdateData = {
+    body: HabitReadBodyWritable;
+    path: {
+        habit: number;
+    };
+    query?: never;
+    url: '/habits/{habit}';
+};
+
+export type HabitsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsUpdateError = HabitsUpdateErrors[keyof HabitsUpdateErrors];
+
+export type HabitsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: Habit;
+};
+
+export type HabitsUpdateResponse = HabitsUpdateResponses[keyof HabitsUpdateResponses];
+
+export type HabitsEntriesCreateData = {
+    body: HabitsEntriesCreateRequestWritable;
+    path: {
+        habit: number;
+    };
+    query?: never;
+    url: '/habits/{habit}/entries';
+};
+
+export type HabitsEntriesCreateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsEntriesCreateError = HabitsEntriesCreateErrors[keyof HabitsEntriesCreateErrors];
+
+export type HabitsEntriesCreateResponses = {
+    /**
+     * Created
+     */
+    201: Habit;
+};
+
+export type HabitsEntriesCreateResponse = HabitsEntriesCreateResponses[keyof HabitsEntriesCreateResponses];
+
+export type HabitsEntriesDeleteData = {
+    body?: never;
+    path: {
+        habit: number;
+        uid: string;
+    };
+    query?: never;
+    url: '/habits/{habit}/entries/{uid}';
+};
+
+export type HabitsEntriesDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsEntriesDeleteError = HabitsEntriesDeleteErrors[keyof HabitsEntriesDeleteErrors];
+
+export type HabitsEntriesDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type HabitsEntriesDeleteResponse = HabitsEntriesDeleteResponses[keyof HabitsEntriesDeleteResponses];
+
+export type HabitsHistoryData = {
+    body?: never;
+    path: {
+        habit: number;
+    };
+    query: {
+        /**
+         * The first day, YYYY-MM-DD.
+         */
+        from: string;
+        /**
+         * The last day, YYYY-MM-DD.
+         */
+        to: string;
+    };
+    url: '/habits/{habit}/history';
+};
+
+export type HabitsHistoryErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsHistoryError = HabitsHistoryErrors[keyof HabitsHistoryErrors];
+
+export type HabitsHistoryResponses = {
+    /**
+     * OK
+     */
+    200: History;
+};
+
+export type HabitsHistoryResponse = HabitsHistoryResponses[keyof HabitsHistoryResponses];
+
+export type HabitsSkipsDeleteData = {
+    body?: never;
+    path: {
+        habit: number;
+        /**
+         * The skipped day, YYYY-MM-DD.
+         */
+        day: string;
+    };
+    query?: never;
+    url: '/habits/{habit}/skips/{day}';
+};
+
+export type HabitsSkipsDeleteErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsSkipsDeleteError = HabitsSkipsDeleteErrors[keyof HabitsSkipsDeleteErrors];
+
+export type HabitsSkipsDeleteResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type HabitsSkipsDeleteResponse = HabitsSkipsDeleteResponses[keyof HabitsSkipsDeleteResponses];
+
+export type HabitsSkipsUpdateData = {
+    body: HabitsSkipsUpdateRequestWritable;
+    path: {
+        habit: number;
+        /**
+         * The day to skip, YYYY-MM-DD: today or earlier.
+         */
+        day: string;
+    };
+    query?: never;
+    url: '/habits/{habit}/skips/{day}';
+};
+
+export type HabitsSkipsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsSkipsUpdateError = HabitsSkipsUpdateErrors[keyof HabitsSkipsUpdateErrors];
+
+export type HabitsSkipsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: Habit;
+};
+
+export type HabitsSkipsUpdateResponse = HabitsSkipsUpdateResponses[keyof HabitsSkipsUpdateResponses];
 
 export type HealthData = {
     body?: never;

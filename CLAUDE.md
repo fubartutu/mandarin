@@ -102,6 +102,13 @@ another package), so in practice:
   `?servings=N` or `?scale=X`), teleported to `body` so it covers the top bar. Timers come from
   times in step text (`steps.ts`) and are plain data with `endsAt`; resume state is per recipe in
   localStorage for 6 hours (`resume.ts`). Wake lock via vueuse's `useWakeLock`.
+- **Habits:** `pkg/household/habits` (routes `household_habits.go`, Phase 11; frontend and offline
+  still to come). A habit is personal or `shared` (a household routine); only its owner can unshare
+  it. Each tick is its own `habit_entries` row with a client-made `uid` (resending is a no-op), so
+  offline ticks from two phones add up instead of clashing. Skips and pauses are rows too, so past
+  pauses stay paused. Progress (streak, "done X of last 30") is worked out on every read in
+  `progress.go`, a pure function with its own tests; days are in the caller's time zone and weeks
+  run Monday to Sunday. Habit reads send no ETag: progress changes without `updated` changing.
 - **Offline tasks (read-only):** `registerOfflineApi()` in `household/sw.ts` keeps every JSON
   GET answer from /api/v1 and /api/v2 (NetworkFirst, 8 s, 500 entries) in the `mandarin-api`
   cache, served without signal. Deleted on logout (FORK in `stores/auth.ts`) and when another user
