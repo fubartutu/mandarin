@@ -68,6 +68,9 @@ another package), so in practice:
 - Production runs on **SQLite**, which allows one writer at a time: two requests that each read
   then write can fail with "database is locked". Don't write rows that haven't changed, and don't
   fire two writing requests from the client at once (chain them).
+- **Shared offline engine:** `frontend/src/household/sync/engine.ts` (outbox, retries, one sync at a
+  time) with a module's `SyncModel` (empty, applyOp, applyResult) and storage; `sync/idb.ts` has a
+  one-record IndexedDB storage for modules whose answer is the whole picture. Used by shopping and habits.
 - **Offline sync (shopping):** phones keep a copy in IndexedDB and send queued ops to
   `POST /api/v2/shopping/sync` (`pkg/household/shopping/sync.go`, `pull.go`;
   `frontend/src/household/shopping/sync/`). Every server-side write to shopping data must call
@@ -103,8 +106,11 @@ another package), so in practice:
   times in step text (`steps.ts`) and are plain data with `endsAt`; resume state is per recipe in
   localStorage for 6 hours (`resume.ts`). Wake lock via vueuse's `useWakeLock`.
 - **Habits:** `pkg/household/habits` (routes `household_habits.go`, Phase 11), frontend
-  `frontend/src/household/habits` (page `/habits`, `HomeHabitsCard.vue` on Home; offline still
-  to come). Reminders: a per-minute cron in `push/habits.go` asks `habits.DueReminders` (each
+  `frontend/src/household/habits` (page `/habits`, `HomeHabitsCard.vue` on Home). Ticks and skips
+  work offline: `habits/sync/` queues them in the shared engine and sends them to
+  `POST /api/v2/habits/sync` (`habits/sync.go`), which applies them in order and answers with all
+  of the caller's habits and routines (no cursor). `rollToDay` starts a new day on the phone without
+  signal. Editing habits and routines stays online; edits fire `HABITS_CHANGED_EVENT` so the copy refreshes. Reminders: a per-minute cron in `push/habits.go` asks `habits.DueReminders` (each
   person's local HH:MM, only while still due; household routines remind everyone) and pushes with
   Done and Skip buttons. Their action token names habit, day and a tick uid, so Done ticks once.
   Off per person with `habit_reminders` in push settings. A habit is personal or `shared` (a household routine); only its owner can unshare

@@ -2,19 +2,14 @@
 // survives closing the app and works offline. MemoryStorage does the same job
 // in tests (jsdom has no IndexedDB).
 
+import {done, finished} from '../../sync/idb'
+import type {Stored as StoredOf, SyncStorage as SyncStorageOf} from '../../sync/engine'
 import {applyResult, emptyData, type ShoppingData, type SyncOp, type SyncResult} from './model'
 
-export interface Stored {
-	data: ShoppingData
-	outbox: SyncOp[]
-	cursor: number
-}
+export type Stored = StoredOf<ShoppingData, SyncOp>
 
-export interface SyncStorage {
-	load(): Promise<Stored>
-	addOp(op: SyncOp): Promise<void>
-	/** Saves a server answer and drops the ops it answered, in one go. */
-	saveResult(result: SyncResult, sentOpIds: string[]): Promise<void>
+/** The shared engine's storage, plus the cached catalogue photos. */
+export interface SyncStorage extends SyncStorageOf<ShoppingData, SyncOp, SyncResult> {
 	/** Cached photos, by the catalogue entry's photo_id. */
 	getPhoto(photoId: number): Promise<Blob | undefined>
 	putPhoto(photoId: number, blob: Blob): Promise<void>
@@ -62,21 +57,6 @@ type DataStore = keyof typeof DATA_STORES
 
 // IndexedDB predates promises: requests report back through callbacks.
 // These two helpers wrap them so we can use await.
-function done<T>(request: IDBRequest<T>): Promise<T> {
-	return new Promise((resolve, reject) => {
-		request.onsuccess = () => resolve(request.result)
-		request.onerror = () => reject(request.error)
-	})
-}
-
-function finished(tx: IDBTransaction): Promise<void> {
-	return new Promise((resolve, reject) => {
-		tx.oncomplete = () => resolve()
-		tx.onerror = () => reject(tx.error)
-		tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'))
-	})
-}
-
 export class IndexedDbStorage implements SyncStorage {
 	private db: Promise<IDBDatabase>
 

@@ -23,13 +23,13 @@
 		</header>
 
 		<p
-			v-if="habits.isPending.value"
+			v-if="loading"
 			class="has-text-centered has-text-grey"
 		>
 			{{ $t('household.home.loading') }}
 		</p>
 		<p
-			v-else-if="habits.isError.value && !habits.data.value"
+			v-else-if="notLoaded"
 			class="has-text-centered has-text-grey is-italic"
 		>
 			{{ $t('household.habits.notLoaded') }}
@@ -50,10 +50,14 @@
 
 		<template v-else>
 			<p
-				v-if="summary.total > 0"
+				v-if="summary.total > 0 && !showArchived"
 				class="today-summary"
 			>
 				{{ $t('household.habits.summary', {done: summary.done, total: summary.total}) }}
+				<span
+					v-if="sync.pendingCount.value > 0"
+					class="pending"
+				>· {{ $t('household.habits.sync.pending', {count: sync.pendingCount.value}, sync.pendingCount.value) }}</span>
 			</p>
 
 			<section
@@ -114,43 +118,51 @@
 		<HabitEditor
 			v-if="editing"
 			:habit="editing.habit"
-			:groups="groups.data.value ?? []"
+			:groups="sync.groups.value"
 			@close="editing = null"
 		/>
 		<RoutinesEditor
 			v-if="routinesOpen"
-			:groups="groups.data.value ?? []"
+			:groups="sync.groups.value"
 			@close="routinesOpen = false"
 		/>
 	</div>
 </template>
 
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue'
-import {useNow} from '@vueuse/core'
-import {useQuery, useQueryClient} from '@tanstack/vue-query'
+import {computed, ref} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {useQuery} from '@tanstack/vue-query'
 
 import {useTitle} from '@/composables/useTitle'
-import {useI18n} from 'vue-i18n'
 
-import {dayKey} from '../menu/week'
 import HabitEditor from './components/HabitEditor.vue'
 import HabitRow from './components/HabitRow.vue'
 import RoutinesEditor from './components/RoutinesEditor.vue'
-import {habitGroupsQuery, habitKeys, habitsQuery, type HabitResponse} from './queries'
+import {habitsQuery, type HabitResponse} from './queries'
+import {useHabitsSync} from './sync/useHabitsSync'
 import {badHabits, habitSections, habitState} from './today'
 
 const {t} = useI18n({useScope: 'global'})
 useTitle(() => t('household.habits.title'))
 
-const showArchived = ref(false)
-// computed(): the query changes (and fetches) when the box is ticked.
-const habits = useQuery(computed(() => habitsQuery(showArchived.value)))
-const groups = useQuery(habitGroupsQuery())
+// Today's habits come from the phone's copy, so the page works offline.
+const sync = useHabitsSync()
 
-// With "show archived" on the list has both; the sections show what's asked for.
-const list = computed(() => (habits.data.value ?? []).filter(h => h.archived === showArchived.value))
-const sections = computed(() => habitSections(list.value, groups.data.value ?? []))
+// Archived habits are only fetched (online) when asked for.
+const showArchived = ref(false)
+const archived = useQuery(computed(() => ({...habitsQuery(true), enabled: showArchived.value})))
+
+const list = computed(() => showArchived.value
+	? (archived.data.value ?? []).filter(h => h.archived)
+	: sync.habits.value)
+const loading = computed(() => showArchived.value
+	? archived.isPending.value
+	: !sync.hasData.value && sync.online.value)
+const notLoaded = computed(() => showArchived.value
+	? archived.isError.value && !archived.data.value
+	: !sync.hasData.value && !sync.online.value)
+const sections = computed(() => habitSections(list.value, sync.groups.value))
 const bad = computed(() => badHabits(list.value))
 
 // "3 of 5 done today": the habits that count today.
@@ -162,11 +174,6 @@ const summary = computed(() => {
 // The editor: {} for a new habit, {habit} to edit one, null when closed.
 const editing = ref<{habit?: HabitResponse} | null>(null)
 const routinesOpen = ref(false)
-
-// A new day with the page open: fetch again, so ticks count for the new day.
-const client = useQueryClient()
-const now = useNow({interval: 60 * 1000})
-watch(() => dayKey(now.value), () => client.invalidateQueries({queryKey: habitKeys.all}))
 </script>
 
 <style lang="scss" scoped>
@@ -196,6 +203,11 @@ watch(() => dayKey(now.value), () => client.invalidateQueries({queryKey: habitKe
 .today-summary {
 	margin-block-end: 1rem;
 	color: var(--grey-600);
+}
+
+// Ticks made offline that haven't reached the server yet.
+.pending {
+	color: var(--grey-500);
 }
 
 .habit-section {

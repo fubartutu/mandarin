@@ -988,6 +988,17 @@ export type HabitsSkipsUpdateRequest = {
     reason?: string;
 };
 
+export type HabitsSyncRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Queued changes, oldest first.
+     */
+    ops?: Array<SyncOp> | null;
+};
+
 export type HealthBodyBody = {
     /**
      * A URL to the JSON Schema for this object.
@@ -2797,6 +2808,17 @@ export type RegisterUserRequest = {
     username?: string;
 };
 
+export type RejectedOp = {
+    /**
+     * The id of the change.
+     */
+    op_id?: string;
+    /**
+     * Why, in words for people.
+     */
+    reason?: string;
+};
+
 export type RenewTokenBodyBody = {
     /**
      * A URL to the JSON Schema for this object.
@@ -3662,6 +3684,48 @@ export type Subscription = {
      * The numeric id of the subscription.
      */
     readonly id?: number;
+};
+
+export type SyncOp = {
+    /**
+     * tick, skip and unskip: the day, YYYY-MM-DD, on the phone's calendar.
+     */
+    day?: string;
+    /**
+     * The habit changed.
+     */
+    habit_id?: number;
+    /**
+     * The change's own id, made by the phone; rejected changes are listed by it.
+     */
+    id?: string;
+    /**
+     * tick and untick add or take off one tick (by uid); skip and unskip a day.
+     */
+    type?: 'tick' | 'untick' | 'skip' | 'unskip';
+    /**
+     * tick and untick: the tick's uid, made by the phone.
+     */
+    uid?: string;
+};
+
+export type SyncResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The caller's routines and the shared ones.
+     */
+    groups?: Array<HabitGroup> | null;
+    /**
+     * The caller's habits and the household routines that aren't archived, with progress as of today.
+     */
+    habits?: Array<Habit> | null;
+    /**
+     * Changes that weren't applied; the others were.
+     */
+    rejected?: Array<RejectedOp> | null;
 };
 
 export type Totp = {
@@ -5659,6 +5723,13 @@ export type HabitsSkipsUpdateRequestWritable = {
     reason?: string;
 };
 
+export type HabitsSyncRequestWritable = {
+    /**
+     * Queued changes, oldest first.
+     */
+    ops?: Array<SyncOp> | null;
+};
+
 export type HealthBodyBodyWritable = {
     /**
      * Availability of each configured OpenID Connect provider, from cached state — this endpoint never contacts the providers. Omitted when OpenID Connect authentication is not configured or the providers have not been initialized yet right after startup.
@@ -6858,6 +6929,21 @@ export type SnoozeStateWritable = {
      * When the snoozed reminder comes back; null when it isn't snoozed. Only the caller's own snooze.
      */
     snoozed_until?: string | null;
+};
+
+export type SyncResultWritable = {
+    /**
+     * The caller's routines and the shared ones.
+     */
+    groups?: Array<HabitGroupWritable> | null;
+    /**
+     * The caller's habits and the household routines that aren't archived, with progress as of today.
+     */
+    habits?: Array<HabitWritable> | null;
+    /**
+     * Changes that weren't applied; the others were.
+     */
+    rejected?: Array<RejectedOp> | null;
 };
 
 export type TaskWritable = {
@@ -8493,6 +8579,31 @@ export type HabitsCreateResponses = {
 };
 
 export type HabitsCreateResponse = HabitsCreateResponses[keyof HabitsCreateResponses];
+
+export type HabitsSyncData = {
+    body: HabitsSyncRequestWritable;
+    path?: never;
+    query?: never;
+    url: '/habits/sync';
+};
+
+export type HabitsSyncErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type HabitsSyncError = HabitsSyncErrors[keyof HabitsSyncErrors];
+
+export type HabitsSyncResponses = {
+    /**
+     * OK
+     */
+    200: SyncResult;
+};
+
+export type HabitsSyncResponse = HabitsSyncResponses[keyof HabitsSyncResponses];
 
 export type HabitsDeleteData = {
     body?: never;

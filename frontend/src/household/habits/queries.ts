@@ -1,6 +1,7 @@
 // Habit API calls, following the conventions in .agents/docs/api.md.
-// Online-only for now (Phase 11, slice 4 brings offline ticking): TanStack
-// Query fetches the habits, and ticks show at once through optimistic updates.
+// Today's habits and ticks work offline through the shared sync engine
+// (sync/); this file has the shapes, the history grid and archived habits
+// (fetched with TanStack Query), and the online-only edits.
 
 import {queryOptions, useMutation} from '@tanstack/vue-query'
 import type {QueryClient} from '@tanstack/vue-query'
@@ -12,19 +13,13 @@ import {
 	habitGroupsUpdate,
 	habitsCreate,
 	habitsDelete,
-	habitsEntriesCreate,
-	habitsEntriesDelete,
 	habitsHistory,
 	habitsList,
-	habitsSkipsDelete,
-	habitsSkipsUpdate,
 	habitsUpdate,
 } from '@/client/generated'
 import type {Habit, HabitGroup, HabitWritable, History, Period, Progress} from '@/client/generated'
 import {contextMutationOptions} from '@/client/queries/contextMutation'
 import {fetchAllPages} from '@/client/queries/fetchAllPages'
-
-import {newUid} from '../shopping/sync/model'
 
 // ---- Normalised shapes ----
 
@@ -185,80 +180,20 @@ export function habitHistoryQuery(id: number, from: string, to: string) {
 }
 
 // ---- Mutations ----
-// Each one refreshes every habit query afterwards (onSettled): progress and
-// streaks are worked out by the server.
+// Editing habits and routines is online-only; ticks and skips go through the
+// offline queue instead (sync/useHabitsSync.ts). Each edit refreshes every
+// habit query afterwards (onSettled), and tells the queue to fetch again.
 
-// Writes go one at a time: SQLite takes one writer at once, and quick taps
-// on a tick button mustn't race each other. Mutations sharing a scope queue.
+// Edits go one at a time: SQLite takes one writer at once, so two quick
+// saves mustn't race each other. Mutations sharing a scope queue.
 const HABIT_WRITES = {id: 'habit-writes'}
 
-const refresh = (client: QueryClient) => client.invalidateQueries({queryKey: habitKeys.all})
+/** Fired after an edit; the offline queue (sync/useHabitsSync.ts) fetches again. */
+export const HABITS_CHANGED_EVENT = 'household.habits.changed'
 
-/**
- * Changes one habit's progress in the cached lists straight away, so a tick
- * shows before the server answers. Streaks follow with the refresh.
- */
-function patchProgress(client: QueryClient, habitId: number, change: (p: Progress) => Progress) {
-	client.setQueriesData<Habit[]>({queryKey: [...habitKeys.all, 'list']}, habits => habits?.map(h =>
-		h.id === habitId ? {...h, progress: change(normalizeProgress(h.progress))} : h))
-}
-
-function withCount(p: Progress, entries: string[]): Progress {
-	const count = entries.length
-	const goal = p.goal ?? 1
-	// Bad habits have no goal: counting one never makes them "done".
-	const done = goal > 0 && count >= goal
-	// Due today stays as it was, unless the tick (or untick) reached the goal.
-	const wasDue = p.due_today === true || p.done_today === true
-	return {...p, today_entries: entries, today_count: count, done_today: done, due_today: wasDue && !done}
-}
-
-const listKeys = () => [[...habitKeys.all, 'list']] as const
-
-/** One more tick today (or on a past day, from the grid). */
-export function useTickMutation() {
-	return useMutation({...contextMutationOptions({
-		mutationFn: async ({habit, day, uid}: {habit: HabitResponse, day: string, uid: string}) => {
-			await habitsEntriesCreate({path: {habit: habit.id}, body: {uid, day}})
-		},
-		optimistic: {
-			queryKeys: listKeys,
-			update: ({habit, day, uid}, client) => {
-				if (day !== habit.progress.today) return
-				patchProgress(client, habit.id, p => withCount(p, [...(p.today_entries ?? []), uid]))
-			},
-		},
-		onSettled: (_input, client) => refresh(client),
-	}), scope: HABIT_WRITES})
-}
-
-/** A new tick's uid. Made here (not in the mutation) so a retry sends the same one. */
-export const newTickUid = newUid
-
-/** Takes a tick off: today's last one, or a given one from the grid. */
-export function useUntickMutation() {
-	return useMutation({...contextMutationOptions({
-		mutationFn: async ({habit, uid}: {habit: HabitResponse, uid: string}) => {
-			await habitsEntriesDelete({path: {habit: habit.id, uid}})
-		},
-		optimistic: {
-			queryKeys: listKeys,
-			update: ({habit, uid}, client) => {
-				patchProgress(client, habit.id, p => withCount(p, (p.today_entries ?? []).filter(u => u !== uid)))
-			},
-		},
-		onSettled: (_input, client) => refresh(client),
-	}), scope: HABIT_WRITES})
-}
-
-export function useSkipMutation() {
-	return useMutation({...contextMutationOptions({
-		mutationFn: async ({habit, day, skip}: {habit: HabitResponse, day: string, skip: boolean}) => {
-			if (skip) await habitsSkipsUpdate({path: {habit: habit.id, day}, body: {reason: ''}})
-			else await habitsSkipsDelete({path: {habit: habit.id, day}})
-		},
-		onSettled: (_input, client) => refresh(client),
-	}), scope: HABIT_WRITES})
+const refresh = (client: QueryClient) => {
+	window.dispatchEvent(new Event(HABITS_CHANGED_EVENT))
+	return client.invalidateQueries({queryKey: habitKeys.all})
 }
 
 /**

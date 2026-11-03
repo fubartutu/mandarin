@@ -503,6 +503,10 @@
 				"newPlaceholder": "New routine, e.g. Morning",
 				"delete": "Delete {title}",
 				"deleteConfirm": "Delete the routine \"{title}\"? Its habits stay, outside any routine."
+			},
+			"sync": {
+				"pending": "Everything is saved | 1 tick waiting for signal | {count} ticks waiting for signal",
+				"rejected": "A change couldn't be saved: {names} | A change couldn't be saved: {names} | {count} changes couldn't be saved: {names}"
 			}
 		}
 	},

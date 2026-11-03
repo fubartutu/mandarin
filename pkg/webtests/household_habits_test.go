@@ -378,3 +378,68 @@ func TestHouseholdHabitGroups(t *testing.T) {
 		assert.Zero(t, h.GroupID, h.Title)
 	}
 }
+
+func TestHouseholdHabitsSync(t *testing.T) {
+	e := setupHabitsEnv(t)
+	user1 := humaTokenFor(t, &testuser1)
+	user2 := humaTokenFor(t, &testuser2)
+
+	water := makeHabit(t, e, user1, `{"title":"Water","kind":"daily_count","goal":3,"shared":true}`)
+	mine := makeHabit(t, e, user1, `{"title":"Stretch","kind":"daily"}`)
+	today := water.Progress.Today
+	yesterday := daysBefore(t, today, 1)
+
+	sync := func(token string, ops []map[string]any) habits.SyncResult {
+		t.Helper()
+		rec := humaJSON(t, e, http.MethodPost, "/api/v2/habits/sync", map[string]any{"ops": ops}, token)
+		require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+		return decode[habits.SyncResult](t, rec.Body.Bytes())
+	}
+	find := func(r habits.SyncResult, id int64) *habits.Habit {
+		t.Helper()
+		for _, h := range r.Habits {
+			if h.ID == id {
+				return h
+			}
+		}
+		return nil
+	}
+
+	// Ticks made offline, a late one for yesterday, and one taken back.
+	a, b, c := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	ops := []map[string]any{
+		{"id": "op1", "type": "tick", "habit_id": water.ID, "uid": a, "day": today},
+		{"id": "op2", "type": "tick", "habit_id": water.ID, "uid": b, "day": today},
+		{"id": "op3", "type": "untick", "habit_id": water.ID, "uid": b},
+		{"id": "op4", "type": "tick", "habit_id": mine.ID, "uid": c, "day": yesterday},
+		{"id": "op5", "type": "skip", "habit_id": mine.ID, "day": today},
+	}
+	r := sync(user2, ops[:3])
+	assert.Empty(t, r.Rejected)
+	require.Nil(t, find(r, mine.ID), "someone else's personal habit isn't sent")
+	assert.Equal(t, []string{a}, find(r, water.ID).Progress.TodayEntries)
+
+	r = sync(user1, ops)
+	require.Empty(t, r.Rejected, "the same ops again change nothing and aren't refused")
+	assert.Equal(t, 1, find(r, water.ID).Progress.TodayCount)
+	got := find(r, mine.ID)
+	assert.True(t, got.Progress.Skipped)
+	assert.Equal(t, 1, got.Progress.Streak, "yesterday's late tick counts")
+	assert.NotNil(t, r.Groups)
+
+	// A change that can't apply is refused; the others still apply.
+	r = sync(user2, []map[string]any{
+		{"id": "bad1", "type": "tick", "habit_id": mine.ID, "uid": uuid.NewString(), "day": today},
+		{"id": "bad2", "type": "tick", "habit_id": water.ID, "uid": uuid.NewString(), "day": "2999-01-01"},
+		{"id": "ok", "type": "tick", "habit_id": water.ID, "uid": uuid.NewString(), "day": today},
+	})
+	require.Len(t, r.Rejected, 2)
+	assert.Equal(t, "bad1", r.Rejected[0].OpID)
+	assert.Equal(t, "bad2", r.Rejected[1].OpID)
+	assert.NotEmpty(t, r.Rejected[1].Reason)
+	assert.Equal(t, 2, find(r, water.ID).Progress.TodayCount)
+
+	// No ops: just the current picture.
+	r = sync(user1, []map[string]any{})
+	assert.Len(t, r.Habits, 2)
+}

@@ -126,6 +126,16 @@ func RegisterHouseholdHabitRoutes(api huma.API) {
 		Method:      http.MethodDelete, Path: "/habits/{habit}/skips/{day}", Tags: tags,
 	}, habitsSkipDelete)
 
+	Register(api, huma.Operation{
+		OperationID: "habits-sync",
+		Summary:     "Sync ticks and skips from a phone",
+		Description: "Applies the phone's queued ticks and skips in order (they may have been made offline), " +
+			"then returns the caller's habits (not archived, with progress) and routines. A change that can't be " +
+			"applied is listed in rejected and skipped; the rest still apply. Safe to repeat: ticks are kept by uid." + habitAccess,
+		Method: http.MethodPost, Path: "/habits/sync", Tags: tags,
+		DefaultStatus: http.StatusOK, // an action, not a create
+	}, habitsSync)
+
 	groupTags := []string{"habits"}
 	Register(api, huma.Operation{
 		OperationID: "habit-groups-list",
@@ -393,4 +403,23 @@ func habitGroupsDelete(ctx context.Context, in *struct {
 		return nil, translateDomainError(err)
 	}
 	return &emptyBody{}, nil
+}
+
+func habitsSync(ctx context.Context, in *struct {
+	Body struct {
+		Ops []*habits.SyncOp `json:"ops" maxItems:"500" doc:"Queued changes, oldest first."`
+	}
+}) (*singleBody[habits.SyncResult], error) {
+	a, err := authFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// One transaction: the changes apply together, and the answer includes them.
+	result, err := inHabitSession(func(s *xorm.Session) (*habits.SyncResult, error) {
+		return habits.Sync(s, a, in.Body.Ops)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &singleBody[habits.SyncResult]{Body: result}, nil
 }

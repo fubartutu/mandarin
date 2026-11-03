@@ -4,19 +4,13 @@
 		class="home-card"
 	>
 		<p
-			v-if="habits.isPending.value"
+			v-if="!sync.hasData.value"
 			class="has-text-grey is-italic"
 		>
-			{{ $t('household.home.loading') }}
+			{{ sync.online.value ? $t('household.home.loading') : $t('household.habits.notLoaded') }}
 		</p>
 		<p
-			v-else-if="habits.isError.value && !habits.data.value"
-			class="has-text-grey is-italic"
-		>
-			{{ $t('household.habits.notLoaded') }}
-		</p>
-		<p
-			v-else-if="(habits.data.value ?? []).length === 0"
+			v-else-if="sync.habits.value.length === 0"
 			class="has-text-grey"
 		>
 			{{ $t('household.home.noHabits') }}
@@ -64,20 +58,19 @@
 
 <script setup lang="ts">
 import {computed} from 'vue'
-import {useQuery} from '@tanstack/vue-query'
 
 import Card from '@/components/misc/Card.vue'
 
-import {habitGroupsQuery, habitsQuery} from '../queries'
+import {useHabitsSync} from '../sync/useHabitsSync'
 import {homeHabits} from '../today'
 import HabitTick from './HabitTick.vue'
 
 // The Home page's "Habits today" card: what's still due, then what's done,
 // each with its tick button. Rest days, paused and bad habits stay on the Habits page.
+// Read from the phone's copy, so this works offline.
 
-const habits = useQuery(habitsQuery())
-const groups = useQuery(habitGroupsQuery())
-const today = computed(() => homeHabits(habits.data.value ?? [], groups.data.value ?? []))
+const sync = useHabitsSync()
+const today = computed(() => homeHabits(sync.habits.value, sync.groups.value))
 </script>
 
 <style lang="scss" scoped>

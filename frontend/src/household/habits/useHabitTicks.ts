@@ -1,21 +1,27 @@
-import {newTickUid, type HabitResponse, useTickMutation, useUntickMutation} from './queries'
+import type {HabitResponse} from './queries'
+import {skipOp, tickOp, untickOp} from './sync/model'
+import {useHabitsSync} from './sync/useHabitsSync'
 
 /**
- * Ticking from the Habits page and the Home card.
+ * Ticking from the Habits page, the Home card and the grid. Every change goes
+ * through the offline queue: it shows at once and is sent when there's signal.
  * A one-a-day habit toggles; a habit with a goal above one (or a bad habit)
  * counts up with each tap, and `undo` takes the last tap off.
  */
 export function useHabitTicks() {
-	const tick = useTickMutation()
-	const untick = useUntickMutation()
+	const sync = useHabitsSync()
 
-	function add(habit: HabitResponse, day = habit.progress.today) {
-		tick.mutate({habit, day, uid: newTickUid()})
+	function add(habit: HabitResponse, day = sync.today.value) {
+		void sync.change(tickOp(habit, day))
+	}
+
+	function remove(habit: HabitResponse, uid: string) {
+		void sync.change(untickOp(habit, uid))
 	}
 
 	function undo(habit: HabitResponse) {
 		const uid = habit.progress.today_entries.at(-1)
-		if (uid) untick.mutate({habit, uid})
+		if (uid) remove(habit, uid)
 	}
 
 	function tap(habit: HabitResponse) {
@@ -23,5 +29,9 @@ export function useHabitTicks() {
 		else add(habit)
 	}
 
-	return {add, undo, tap}
+	function skip(habit: HabitResponse, on: boolean) {
+		void sync.change(skipOp(habit, sync.today.value, on))
+	}
+
+	return {add, remove, undo, tap, skip}
 }

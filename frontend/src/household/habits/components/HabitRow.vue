@@ -77,7 +77,7 @@
 					v-if="habit.kind !== 'bad' && !habit.paused && !habit.progress.done_today"
 					variant="secondary"
 					:shadow="false"
-					@click="skip.mutate({habit, day: habit.progress.today, skip: !habit.progress.skipped})"
+					@click="ticks.skip(habit, !habit.progress.skipped)"
 				>
 					{{ habit.progress.skipped
 						? $t(habit.kind === 'weekly' ? 'household.habits.unskipWeek' : 'household.habits.unskipToday')
@@ -115,7 +115,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 
 import {streakUnit} from '../grid'
-import {type HabitResponse, useChangeHabitMutation, useSkipMutation} from '../queries'
+import {type HabitResponse, useChangeHabitMutation} from '../queries'
 import {habitState} from '../today'
 import {useHabitTicks} from '../useHabitTicks'
 import HabitGrid from './HabitGrid.vue'
@@ -131,7 +131,6 @@ defineEmits<{
 
 const {t} = useI18n({useScope: 'global'})
 const ticks = useHabitTicks()
-const skip = useSkipMutation()
 const change = useChangeHabitMutation()
 
 const open = ref(false)

@@ -82,14 +82,16 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useQuery} from '@tanstack/vue-query'
 
 import {fromKey} from '../../menu/week'
 import {colorStyle} from '../colors'
 import {gridColumns, gridRange} from '../grid'
-import {habitHistoryQuery, newTickUid, type HabitResponse, type PeriodResponse, useTickMutation, useUntickMutation} from '../queries'
+import {habitHistoryQuery, type HabitResponse, type PeriodResponse} from '../queries'
+import {useHabitsSync} from '../sync/useHabitsSync'
+import {useHabitTicks} from '../useHabitTicks'
 
 const props = defineProps<{
 	habit: HabitResponse
@@ -105,13 +107,17 @@ const columns = computed(() => gridColumns(history.data.value?.periods ?? [], ra
 
 const editable = computed(() => props.habit.kind === 'daily')
 
-const tick = useTickMutation()
-const untick = useUntickMutation()
+const ticks = useHabitTicks()
+
+// The grid comes from the server (online only); after the queue has sent
+// a change, fetch it again so the change shows.
+const sync = useHabitsSync()
+watch(sync.lastSyncedAt, () => void history.refetch())
 
 function toggle(period: PeriodResponse) {
 	const uid = history.data.value?.entries.get(period.start)?.at(-1)
-	if (uid) untick.mutate({habit: props.habit, uid})
-	else tick.mutate({habit: props.habit, day: period.start, uid: newTickUid()})
+	if (uid) ticks.remove(props.habit, uid)
+	else ticks.add(props.habit, period.start)
 }
 
 /** Bad habits: darker the more times it happened. */

@@ -306,7 +306,7 @@ Groceries come first; each phase ends with something usable on the phones.
 - [x] Notifications when the other person changes a shared list: per list, off by default, batched (Phase 8).
 - [x] Vikunja trial reverse-proxy issue: resolved, Mandarin is live behind Nginx Proxy Manager.
 - [x] Lunatask ideas (Nov 3, 2026): habits first, then Focus view, People, Journal and mood (Phases 11–14). Shared and private mixed per item; forgiving streaks; do-from dates plus real deadlines. Task ranking, age, streak, reconnect and mood details were checked against the Lunatask desktop app's own code (behaviour only, nothing copied).
-- [ ] Habits offline: share the shopping sync queue (one engine, more op types) or give habits a small queue of their own? Leaning towards sharing it, decided at the start of Phase 11.
+- [x] Habits offline: share the shopping sync queue (one engine, more op types) or give habits a small queue of their own? Decided: one shared engine (`household/sync/`), each module with its own queue, data and endpoint (`POST /api/v2/habits/sync` answers with the whole picture, no change feed).
 - [ ] Focus view: should "Now" also be a Vikunja label or bucket, so it shows in the Vikunja kanban and the Obsidian plugin, or stay Mandarin-only?
 - [ ] Kids: do the children get their own logins (for their own routines and habits), or are kids' routines household routines ticked by a parent?
 - [ ] Journal privacy: is "admins can't read it in the app" enough, or should entries be encrypted with a passphrase?
