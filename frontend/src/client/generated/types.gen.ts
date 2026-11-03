@@ -41,6 +41,36 @@ export type ApiToken = {
     readonly token?: string;
 };
 
+export type ActionInput = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Which button was tapped.
+     */
+    action?: 'done' | 'snooze';
+    /**
+     * The action_token the notification came with.
+     */
+    token?: string;
+};
+
+export type ActionResult = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * done or snoozed; unchanged when the task was already done or has moved on to another date since the notification was sent.
+     */
+    result?: 'done' | 'snoozed' | 'unchanged';
+    /**
+     * When the reminder comes back (snoozed only).
+     */
+    snoozed_until?: string;
+};
+
 export type AdminIsAdminPatchBody = {
     /**
      * A URL to the JSON Schema for this object.
@@ -4750,6 +4780,28 @@ export type ApiTokenWritable = {
      * A human-readable name for this token.
      */
     title?: string;
+};
+
+export type ActionInputWritable = {
+    /**
+     * Which button was tapped.
+     */
+    action?: 'done' | 'snooze';
+    /**
+     * The action_token the notification came with.
+     */
+    token?: string;
+};
+
+export type ActionResultWritable = {
+    /**
+     * done or snoozed; unchanged when the task was already done or has moved on to another date since the notification was sent.
+     */
+    result?: 'done' | 'snoozed' | 'unchanged';
+    /**
+     * When the reminder comes back (snoozed only).
+     */
+    snoozed_until?: string;
 };
 
 export type AdminIsAdminPatchBodyWritable = {
@@ -10539,6 +10591,31 @@ export type WebhooksUpdateResponses = {
 };
 
 export type WebhooksUpdateResponse = WebhooksUpdateResponses[keyof WebhooksUpdateResponses];
+
+export type PushActionsData = {
+    body: ActionInputWritable;
+    path?: never;
+    query?: never;
+    url: '/push/actions';
+};
+
+export type PushActionsErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PushActionsError = PushActionsErrors[keyof PushActionsErrors];
+
+export type PushActionsResponses = {
+    /**
+     * OK
+     */
+    200: ActionResult;
+};
+
+export type PushActionsResponse = PushActionsResponses[keyof PushActionsResponses];
 
 export type PushDevicesListData = {
     body?: never;

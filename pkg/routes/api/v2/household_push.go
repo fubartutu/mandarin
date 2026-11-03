@@ -22,8 +22,10 @@ package apiv2
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/household/push"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -100,6 +102,19 @@ func RegisterHouseholdPushRoutes(api huma.API) {
 		Summary:     "Save my notification preferences",
 		Method:      http.MethodPut, Path: "/push/settings", Tags: tags,
 	}, pushSettingsUpdate)
+	Register(api, huma.Operation{
+		OperationID: "push-actions",
+		Summary:     "Tap a button on a notification",
+		Description: "Done ticks the task off (a repeating task moves to its next date); Snooze sends the reminder again in an hour, to the same person only. " +
+			"No login: the notification's action_token is the authorisation, and the action runs with the permissions of the user it was sent to. " +
+			"It answers unchanged when the task is already done or its due date has moved since the notification was sent, " +
+			"and 401 when the token is invalid or expired (48 hours).",
+		Method: http.MethodPost, Path: "/push/actions", Tags: tags,
+		DefaultStatus: http.StatusOK,
+		// Public: the service worker can't read the login token. Also listed
+		// in unauthenticatedAPIPaths (routes.go).
+		Security: []map[string][]string{},
+	}, pushAction)
 }
 
 // inPushSession runs fn in a committed session.
@@ -218,4 +233,23 @@ func pushSettingsUpdate(ctx context.Context, in *struct{ Body push.Preferences }
 		return nil, err
 	}
 	return &singleBody[push.Preferences]{Body: p}, nil
+}
+
+func pushAction(ctx context.Context, in *struct{ Body push.ActionInput }) (*singleBody[push.ActionResult], error) {
+	s := db.NewSession()
+	defer s.Close()
+	result, err := push.DoAction(s, &in.Body, time.Now())
+	if err != nil {
+		_ = s.Rollback()
+		events.CleanupPending(s)
+		return nil, translateDomainError(err)
+	}
+	if err := s.Commit(); err != nil {
+		events.CleanupPending(s)
+		return nil, translateDomainError(err)
+	}
+	// Done queued Vikunja's task events on the session; send them now it's
+	// committed, so open apps refresh.
+	events.DispatchPending(ctx, s)
+	return &singleBody[push.ActionResult]{Body: result}, nil
 }

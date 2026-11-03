@@ -314,6 +314,7 @@ var unauthenticatedAPIPaths = map[string]bool{
 	"/api/v2/docs/scalar.standalone.js": true,
 	"/api/v2/schemas/:schema":           true,
 	"/api/v2/info":                      true,
+	"/api/v2/push/actions":              true, // FORK: Mandarin notification buttons; the action token is the auth
 
 	"/api/v2/register":                       true,
 	"/api/v2/invite-links/check":             true,

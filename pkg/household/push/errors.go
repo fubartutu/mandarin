@@ -58,3 +58,28 @@ const ErrCodeInvalidDevice = 90202
 func (err ErrInvalidDevice) HTTPError() web.HTTPError {
 	return web.HTTPError{HTTPCode: http.StatusBadRequest, Code: ErrCodeInvalidDevice, Message: err.Reason}
 }
+
+// ErrInvalidActionToken is returned when a notification button's token is
+// forged, malformed or expired, or its user can no longer log in.
+type ErrInvalidActionToken struct {
+	Expired bool
+}
+
+func (err ErrInvalidActionToken) Error() string {
+	if err.Expired {
+		return "Push action token expired"
+	}
+	return "Invalid push action token"
+}
+
+// ErrCodeInvalidActionToken holds the unique world-error code of this error
+const ErrCodeInvalidActionToken = 90203
+
+// HTTPError holds the http error description
+func (err ErrInvalidActionToken) HTTPError() web.HTTPError {
+	msg := "This notification's buttons don't work. Open the task in Mandarin instead."
+	if err.Expired {
+		msg = "This notification is too old for its buttons to work. Open the task in Mandarin instead."
+	}
+	return web.HTTPError{HTTPCode: http.StatusUnauthorized, Code: ErrCodeInvalidActionToken, Message: msg}
+}

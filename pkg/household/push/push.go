@@ -46,6 +46,7 @@ func GetTables() []any {
 		&Preferences{},
 		&vapidKeys{},
 		&pendingShoppingAdd{},
+		&pushSnooze{},
 	}
 }
 
@@ -88,8 +89,9 @@ func PublicKey(s *xorm.Session, a web.Auth) (string, error) {
 }
 
 // Init makes the key pair if needed, hooks into Vikunja's notifications and
-// the shopping list, and schedules the shopping summaries. Call after
-// cron.Init and before Vikunja registers its reminder crons.
+// the shopping list, and schedules the shopping summaries and snoozed
+// reminders. Call after cron.Init and before Vikunja registers its reminder
+// crons.
 func Init() {
 	s := db.NewSession()
 	defer s.Close()
@@ -104,5 +106,6 @@ func Init() {
 	}
 	hookNotifications()
 	hookShopping()
+	scheduleSnoozes()
 	log.Info("Push notifications are on.")
 }

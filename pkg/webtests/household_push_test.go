@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/household/push"
@@ -62,4 +63,40 @@ func TestHouseholdPush(t *testing.T) {
 
 	rec = humaRequest(t, e, http.MethodDelete, fmt.Sprintf("/api/v2/push/devices/%d", device.ID), "", token, "")
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+}
+
+// The notification buttons: no login, the action token is the auth.
+func TestHouseholdPushActions(t *testing.T) {
+	e, err := setupTestEnv()
+	require.NoError(t, err)
+	x, err := db.CreateTestEngine()
+	require.NoError(t, err)
+	require.NoError(t, x.Sync2(push.GetTables()...))
+	_, err = x.Exec("DELETE FROM push_snoozes")
+	require.NoError(t, err)
+
+	body := func(action string, userID, taskID int64) string {
+		return fmt.Sprintf(`{"token":%q,"action":%q}`, push.NewActionToken(userID, taskID, time.Time{}, time.Now()), action)
+	}
+
+	rec := humaRequest(t, e, http.MethodPost, "/api/v2/push/actions", body("snooze", 1, 1), "", "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Contains(t, rec.Body.String(), `"result":"snoozed"`)
+	assert.Contains(t, rec.Body.String(), `"snoozed_until":`)
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/push/actions", body("done", 1, 1), "", "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Contains(t, rec.Body.String(), `"result":"done"`)
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/push/actions", body("done", 1, 1), "", "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Contains(t, rec.Body.String(), `"result":"unchanged"`)
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/push/actions", body("done", 1, 14), "", "")
+	assert.Equal(t, http.StatusForbidden, rec.Code, "task 14 isn't user 1's: %s", rec.Body.String())
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/push/actions", `{"token":"forged.token","action":"done"}`, "", "")
+	assert.Equal(t, http.StatusUnauthorized, rec.Code, rec.Body.String())
+
+	rec = humaRequest(t, e, http.MethodPost, "/api/v2/push/actions", body("delete", 1, 1), "", "")
+	assert.Equal(t, http.StatusUnprocessableEntity, rec.Code, rec.Body.String())
 }

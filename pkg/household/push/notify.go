@@ -54,6 +54,7 @@ func hookNotifications() {
 			if !wants(prefs) {
 				return
 			}
+			addTaskActions(msg, userID, time.Now())
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 			if _, err := Send(ctx, userID, msg); err != nil {
@@ -108,6 +109,8 @@ func reminderMessage(task *models.Task, project *models.Project, u *user.User) *
 		Tag:     fmt.Sprintf("task-%d", task.ID),
 		ttl:     6 * time.Hour,
 		urgency: webpush.UrgencyHigh,
+		taskID:  task.ID,
+		taskDue: task.DueDate,
 	}
 }
 
@@ -153,5 +156,11 @@ func overdueMessage(tasks []*models.Task) *Message {
 		title = "1 overdue task"
 		url = fmt.Sprintf("/tasks/%d", tasks[0].ID)
 	}
-	return &Message{Title: title, Body: body, URL: url, Tag: "overdue", ttl: 12 * time.Hour}
+	msg := &Message{Title: title, Body: body, URL: url, Tag: "overdue", ttl: 12 * time.Hour}
+	if len(tasks) == 1 {
+		// One task: it gets the Done and Snooze buttons.
+		msg.taskID = tasks[0].ID
+		msg.taskDue = tasks[0].DueDate
+	}
+	return msg
 }
