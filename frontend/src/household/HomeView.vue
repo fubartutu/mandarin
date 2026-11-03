@@ -37,6 +37,7 @@
 
 		<div class="home-cards">
 			<HomeMenuCard />
+			<HomeHabitsCard />
 
 			<Card
 				:title="$t('household.shopping.title')"
@@ -152,6 +153,7 @@ import {parseDateOrNull} from '@/helpers/parseDateOrNull'
 import {formatDateSince, formatDisplayDate} from '@/helpers/time/formatDate'
 import {useAuthStore} from '@/stores/auth'
 
+import HomeHabitsCard from './habits/components/HomeHabitsCard.vue'
 import HomeMenuCard from './menu/components/HomeMenuCard.vue'
 import RecipeImage from './recipes/components/RecipeImage.vue'
 import {recipesQuery} from './recipes/queries'
@@ -162,7 +164,7 @@ import {useShoppingSync} from './shopping/sync/useShoppingSync'
 import {useWhatsNew} from './whatsnew/seen'
 
 // Replaces Vikunja's Overview (views/Home.vue) on "/": the same greeting,
-// quick add and current tasks, with this week's menu, the shopping lists and recipes in place
+// quick add and current tasks, with this week's menu, today's habits, the shopping lists and recipes in place
 // of the "last viewed projects" cards. Registered in setup.ts.
 
 const PREVIEW_ITEMS = 4

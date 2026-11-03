@@ -10,6 +10,7 @@ describe('startPageFrom', () => {
 		expect(startPageFrom('shopping')).toBe('shopping')
 		expect(startPageFrom('recipes')).toBe('recipes')
 		expect(startPageFrom('menu')).toBe('menu')
+		expect(startPageFrom('habits')).toBe('habits')
 	})
 
 	it('falls back to Home for unset or unknown values', () => {

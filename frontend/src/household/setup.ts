@@ -14,9 +14,11 @@ import {
 	faCircleCheck,
 	faCloud,
 	faFileLines,
+	faFire,
 	faHouse,
 	faLightbulb,
 	faMicrophone,
+	faSeedling,
 	faStopwatch,
 	faStore,
 	faTriangleExclamation,
@@ -40,6 +42,7 @@ library.add(
 	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
 	faFileLines, faHouse, faLightbulb, faMicrophone, faStore, faTriangleExclamation, faCircle,
 	faChevronLeft, faStopwatch, faUtensils, // cooking mode and the menu
+	faFire, faSeedling, // habits
 )
 
 // Other languages fall back to English for these keys (fallbackLocale).
