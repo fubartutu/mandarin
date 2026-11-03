@@ -84,6 +84,21 @@ func TestHouseholdPushActions(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), `"result":"snoozed"`)
 	assert.Contains(t, rec.Body.String(), `"snoozed_until":`)
 
+	// The task page shows the snooze, to the person who snoozed only, and can cancel it.
+	token := humaTokenFor(t, &testuser1)
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/tasks/1/snooze", "", token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.NotContains(t, rec.Body.String(), `"snoozed_until":null`)
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/tasks/1/snooze", "", humaTokenFor(t, &testuser2), "")
+	assert.Equal(t, http.StatusForbidden, rec.Code, "user 2 can't see task 1: %s", rec.Body.String())
+	rec = humaRequest(t, e, http.MethodDelete, "/api/v2/tasks/1/snooze", "", token, "")
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	rec = humaRequest(t, e, http.MethodGet, "/api/v2/tasks/1/snooze", "", token, "")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Contains(t, rec.Body.String(), `"snoozed_until":null`)
+	rec = humaRequest(t, e, http.MethodDelete, "/api/v2/tasks/1/snooze", "", token, "")
+	assert.Equal(t, http.StatusNoContent, rec.Code, "nothing to cancel is fine")
+
 	rec = humaRequest(t, e, http.MethodPost, "/api/v2/push/actions", body("done", 1, 1), "", "")
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.Contains(t, rec.Body.String(), `"result":"done"`)

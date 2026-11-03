@@ -138,21 +138,23 @@ export function registerPush() {
 		if (typeof path !== 'string') return
 		event.notification.close()
 
-		// Done or Snooze: done in the background, without opening the app. If it
-		// fails (no signal, Cloudflare login expired), a notification says so,
-		// and tapping that one opens the task.
+		// Done or Snooze: done in the background, without opening the app. A
+		// snooze is confirmed quietly ("Snoozed until 10:40"); if it fails (no
+		// signal, Cloudflare login expired), a notification says so. Tapping
+		// either opens the task.
 		const token = event.notification.data?.mandarinActionToken
 		const action = event.action
 		if (isNotificationAction(action) && typeof token === 'string') {
 			const {title, tag} = event.notification
 			event.waitUntil((async () => {
-				const failed = await runNotificationAction(self.registration.scope, action, token, title)
-				if (failed) {
-					await self.registration.showNotification(failed.title, {
-						body: failed.body,
+				const next = await runNotificationAction(self.registration.scope, action, token, title)
+				if (next) {
+					await self.registration.showNotification(next.title, {
+						body: next.body,
 						tag,
 						icon: new URL('images/household/android-chrome-192x192.png', self.registration.scope).href,
 						data: {mandarinUrl: path},
+						silent: next.quiet,
 					})
 				}
 			})())

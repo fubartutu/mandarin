@@ -4,8 +4,8 @@ import {isNotificationAction, runNotificationAction} from './notificationActions
 
 const scope = 'https://mandarin.example.com/'
 
-function answer(status: number, type: ResponseType = 'basic') {
-	return vi.fn().mockResolvedValue({ok: status >= 200 && status < 300, status, type})
+function answer(status: number, type: ResponseType = 'basic', body: unknown = {result: 'done'}) {
+	return vi.fn().mockResolvedValue({ok: status >= 200 && status < 300, status, type, json: async () => body})
 }
 
 describe('runNotificationAction', () => {
@@ -20,10 +20,25 @@ describe('runNotificationAction', () => {
 		expect(init.redirect).toBe('manual')
 	})
 
+	it('confirms a snooze quietly', async () => {
+		const now = new Date(2026, 10, 3, 9, 40)
+		const until = new Date(2026, 10, 3, 10, 40)
+		const fetchFn = answer(200, 'basic', {result: 'snoozed', snoozed_until: until.toISOString()})
+		const next = await runNotificationAction(scope, 'snooze', 't', 'Bins', fetchFn, now)
+		expect(next).toEqual({
+			title: 'Bins',
+			body: `Snoozed until ${until.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'})}`,
+			quiet: true,
+		})
+		// Already done elsewhere: nothing to confirm.
+		expect(await runNotificationAction(scope, 'snooze', 't', 'Bins', answer(200, 'basic', {result: 'unchanged'}))).toBeNull()
+	})
+
 	it('says so when it fails', async () => {
 		expect(await runNotificationAction(scope, 'done', 't', 'Bins', answer(500))).toEqual({
 			title: 'Couldn\'t mark “Bins” done',
 			body: 'Tap to open the task.',
+			quiet: false,
 		})
 		expect((await runNotificationAction(scope, 'snooze', 't', 'Bins', answer(401)))?.body)
 			.toContain('too old')

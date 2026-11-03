@@ -26,9 +26,11 @@ import (
 
 	"code.vikunja.io/api/pkg/cron"
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/household"
 	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/models"
 	"code.vikunja.io/api/pkg/user"
+	"code.vikunja.io/api/pkg/web"
 
 	"xorm.io/xorm"
 )
@@ -61,6 +63,49 @@ func snooze(s *xorm.Session, userID, taskID int64, at time.Time) error {
 		return nil // SQLite: don't write a row that hasn't changed
 	}
 	_, err = s.ID(existing.ID).Cols("at").Update(&pushSnooze{At: at})
+	return err
+}
+
+// SnoozeState is the caller's snooze on a task, shown on the task page.
+type SnoozeState struct {
+	SnoozedUntil *time.Time `json:"snoozed_until" doc:"When the snoozed reminder comes back; null when it isn't snoozed. Only the caller's own snooze."`
+}
+
+// canSeeTask is the check for the task page's snooze: a household member who
+// can read the task. Errors when they can't.
+func canSeeTask(s *xorm.Session, a web.Auth, taskID int64) error {
+	if err := household.RequireMember(a); err != nil {
+		return err
+	}
+	can, _, err := (&models.Task{ID: taskID}).CanRead(s, a)
+	if err != nil {
+		return err
+	}
+	if !can {
+		return models.ErrGenericForbidden{}
+	}
+	return nil
+}
+
+// GetSnooze returns the caller's snooze on the task, if any.
+func GetSnooze(s *xorm.Session, a web.Auth, taskID int64) (*SnoozeState, error) {
+	if err := canSeeTask(s, a, taskID); err != nil {
+		return nil, err
+	}
+	sn := &pushSnooze{}
+	has, err := s.Where("user_id = ? AND task_id = ?", a.GetID(), taskID).Get(sn)
+	if err != nil || !has {
+		return &SnoozeState{}, err
+	}
+	return &SnoozeState{SnoozedUntil: &sn.At}, nil
+}
+
+// CancelSnooze drops the caller's snooze on the task; nothing when there's none.
+func CancelSnooze(s *xorm.Session, a web.Auth, taskID int64) error {
+	if err := canSeeTask(s, a, taskID); err != nil {
+		return err
+	}
+	_, err := s.Where("user_id = ? AND task_id = ?", a.GetID(), taskID).Delete(&pushSnooze{})
 	return err
 }
 
