@@ -9,11 +9,12 @@ One self-hosted app for the household: shared shopping lists that keep working w
 - **Shopping:** fast to use in the shop, works offline, syncs when the signal returns, covers groceries and other family shopping (kids' shoes, Kmart runs).
 - **Recipes:** import from recipe blogs with the exact ingredients, numbered steps and photos; add ingredients to the shopping list.
 - **Menu:** plan the week's dinners from the recipes; cook from a full-screen step-by-step view.
-- **Tasks:** Vikunja-level task management with due dates, reminders, saved filters and multiple views.
+- **Tasks:** Vikunja-level task management with due dates, reminders, saved filters and multiple views, plus a gentler Lunatask-style Focus view that says what to do next.
+- **Personal life:** habits and household routines, birthdays and keeping in touch with people, a daily journal with mood (all ideas from Lunatask, with a forgiving, ADHD-friendly feel).
 - **Everywhere:** looks good and works well on phone, tablet and laptop; both an iPhone and an Android phone.
 - **Self-hosted:** runs in Docker on the home ZimaOS server.
 
-Inspiration: [Vikunja](https://vikunja.io) (look, task features), [KitchenOwl](https://kitchenowl.org) (recipes, single shared grocery list), ShopShop (list feel), [Specifically Clementines](https://github.com/davideshay/groceries) (shop groups, sync visibility).
+Inspiration: [Vikunja](https://vikunja.io) (look, task features), [KitchenOwl](https://kitchenowl.org) (recipes, single shared grocery list), ShopShop (list feel), [Specifically Clementines](https://github.com/davideshay/groceries) (shop groups, sync visibility), [Lunatask](https://lunatask.app) (habits, relationships, journal and mood, task workflows; ideas only, Lunatask is closed source, so no code, text or artwork from it).
 
 ## Approach
 
@@ -149,6 +150,76 @@ A full-screen view for cooking one recipe, opened from a recipe page, or from a 
 - **Timers:** a step that mentions a time ("simmer 20 minutes") gets a tap-to-start timer. Several can run at once. They run only while cooking mode is open and finish with a sound, vibration and a banner (no push).
 - **Resume:** leaving and coming back to the same recipe within 6 hours returns to the same step, with the ticked ingredients and running timers. Kept on that device only.
 
+## Habits and routines
+
+Personal habits and shared household routines, ticked off on Home, reminded by push, and usable with no signal. The tone is forgiving: missing a day never wipes out progress.
+
+- **Kinds:**
+  - **Scheduled:** every day, or chosen weekdays ("Gym" Mon/Wed/Fri).
+  - **Times per week:** any days, with a weekly goal ("Run 3× a week").
+  - **Times per day:** a count with a daily goal ("Water 8×"); each tap adds one, a long press takes one off.
+  - **Bad habits:** log each time it happens; the aim is fewer. No goal, no streak; the page shows the trend ("12 this week, 18 last week").
+- **Who sees what:** a habit is **personal** (only its owner sees it) or a **household routine** (everyone sees it and anyone can tick it; the tick records who did it, e.g. "Bins out Tue, done by Alex"). A personal habit can be made a household one later and back.
+- **Routines (groups):** habits can be put in a named, ordered group ("Morning", "Kids' bedtime"). Home shows a group as one card with its habits in order; ticking the last one ticks off the group.
+- **Skip and rest:** a habit can be skipped for a day (or a week, for weekly habits) with an optional reason. A skip counts as neither done nor missed. Habits can be **paused** for a stretch (holidays, illness) and archived when no longer wanted; history is kept.
+- **Progress, not streak shame:** the main number is "done 22 of the last 30 scheduled days" (or weeks), with a colour grid of the last weeks. A streak is shown too, but it counts scheduled days only (a Mon/Wed/Fri habit done Fri then Mon keeps its streak), skips and paused days don't break it, and one missed day in a row of done ones bends it ("streak kept: 1 miss allowed per 7 days") instead of resetting. Best streak is kept. A times-per-day habit counts as done for the day only once it reaches its goal; a weekly habit's streak counts weeks in a row that met the goal. (Lunatask does the scheduled-days part; its skips only hide a habit for the day and don't protect the streak, and it has no allowed misses. Those two are ours.)
+- **Days:** a day runs midnight to midnight in `service.timezone`. Yesterday can still be ticked (late entry); older days can be edited on the habit's page.
+- **Reminders:** each habit can have a time (several for times-per-day habits). A push comes at that time only if the habit isn't done or skipped yet. Household routine reminders go to whoever turned them on. Quiet hours apply.
+- **Offline:** ticks, skips and counts work with no signal and sync later. A tick is an entry with its own id made on the phone, so two people ticking at once can't conflict: the server keeps both and the habit counts as done once. Editing habits themselves (name, schedule) is online-only.
+- **In the app:** a **Habits** entry in the menu (after Recipes): today's habits, then all habits with their grids and stats, and a page per habit with its full history. A "Today" card on Home with today's habits and routines, tick from there. Habits as a start-page choice.
+- **Not included:** points, levels or rewards; habits on a calendar (no time blocking); habits tied to tasks.
+
+## Focus view (tasks)
+
+A gentler way to look at tasks, beside Vikunja's list, table and kanban (which stay as they are). It answers "what should I do now?" and keeps the rest out of sight.
+
+- **Per project workflow:** each project picks how its Focus view is laid out (default Now / Later); the choice is per project, so "Work" can be a kanban and "House" a plan-your-days list:
+  - **Now / Later:** a short Now list and a self-sorting Later backlog.
+  - **Kanban:** In progress, Next, Waiting, then Later, stacked top to bottom.
+  - **Plan your days:** Today, Tomorrow, later this week, Later; a task is planned for a day by hand.
+  - **Must / Should / Want:** Now / Later, with each Now task marked Must, Should or Want and shown in those groups.
+  - **Eisenhower:** each task is marked urgent and/or important and lands in Do now, Delegate / push back, Do later or Drop.
+  - **Priority list:** one self-sorting list; only the top 10 show until "Show all".
+- **All projects:** a Focus page across all projects (and shared ones) shows each project's Now / In progress / Today section together, so one screen says what's on.
+- **Self-sorting backlog:** Later (and the priority list) is sorted by priority, then age, so old tasks drift up instead of sinking. A task can be nudged up or down by hand (keyboard: Shift+↑/↓), which changes its priority. Priority has five steps (lowest, low, normal, high, highest).
+- **"Do next" ranking:** across a project (and the all-projects page) one order decides what to do next, mixing section and priority instead of strictly section first: highest-priority tasks of any active section come first, then normal/high in In progress, then Next, then low ones, and Waiting and Later last, with a highest-priority Later task ahead of low-priority Waiting ones (Lunatask's rule). Tasks whose do-from date has just arrived count as active. Ties go to the older task. The top task is highlighted.
+- **Pin:** a task can be pinned to the top of its section regardless of the ranking.
+- **Age:** each task shows "12 days old". Age counts from creation, but when a do-from date arrives it restarts from that date, so a deferred task doesn't jump the queue as if it had waited all along.
+- **Two kinds of date:**
+  - **Do from** (Vikunja's start date): the task stays hidden in a "Coming up" section until that day (how far ahead Coming up shows: 1, 7, 14 or 30 days, or not at all), then quietly joins its list in its section for new tasks (Later, or the unsorted group in Must/Should/Want and Eisenhower) to be sorted again. A missed do-from date is never shown as overdue; the task just carries on.
+  - **Deadline** (Vikunja's due date): only for tasks that really have one. These are the only tasks that turn red, appear in the overdue summary push, and sort first.
+  New tasks get no date unless one is given; quick add magic's dates become deadlines as now, with a setting to make them do-from dates instead.
+- **WIP limit:** per project, a limit on Now / In progress (default 3, can be off). Over the limit, the section header turns orange and says "4 of 3: finish one first?"; nothing is blocked.
+- **Estimates:** a task can have a time estimate (picked from 5 min, 15, 30, 1 h, 2 h, half a day, or typed). Each section shows its total ("Now: 2 h 15"), and Today shows the planned total next to the time left in the day.
+- **Where it lives:** Focus is a new page in the menu (under the Tasks divider) and a "Focus" link on each project next to its Vikunja views. Home's current-tasks card shows the Focus view's Now / Today tasks for projects that use it. Workflow status, Must/Should/Want, urgent/important, planned day and estimate are household data next to the task, not changes to Vikunja's task table.
+- **Done tasks** drop out of Focus straight away (with an undo toast); Vikunja's views still show them.
+
+## People
+
+Keeping in touch with family and friends: important dates, reminders to reconnect, and what's worth remembering about each person.
+
+- **Who sees whom:** a person is **personal** (only you see them) or **household** (everyone sees and edits them, e.g. grandparents, the kids' friends' parents). Timeline entries follow the person, but a single entry can be kept private.
+- **Details:** name, photo, how you know them (family, friend, school, work, as labels), and free fields the household defines once and fills per person (e.g. "Kids", "Shoe size", "Likes", "Allergies", "Address"). Fields can be text, date or link.
+- **Dates:** birthday (year optional, so the age shows when known) and any other dates (anniversary, "moved to Perth"). A push 7 days before (time to buy a present) and on the day, per person adjustable. Upcoming dates show on Home in the 14 days before.
+- **Gift ideas:** a list per person, added any time. "Add to shopping list" puts an idea on a chosen list through the usual shopping add (so it works offline and syncs).
+- **Closeness:** how close each person is (family, extended family, close friends, friends, acquaintances, work) and a "want to be closer" flag, used to sort and filter the list. When a rhythm is first set, closeness suggests one (family every 2 weeks, friends every month…).
+- **Reconnect:** a person can have a rhythm ("every 2 weeks", "every 3 months", "first Sunday of the month"), typed in words and stored as a calendar repeat rule (RRULE, the same format Vikunja and CalDAV use). The next date is the rule's next date after the last contact, or after an agreed date ("we said we'd catch up on the 20th") when one is set and still ahead. When it's due they appear in a "Reconnect" list on Home and in a once-a-day push (one push for all who are due, at a time you set). "Done" logs a contact (call, visit, message, with an optional note) and restarts the rhythm; "Snooze" moves it a few days. A rhythm can be paused.
+- **Timeline:** per person, newest first: contacts logged, notes, memories (a short text, a date, photos), and journal entries that mention them.
+- **In the app:** a **People** entry in the menu; list grouped by label with search; online-only (pages already opened stay readable without signal, like tasks).
+- **Not included:** importing phone contacts, syncing with CardDAV, messaging from the app.
+
+## Journal and mood
+
+A short daily journal with a mood check-in, private to each person.
+
+- **Entries:** one per person per day (a day can have more if wanted), Markdown, with the day's mood on top. Private: nobody else in the household can read them, admins included in the app (the database itself is not encrypted).
+- **Templates:** a template is a few prompts ("What went well?", "What's on my mind?") pre-filled into a new entry. Each person can have several and pick a default; a morning and an evening one, say.
+- **Mood:** a quick tap on six faces (bad, sad, meh, good, happy, awesome; stored as 1–11 in steps of 2, as Lunatask does, so finer steps can be added later without rewriting old entries) with optional feeling words (calm, anxious, tired, proud…), plus optional **energy** (1–5) and **stress** (how busy the day felt, 1–5). The check-in can be done on its own from Home without writing anything, and a daily push can ask for it at a set time.
+- **People and habits:** an entry can mention people (@name) and then shows on their timeline. The Habits page shows mood alongside the habit grids, and a simple chart compares average mood on days a habit was done and days it wasn't. A trends page draws mood, energy, stress and chosen habits per day for a week, month or year, with the previous period faint behind it.
+- **Obsidian:** entries can be copied to the HOME vault's daily notes by the Obsidian plugin (a command, and optionally automatic), so Obsidian stays the long-term archive.
+- **In the app:** a **Journal** entry in the menu with a calendar of past entries coloured by mood, and a mood card on Home. Works offline for writing today's entry and the check-in (queued and synced later, last edit wins).
+- **Not included:** notebooks and general notes (Obsidian covers those), PIN locks, sharing entries.
+
 ## Push notifications
 
 Notifications on the phones' home-screen app (and laptop browsers) through Web Push, which iPhone and iPad support for home-screen apps since iOS/iPadOS 16.4, and Android and desktop browsers always have. Vikunja has none: reminders only go by email.
@@ -208,6 +279,10 @@ Groceries come first; each phase ends with something usable on the phones.
 8. **Push notifications and Obsidian:** task reminders and the daily overdue summary on the phones, opt-in shopping list summaries, quiet hours; then the Obsidian plugin (tasks, note → task, recipes as notes).
 9. **Shops, part 2:** an optional shop per item (chosen when adding or editing), and a per-shop aisle order for categories.
 10. **Menu planning and cooking mode:** the shared weekly dinner menu first (planner, Home section, Plan button on recipes), then cooking mode, opened from recipes and planned entries.
+11. **Habits and routines:** all four kinds, personal and household routines, groups, skip and pause, the forgiving progress view, Home card, Habits page, push reminders, then offline ticking. First, a small step that pulls the offline queue in `shopping/sync` apart into a shared piece both modules use.
+12. **Focus view:** Now / Later, Kanban and Plan your days first, with the self-sorting backlog, do-from vs deadline, WIP limit and estimates; the all-projects Focus page and the Home card. Then Must / Should / Want, Eisenhower and the priority list.
+13. **People:** people, fields, dates and birthday pushes, gift ideas to the shopping list, reconnect rhythms and the daily reconnect push, timeline.
+14. **Journal and mood:** mood check-in (Home card, push), journal entries and templates, offline writing, mood next to habits, @mentions on people's timelines, then the Obsidian daily-note copy.
 
 ## Out of scope and later
 
@@ -219,6 +294,7 @@ Groceries come first; each phase ends with something usable on the phones.
 - Offline editing of tasks (not just reading).
 - Store apps for iOS and Android.
 - Menu: breakfast and lunch slots, copying earlier weeks, suggestions, a "tonight's dinner" push.
+- More from Lunatask, not planned yet: time blocking tasks and habits on a calendar, task timers, goals with progress per area, a quick-note scratchpad, email-to-task.
 
 ## Open questions
 
@@ -229,3 +305,8 @@ Groceries come first; each phase ends with something usable on the phones.
 - [x] Backups: nightly to a folder on the server (database and files, kept 14 days). Still open: an extra copy off the box, e.g. the Synology NAS.
 - [x] Notifications when the other person changes a shared list: per list, off by default, batched (Phase 8).
 - [x] Vikunja trial reverse-proxy issue: resolved, Mandarin is live behind Nginx Proxy Manager.
+- [x] Lunatask ideas (Nov 3, 2026): habits first, then Focus view, People, Journal and mood (Phases 11–14). Shared and private mixed per item; forgiving streaks; do-from dates plus real deadlines. Task ranking, age, streak, reconnect and mood details were checked against the Lunatask desktop app's own code (behaviour only, nothing copied).
+- [ ] Habits offline: share the shopping sync queue (one engine, more op types) or give habits a small queue of their own? Leaning towards sharing it, decided at the start of Phase 11.
+- [ ] Focus view: should "Now" also be a Vikunja label or bucket, so it shows in the Vikunja kanban and the Obsidian plugin, or stay Mandarin-only?
+- [ ] Kids: do the children get their own logins (for their own routines and habits), or are kids' routines household routines ticked by a parent?
+- [ ] Journal privacy: is "admins can't read it in the app" enough, or should entries be encrypted with a passphrase?
