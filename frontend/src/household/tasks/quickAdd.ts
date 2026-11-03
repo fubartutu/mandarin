@@ -28,7 +28,7 @@ const NONE: HouseholdMagic = {rule: null, repeatEnd: null, fromCompletion: 0, pr
 /** Takes the household phrases off a title; nothing when quick add magic is off. */
 export function readHouseholdMagic(title: string, mode: PrefixMode, now = new Date()): {text: string, magic: HouseholdMagic} {
 	if (PREFIXES[mode] === undefined) return {text: title, magic: NONE}
-	const completion = extractFromCompletion(title)
+	const completion = extractFromCompletion(withColonTimes(title))
 	const priority = extractTodoistPriority(completion.text)
 	// Leaves Vikunja's own repeat word in its place, so the end and "starting" still see a repeat.
 	const rule = extractRepeatRule(priority.text)
@@ -37,6 +37,16 @@ export function readHouseholdMagic(title: string, mode: PrefixMode, now = new Da
 		text: extractStarting(end.text, now),
 		magic: {rule: rule.rule, repeatEnd: end.end, fromCompletion: completion.fromCompletion, priority: priority.priority},
 	}
+}
+
+/**
+ * "at 9.30" → "at 9:30", so Vikunja's magic reads the time: it only knows
+ * hh:mm. Only right after "at" or "@", where Vikunja looks for a time, so
+ * "v1.2" or "2.5 kg" stay as typed. Not before another digit or ".digit"
+ * ("at 1.2.3" isn't a time).
+ */
+export function withColonTimes(title: string): string {
+	return title.replace(/(^|\s)(at|@) ([01]?\d|2[0-3])\.([0-5]\d)(?!\d|\.\d)/gi, '$1$2 $3:$4')
 }
 
 /** Adds what Vikunja's magic can't set to the task it built. */
