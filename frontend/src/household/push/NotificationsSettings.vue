@@ -93,6 +93,16 @@
 					{{ $t('user.settings.general.title') }}
 				</RouterLink>
 			</p>
+			<FormCheckbox
+				v-model="prefs.habit_reminders"
+				:label="$t('household.push.habitReminders')"
+			/>
+			<p class="help">
+				{{ $t('household.push.habitRemindersHint') }}
+				<RouterLink :to="{name: 'habits'}">
+					{{ $t('household.habits.title') }}
+				</RouterLink>
+			</p>
 
 			<p class="label shopping-label">
 				{{ $t('household.push.shopping') }}
@@ -199,6 +209,7 @@ interface Prefs {
 	reminders: boolean
 	overdue: boolean
 	quiet_hours: boolean
+	habit_reminders: boolean
 	shopping_list_ids: number[]
 }
 
@@ -210,6 +221,7 @@ const saved = useQuery({
 			reminders: p.reminders ?? true,
 			overdue: p.overdue ?? true,
 			quiet_hours: p.quiet_hours ?? true,
+			habit_reminders: p.habit_reminders ?? true,
 			shopping_list_ids: p.shopping_list_ids ?? [],
 		}
 	},

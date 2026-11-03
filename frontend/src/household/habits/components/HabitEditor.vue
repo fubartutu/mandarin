@@ -138,6 +138,54 @@
 					</div>
 				</fieldset>
 
+				<fieldset
+					v-if="draft.kind !== 'bad'"
+					class="field"
+				>
+					<legend class="label">
+						{{ $t('household.habits.edit.reminders') }}
+					</legend>
+					<div class="reminders">
+						<span
+							v-for="(time, i) in draft.reminderTimes"
+							:key="i"
+							class="reminder"
+						>
+							<input
+								v-model="draft.reminderTimes[i]"
+								class="input"
+								type="time"
+								required
+								:aria-label="$t('household.habits.edit.reminders')"
+							>
+							<button
+								type="button"
+								class="button is-small is-text"
+								:title="$t('household.habits.edit.removeReminder', {time})"
+								:aria-label="$t('household.habits.edit.removeReminder', {time})"
+								@click="draft.reminderTimes.splice(i, 1)"
+							>
+								<Icon icon="times" />
+							</button>
+						</span>
+						<XButton
+							v-if="draft.reminderTimes.length < MAX_REMINDERS"
+							variant="secondary"
+							icon="plus"
+							:shadow="false"
+							@click="addReminder"
+						>
+							{{ $t('household.habits.edit.addReminder') }}
+						</XButton>
+					</div>
+					<p class="help">
+						{{ $t('household.habits.edit.remindersHint') }}
+						<RouterLink :to="{name: 'user.settings.household-notifications'}">
+							{{ $t('household.habits.edit.remindersSettings') }}
+						</RouterLink>
+					</p>
+				</fieldset>
+
 				<label class="checkbox field">
 					<input
 						v-model="draft.shared"
@@ -210,6 +258,8 @@ const emit = defineEmits<{
 }>()
 
 const KINDS: HabitKind[] = ['daily', 'daily_count', 'weekly', 'bad']
+// The server takes at most 8 reminder times a habit.
+const MAX_REMINDERS = 8
 
 const {t, locale} = useI18n({useScope: 'global'})
 const authStore = useAuthStore()
@@ -228,6 +278,7 @@ const draft = reactive<HabitDraft>({
 	color: props.habit?.color ?? '',
 	groupId: props.habit?.groupId ?? props.groupId ?? 0,
 	shared: props.habit?.shared ?? false,
+	reminderTimes: [...(props.habit?.reminderTimes ?? [])],
 })
 
 // Monday to Sunday in the user's language (2024-01-01 was a Monday).
@@ -246,6 +297,13 @@ const deleting = useDeleteHabitMutation()
 const canSave = computed(() => draft.title.trim() !== '' && draft.weekdays.includes('1') &&
 	draft.goal >= 1 && draft.goal <= 99 && !saving.isPending.value)
 
+/** A new reminder: an hour after the last one, or 9:00 for the first. */
+function addReminder() {
+	const last = draft.reminderTimes.at(-1)
+	const hour = last ? Math.min(Number(last.slice(0, 2)) + 1, 23) : 9
+	draft.reminderTimes.push(`${String(hour).padStart(2, '0')}:00`)
+}
+
 function save() {
 	if (!canSave.value) return
 	// Only the kinds that use them keep days, a goal and a routine.
@@ -255,6 +313,8 @@ function save() {
 		weekdays: draft.kind === 'daily' || draft.kind === 'daily_count' ? draft.weekdays : '1111111',
 		goal: draft.kind === 'daily_count' || draft.kind === 'weekly' ? draft.goal : 1,
 		groupId: draft.kind === 'bad' ? 0 : draft.groupId,
+		// Sorted and without repeats; bad habits never remind.
+		reminderTimes: draft.kind === 'bad' ? [] : [...new Set(draft.reminderTimes.filter(t => t !== ''))].sort(),
 	}
 	saving.mutate({habit: props.habit, draft: body}, {onSuccess: () => emit('close')})
 }
@@ -315,6 +375,22 @@ function remove() {
 
 .goal .input {
 	max-inline-size: 6rem;
+}
+
+.reminders {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .5rem;
+}
+
+.reminder {
+	display: inline-flex;
+	align-items: center;
+
+	.input {
+		inline-size: 7.5rem;
+	}
 }
 
 .swatch {

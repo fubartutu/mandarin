@@ -254,7 +254,9 @@
 				"until": "Reminder snoozed until {time}",
 				"cancel": "Cancel",
 				"cancelled": "The snoozed reminder won't come back."
-			}
+			},
+			"habitReminders": "Habit reminders",
+			"habitRemindersHint": "While a habit is still to do, at the times set on it: your own habits and the household routines. The times are set on each habit in"
 		},
 		"home": {
 			"title": "Home",
@@ -485,7 +487,12 @@
 				"sharedHelp": "Everyone sees it and can tick it off. Only you can make it personal again.",
 				"save": "Save",
 				"delete": "Delete",
-				"deleteConfirm": "Delete \"{title}\" and all its history? Archive it instead to keep the history."
+				"deleteConfirm": "Delete \"{title}\" and all its history? Archive it instead to keep the history.",
+				"reminders": "Reminders",
+				"addReminder": "Add a time",
+				"removeReminder": "Remove {time}",
+				"remindersHint": "A push at these times while it's still to do today. For household routines, everyone gets it.",
+				"remindersSettings": "Notification settings"
 			},
 			"routines": {
 				"title": "Routines",

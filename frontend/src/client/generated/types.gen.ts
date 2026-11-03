@@ -47,9 +47,9 @@ export type ActionInput = {
      */
     readonly $schema?: string;
     /**
-     * Which button was tapped.
+     * Which button was tapped: done and snooze on tasks, done and skip on habits.
      */
-    action?: 'done' | 'snooze';
+    action?: 'done' | 'snooze' | 'skip';
     /**
      * The action_token the notification came with.
      */
@@ -62,9 +62,9 @@ export type ActionResult = {
      */
     readonly $schema?: string;
     /**
-     * done or snoozed; unchanged when the task was already done or has moved on to another date since the notification was sent.
+     * done, snoozed or skipped; unchanged when the task was already done or has moved on to another date since the notification was sent, or the habit was already done (or skipped) that day.
      */
-    result?: 'done' | 'snoozed' | 'unchanged';
+    result?: 'done' | 'snoozed' | 'skipped' | 'unchanged';
     /**
      * When the reminder comes back (snoozed only).
      */
@@ -2015,6 +2015,10 @@ export type Preferences = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
+    /**
+     * A push at each habit's reminder times while it's still to do today.
+     */
+    habit_reminders?: boolean;
     /**
      * The daily overdue summary (at the time set for overdue reminders).
      */
@@ -5173,9 +5177,9 @@ export type ApiTokenWritable = {
 
 export type ActionInputWritable = {
     /**
-     * Which button was tapped.
+     * Which button was tapped: done and snooze on tasks, done and skip on habits.
      */
-    action?: 'done' | 'snooze';
+    action?: 'done' | 'snooze' | 'skip';
     /**
      * The action_token the notification came with.
      */
@@ -5184,9 +5188,9 @@ export type ActionInputWritable = {
 
 export type ActionResultWritable = {
     /**
-     * done or snoozed; unchanged when the task was already done or has moved on to another date since the notification was sent.
+     * done, snoozed or skipped; unchanged when the task was already done or has moved on to another date since the notification was sent, or the habit was already done (or skipped) that day.
      */
-    result?: 'done' | 'snoozed' | 'unchanged';
+    result?: 'done' | 'snoozed' | 'skipped' | 'unchanged';
     /**
      * When the reminder comes back (snoozed only).
      */
@@ -6165,6 +6169,10 @@ export type PasswordTokenRequestWritable = {
 };
 
 export type PreferencesWritable = {
+    /**
+     * A push at each habit's reminder times while it's still to do today.
+     */
+    habit_reminders?: boolean;
     /**
      * The daily overdue summary (at the time set for overdue reminders).
      */

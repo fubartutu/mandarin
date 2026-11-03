@@ -1,5 +1,5 @@
-// The Done and Snooze buttons on task notifications (pkg/household/push,
-// actions.go). Runs in the service worker (household/sw.ts), which can't read
+// The Done and Snooze buttons on task notifications, and Done and Skip on
+// habit reminders (pkg/household/push, actions.go and habits.go). Runs in the service worker (household/sw.ts), which can't read
 // the app's login token: the notification carries a signed action token, and
 // that's all POST /api/v2/push/actions needs.
 //
@@ -14,7 +14,7 @@ export interface NotificationButton {
 	title: string
 }
 
-export const NOTIFICATION_ACTIONS = ['done', 'snooze'] as const
+export const NOTIFICATION_ACTIONS = ['done', 'snooze', 'skip'] as const
 export type NotificationAction = typeof NOTIFICATION_ACTIONS[number]
 
 export function isNotificationAction(action: string): action is NotificationAction {
@@ -32,7 +32,7 @@ export interface FollowUpNotification {
 /**
  * Sends the tapped button to the server. Returns what to show next: "Snoozed
  * until 10:40" after a snooze, a "couldn't" when it failed, or null (Done
- * worked, or the task had already moved on: the notification just goes).
+ * or Skip worked, or the task or habit had already moved on: the notification just goes).
  */
 export async function runNotificationAction(
 	scope: string,
@@ -68,11 +68,17 @@ export async function runNotificationAction(
 	} catch {
 		// No signal, or the server is down.
 	}
+	const failed: Record<NotificationAction, string> = {
+		done: `Couldn't mark “${taskTitle}” done`,
+		snooze: `Couldn't snooze “${taskTitle}”`,
+		skip: `Couldn't skip “${taskTitle}”`,
+	}
 	return {
-		title: action === 'done' ? `Couldn't mark “${taskTitle}” done` : `Couldn't snooze “${taskTitle}”`,
+		title: failed[action],
+		// "it": the task, or the Habits page for a habit reminder.
 		body: status === 401
-			? 'This notification is too old for its buttons. Tap to open the task.'
-			: 'Tap to open the task.',
+			? 'This notification is too old for its buttons. Tap to open it.'
+			: 'Tap to open it.',
 		quiet: false,
 	}
 }

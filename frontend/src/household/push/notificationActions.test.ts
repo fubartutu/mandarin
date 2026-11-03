@@ -37,7 +37,7 @@ describe('runNotificationAction', () => {
 	it('says so when it fails', async () => {
 		expect(await runNotificationAction(scope, 'done', 't', 'Bins', answer(500))).toEqual({
 			title: 'Couldn\'t mark “Bins” done',
-			body: 'Tap to open the task.',
+			body: 'Tap to open it.',
 			quiet: false,
 		})
 		expect((await runNotificationAction(scope, 'snooze', 't', 'Bins', answer(401)))?.body)
@@ -45,6 +45,10 @@ describe('runNotificationAction', () => {
 		// A redirect to the Cloudflare login page comes back opaque, status 0.
 		expect((await runNotificationAction(scope, 'snooze', 't', 'Bins', answer(0, 'opaqueredirect')))?.title)
 			.toBe('Couldn\'t snooze “Bins”')
+		expect((await runNotificationAction(scope, 'skip', 't', 'Stretch', answer(500)))?.title)
+			.toBe('Couldn\'t skip “Stretch”')
+		// A habit skipped (or already done) elsewhere: the notification just goes.
+		expect(await runNotificationAction(scope, 'skip', 't', 'Stretch', answer(200, 'basic', {result: 'skipped'}))).toBeNull()
 		const offline = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
 		expect(await runNotificationAction(scope, 'done', 't', 'Bins', offline)).not.toBeNull()
 	})
@@ -54,6 +58,7 @@ describe('isNotificationAction', () => {
 	it('knows our buttons only', () => {
 		expect(isNotificationAction('done')).toBe(true)
 		expect(isNotificationAction('snooze')).toBe(true)
+		expect(isNotificationAction('skip')).toBe(true)
 		expect(isNotificationAction('show-task')).toBe(false) // Vikunja's own
 		expect(isNotificationAction('')).toBe(false) // a tap on the notification itself
 	})

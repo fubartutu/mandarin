@@ -31,6 +31,13 @@
 						{{ streakText }}
 					</span>
 					<span>{{ statusText }}</span>
+					<span
+						v-if="habit.reminderTimes.length > 0 && habit.kind !== 'bad'"
+						class="reminder-times"
+					>
+						<Icon icon="bell" />
+						{{ habit.reminderTimes.join(', ') }}
+					</span>
 				</span>
 			</button>
 			<button
@@ -202,6 +209,10 @@ const recentText = computed(() => {
 	gap: .5rem;
 	color: var(--grey-600);
 	font-size: .85rem;
+}
+
+.reminder-times {
+	color: var(--grey-500);
 }
 
 .streak {

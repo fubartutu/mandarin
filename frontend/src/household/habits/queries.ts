@@ -144,6 +144,7 @@ export interface HabitDraft {
 	color: string
 	groupId: number
 	shared: boolean
+	reminderTimes: string[] // HH:MM, sorted
 }
 
 // ---- Keys and queries ----
@@ -277,7 +278,7 @@ function habitBody(habit: HabitResponse | undefined, draft: Partial<HabitDraft>,
 		position: habit?.position,
 		archived: habit?.archived,
 		paused: habit?.paused,
-		reminder_times: habit?.reminderTimes,
+		reminder_times: d.reminderTimes,
 		...extra,
 	}
 }

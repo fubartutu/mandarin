@@ -16,8 +16,8 @@
 
 // Package push sends Web Push notifications to the household's phones and
 // browsers: task reminders and the daily overdue summary (both raised by
-// Vikunja's notification system, see notify.go), and batched summaries of
-// shopping list changes (shopping.go). See SPEC.md, "Push notifications".
+// Vikunja's notification system, see notify.go), batched summaries of
+// shopping list changes (shopping.go) and habit reminders (habits.go). See SPEC.md, "Push notifications".
 //
 // A device turns push on in the app; its push address is stored per user
 // (Device). The server signs every push with its own key pair (VAPID), made
@@ -89,8 +89,8 @@ func PublicKey(s *xorm.Session, a web.Auth) (string, error) {
 }
 
 // Init makes the key pair if needed, hooks into Vikunja's notifications and
-// the shopping list, and schedules the shopping summaries and snoozed
-// reminders. Call after cron.Init and before Vikunja registers its reminder
+// the shopping list, and schedules the shopping summaries, snoozed
+// reminders and habit reminders. Call after cron.Init and before Vikunja registers its reminder
 // crons.
 func Init() {
 	s := db.NewSession()
@@ -107,5 +107,6 @@ func Init() {
 	hookNotifications()
 	hookShopping()
 	scheduleSnoozes()
+	scheduleHabitReminders()
 	log.Info("Push notifications are on.")
 }

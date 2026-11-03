@@ -103,8 +103,11 @@ another package), so in practice:
   times in step text (`steps.ts`) and are plain data with `endsAt`; resume state is per recipe in
   localStorage for 6 hours (`resume.ts`). Wake lock via vueuse's `useWakeLock`.
 - **Habits:** `pkg/household/habits` (routes `household_habits.go`, Phase 11), frontend
-  `frontend/src/household/habits` (page `/habits`, `HomeHabitsCard.vue` on Home; reminders and
-  offline still to come). A habit is personal or `shared` (a household routine); only its owner can unshare
+  `frontend/src/household/habits` (page `/habits`, `HomeHabitsCard.vue` on Home; offline still
+  to come). Reminders: a per-minute cron in `push/habits.go` asks `habits.DueReminders` (each
+  person's local HH:MM, only while still due; household routines remind everyone) and pushes with
+  Done and Skip buttons. Their action token names habit, day and a tick uid, so Done ticks once.
+  Off per person with `habit_reminders` in push settings. A habit is personal or `shared` (a household routine); only its owner can unshare
   it. Each tick is its own `habit_entries` row with a client-made `uid` (resending is a no-op), so
   offline ticks from two phones add up instead of clashing. Skips and pauses are rows too, so past
   pauses stay paused. Progress (streak, "done X of last 30") is worked out on every read in

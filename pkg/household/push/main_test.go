@@ -28,6 +28,7 @@ import (
 	"code.vikunja.io/api/pkg/db"
 	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/files"
+	"code.vikunja.io/api/pkg/household/habits"
 	"code.vikunja.io/api/pkg/household/shopping"
 	"code.vikunja.io/api/pkg/log"
 	"code.vikunja.io/api/pkg/models"
@@ -56,7 +57,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := x.Sync2(append(GetTables(), shopping.GetTables()...)...); err != nil {
+	if err := x.Sync2(append(append(GetTables(), shopping.GetTables()...), habits.GetTables()...)...); err != nil {
 		log.Fatal(err)
 	}
 	os.Exit(m.Run())

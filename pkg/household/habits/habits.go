@@ -150,7 +150,12 @@ func location(u *user.User) *time.Location {
 
 // today is the caller's calendar day.
 func today(u *user.User) time.Time {
-	return civil(time.Now().In(location(u)))
+	return dayAt(time.Now(), u)
+}
+
+// dayAt is the calendar day it is for u at the moment now.
+func dayAt(now time.Time, u *user.User) time.Time {
+	return civil(now.In(location(u)))
 }
 
 // CanRead lets a member read their own habits and every household routine.
@@ -399,6 +404,11 @@ func (h *Habit) Delete(s *xorm.Session, _ web.Auth) error {
 
 // addProgress loads the habits' history and fills in Paused and Progress.
 func addProgress(s *xorm.Session, u *user.User, hs ...*Habit) error {
+	return addProgressOn(s, u, today(u), hs...)
+}
+
+// addProgressOn is addProgress as of the user's calendar day `day`.
+func addProgressOn(s *xorm.Session, u *user.User, day time.Time, hs ...*Habit) error {
 	if len(hs) == 0 {
 		return nil
 	}
@@ -410,7 +420,6 @@ func addProgress(s *xorm.Session, u *user.User, hs ...*Habit) error {
 	if err != nil {
 		return err
 	}
-	day := today(u)
 	loc := location(u)
 	for _, h := range hs {
 		hist := hists[h.ID]

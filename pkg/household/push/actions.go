@@ -25,6 +25,9 @@ package push
 // A token can't do Done twice: the server ignores it once the task is done or
 // its due date has moved (a repeating task completed elsewhere), so an old
 // notification can't skip a second occurrence.
+//
+// Habit reminders (habits.go) carry tokens too, naming the habit, the day and
+// a tick uid made when the push was sent: tapping Done twice ticks once.
 
 import (
 	"crypto/hmac"
@@ -46,6 +49,8 @@ const (
 	ActionDone = "done"
 	// ActionSnooze reminds the user again in SnoozeFor.
 	ActionSnooze = "snooze"
+	// ActionSkip skips a habit for the day (week).
+	ActionSkip = "skip"
 
 	// SnoozeFor is how long Snooze waits.
 	SnoozeFor = time.Hour
@@ -69,9 +74,21 @@ var taskActions = []Action{
 // payload small (push services cap it at about 4 KB).
 type actionClaims struct {
 	User    int64 `json:"u"`
-	Task    int64 `json:"t"`
-	Due     int64 `json:"d"` // unix seconds; 0 = no due date
-	Expires int64 `json:"e"` // unix seconds
+	Task    int64 `json:"t,omitempty"`
+	Due     int64 `json:"d,omitempty"` // unix seconds; 0 = no due date
+	Expires int64 `json:"e"`           // unix seconds
+	// A habit reminder's token names the habit instead of a task.
+	Habit int64  `json:"h,omitempty"`
+	Day   string `json:"y,omitempty"` // YYYY-MM-DD, the day reminded about
+	UID   string `json:"i,omitempty"` // the tick Done adds
+}
+
+// valid: a token is about one task, or one habit on one day.
+func (c *actionClaims) valid() bool {
+	if c.User == 0 {
+		return false
+	}
+	return c.Task != 0 && c.Habit == 0 || c.Task == 0 && c.Habit != 0 && c.Day != "" && c.UID != ""
 }
 
 // dueUnix is a due date as stored in a token; 0 when there is none.
@@ -99,7 +116,17 @@ func signature(payload string) []byte {
 // NewActionToken makes the token for a notification about task, sent to userID.
 // Exported for the route tests.
 func NewActionToken(userID int64, task int64, due time.Time, now time.Time) string {
-	raw, err := json.Marshal(actionClaims{User: userID, Task: task, Due: dueUnix(due), Expires: now.Add(actionTokenTTL).Unix()})
+	return signClaims(&actionClaims{User: userID, Task: task, Due: dueUnix(due), Expires: now.Add(actionTokenTTL).Unix()})
+}
+
+// NewHabitActionToken makes the token for a reminder about a habit on a day.
+// uid is the tick its Done button adds. Exported for the route tests.
+func NewHabitActionToken(userID, habit int64, day, uid string, now time.Time) string {
+	return signClaims(&actionClaims{User: userID, Habit: habit, Day: day, UID: uid, Expires: now.Add(actionTokenTTL).Unix()})
+}
+
+func signClaims(c *actionClaims) string {
+	raw, err := json.Marshal(c)
 	if err != nil {
 		return "" // can't happen with a struct of int64s; no token means no buttons
 	}
@@ -123,7 +150,7 @@ func parseActionToken(token string, now time.Time) (*actionClaims, error) {
 		return nil, ErrInvalidActionToken{}
 	}
 	c := &actionClaims{}
-	if err := json.Unmarshal(raw, c); err != nil || c.User == 0 || c.Task == 0 {
+	if err := json.Unmarshal(raw, c); err != nil || !c.valid() {
 		return nil, ErrInvalidActionToken{}
 	}
 	if now.Unix() > c.Expires {
@@ -149,12 +176,12 @@ func addTaskActions(msg *Message, userID int64, now time.Time) {
 // ActionInput is a button tap from a notification.
 type ActionInput struct {
 	Token  string `json:"token" minLength:"1" maxLength:"1000" doc:"The action_token the notification came with."`
-	Action string `json:"action" enum:"done,snooze" doc:"Which button was tapped."`
+	Action string `json:"action" enum:"done,snooze,skip" doc:"Which button was tapped: done and snooze on tasks, done and skip on habits."`
 }
 
 // ActionResult says what the tap did.
 type ActionResult struct {
-	Result string `json:"result" enum:"done,snoozed,unchanged" doc:"done or snoozed; unchanged when the task was already done or has moved on to another date since the notification was sent."`
+	Result string `json:"result" enum:"done,snoozed,skipped,unchanged" doc:"done, snoozed or skipped; unchanged when the task was already done or has moved on to another date since the notification was sent, or the habit was already done (or skipped) that day."`
 	// SnoozedUntil is when the reminder comes back, for snoozed.
 	SnoozedUntil *time.Time `json:"snoozed_until,omitempty" doc:"When the reminder comes back (snoozed only)."`
 }
@@ -170,6 +197,12 @@ func DoAction(s *xorm.Session, in *ActionInput, now time.Time) (*ActionResult, e
 	if err != nil {
 		// Deleted or disabled since the notification went out.
 		return nil, ErrInvalidActionToken{}
+	}
+	if c.Habit != 0 {
+		return doHabitAction(s, u, c, in.Action)
+	}
+	if in.Action == ActionSkip {
+		return nil, ErrInvalidActionToken{} // tasks have no Skip button
 	}
 	task, err := models.GetTaskByIDSimple(s, c.Task)
 	if err != nil {
