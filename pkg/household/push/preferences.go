@@ -33,6 +33,9 @@ type Preferences struct {
 	// person's time zone. Reminders and the overdue summary come at the
 	// times the person set, so they aren't held.
 	QuietHours bool `xorm:"bool not null default true" json:"quiet_hours" doc:"Hold shopping summaries from 10pm to 7am."`
+	// HabitReminders: a push at each habit's reminder times while it's still
+	// due, for the person's own habits and the household routines.
+	HabitReminders bool `xorm:"bool not null default true" json:"habit_reminders" doc:"A push at each habit's reminder times while it's still to do today."`
 	// Shopping lists whose changes by others are summarised; none by default.
 	ShoppingListIDs []int64 `xorm:"'shopping_list_ids' text null json" json:"shopping_list_ids" doc:"Shopping lists to send summaries of others' changes for."`
 }
@@ -43,7 +46,7 @@ func (*Preferences) TableName() string {
 }
 
 func defaultPreferences(userID int64) *Preferences {
-	return &Preferences{UserID: userID, Reminders: true, Overdue: true, QuietHours: true, ShoppingListIDs: []int64{}}
+	return &Preferences{UserID: userID, Reminders: true, Overdue: true, QuietHours: true, HabitReminders: true, ShoppingListIDs: []int64{}}
 }
 
 func preferencesFor(s *xorm.Session, userID int64) (*Preferences, error) {
@@ -83,7 +86,7 @@ func SavePreferences(s *xorm.Session, a web.Auth, p *Preferences) (*Preferences,
 		return nil, err
 	}
 	if exists {
-		_, err = s.Where("user_id = ?", p.UserID).Cols("reminders", "overdue", "quiet_hours", "shopping_list_ids").Update(p)
+		_, err = s.Where("user_id = ?", p.UserID).Cols("reminders", "overdue", "quiet_hours", "habit_reminders", "shopping_list_ids").Update(p)
 	} else {
 		_, err = s.Insert(p)
 	}

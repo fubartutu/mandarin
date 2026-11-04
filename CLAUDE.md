@@ -61,13 +61,16 @@ another package), so in practice:
   `setup.ts` with `router.addRoute` under the same name `home`, so `router/index.ts` is untouched):
   quick add, the next 7 days' menu (`menu/homeWeek.ts`), shopping lists, recently viewed recipes
   (`recipes/recent.ts`, localStorage) and current tasks. `HouseholdNavItems.vue` sits at the top of
-  the menu (Home, Shopping, Recipes, Menu, then a "Tasks" divider); the Overview entry was removed
-  from `Navigation.vue` (FORK). The start page (Home, Shopping, Recipes or Menu) is `household_start_page` in `frontend_settings`, picked in Settings → General
+  the menu (Home, Shopping, Recipes, Menu, Habits, then a "Tasks" divider); the Overview entry was removed
+  from `Navigation.vue` (FORK). The start page (Home, Shopping, Recipes, Menu or Habits) is `household_start_page` in `frontend_settings`, picked in Settings → General
   (`components/StartPageField.vue`, FORK in `GeneralSettingsForm.vue`) and applied by
   `startPage.ts` only when the app opens or after sign-in.
 - Production runs on **SQLite**, which allows one writer at a time: two requests that each read
   then write can fail with "database is locked". Don't write rows that haven't changed, and don't
   fire two writing requests from the client at once (chain them).
+- **Shared offline engine:** `frontend/src/household/sync/engine.ts` (outbox, retries, one sync at a
+  time) with a module's `SyncModel` (empty, applyOp, applyResult) and storage; `sync/idb.ts` has a
+  one-record IndexedDB storage for modules whose answer is the whole picture. Used by shopping and habits.
 - **Offline sync (shopping):** phones keep a copy in IndexedDB and send queued ops to
   `POST /api/v2/shopping/sync` (`pkg/household/shopping/sync.go`, `pull.go`;
   `frontend/src/household/shopping/sync/`). Every server-side write to shopping data must call
@@ -102,6 +105,22 @@ another package), so in practice:
   `?servings=N` or `?scale=X`), teleported to `body` so it covers the top bar. Timers come from
   times in step text (`steps.ts`) and are plain data with `endsAt`; resume state is per recipe in
   localStorage for 6 hours (`resume.ts`). Wake lock via vueuse's `useWakeLock`.
+- **Habits:** `pkg/household/habits` (routes `household_habits.go`, Phase 11), frontend
+  `frontend/src/household/habits` (page `/habits`, `HomeHabitsCard.vue` on Home). Ticks and skips
+  work offline: `habits/sync/` queues them in the shared engine and sends them to
+  `POST /api/v2/habits/sync` (`habits/sync.go`), which applies them in order and answers with all
+  of the caller's habits and routines (no cursor). `rollToDay` starts a new day on the phone without
+  signal. Editing habits and routines stays online; edits fire `HABITS_CHANGED_EVENT` so the copy refreshes. Reminders: a per-minute cron in `push/habits.go` asks `habits.DueReminders` (each
+  person's local HH:MM, only while still due; household routines remind everyone) and pushes with
+  Done and Skip buttons. Their action token names habit, day and a tick uid, so Done ticks once.
+  Off per person with `habit_reminders` in push settings. A habit is personal or `shared` (a household routine); only its owner can unshare
+  it. Each tick is its own `habit_entries` row with a client-made `uid` (resending is a no-op), so
+  offline ticks from two phones add up instead of clashing. Skips and pauses are rows too, so past
+  pauses stay paused. Progress (streak, "done X of last 30") is worked out on every read in
+  `progress.go`, a pure function with its own tests; days are in the caller's time zone and weeks
+  run Monday to Sunday. Habit reads send no ETag: progress changes without `updated` changing.
+  In the app, habit edits share one mutation `scope` (queued, one at a time); PUT replaces every
+  field, so `habitBody()` sends the rest as is.
 - **Offline tasks (read-only):** `registerOfflineApi()` in `household/sw.ts` keeps every JSON
   GET answer from /api/v1 and /api/v2 (NetworkFirst, 8 s, 500 entries) in the `mandarin-api`
   cache, served without signal. Deleted on logout (FORK in `stores/auth.ts`) and when another user

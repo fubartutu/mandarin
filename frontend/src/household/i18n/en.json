@@ -254,7 +254,9 @@
 				"until": "Reminder snoozed until {time}",
 				"cancel": "Cancel",
 				"cancelled": "The snoozed reminder won't come back."
-			}
+			},
+			"habitReminders": "Habit reminders",
+			"habitRemindersHint": "While a habit is still to do, at the times set on it: your own habits and the household routines. The times are set on each habit in"
 		},
 		"home": {
 			"title": "Home",
@@ -272,7 +274,11 @@
 			"nothingTonight": "Nothing planned for tonight",
 			"plan": "Plan",
 			"nothingThisWeek": "Nothing planned for the next 7 days",
-			"planWeek": "Plan the menu"
+			"planWeek": "Plan the menu",
+			"habitsToday": "Habits today",
+			"openHabits": "Open habits",
+			"noHabits": "No habits yet.",
+			"noHabitsToday": "Nothing due today. Enjoy the rest!"
 		},
 		"menu": {
 			"title": "Menu",
@@ -315,7 +321,8 @@
 			"home": "Home",
 			"shopping": "Shopping",
 			"recipes": "Recipes",
-			"menu": "Menu"
+			"menu": "Menu",
+			"habits": "Habits"
 		},
 		"tasks": {
 			"repeatEnd": {
@@ -390,6 +397,117 @@
 			},
 			"updated": "Mandarin has been updated.",
 			"see": "See what's new"
+		},
+		"habits": {
+			"title": "Habits",
+			"today": "Today",
+			"otherHabits": "Other habits",
+			"add": "New habit",
+			"addFirst": "Add your first habit",
+			"empty": "Habits you want to keep up, alone or as a household: drink water, tidy the kitchen, read with the kids.",
+			"notLoaded": "Habits couldn't be loaded.",
+			"summary": "{done} of {total} done today",
+			"sharedRoutine": "Shared with the household",
+			"badTitle": "Habits to break",
+			"badHelp": "Count each time it happens. Fewer than last week is a win.",
+			"showArchived": "Show archived habits instead",
+			"dueToday": "To do today",
+			"doneToday": "Done today",
+			"restDay": "Not today",
+			"paused": "Paused",
+			"skippedToday": "Skipped today",
+			"skippedWeek": "Skipped this week",
+			"dayProgress": "{count} of {goal} today",
+			"weekProgress": "{count} of {goal} this week",
+			"thisWeekTimes": "Not this week | Once this week | {count} times this week",
+			"lastWeek": "Not at all last week | Once last week | {count} times last week",
+			"streak": {
+				"days": "{count}-day streak | {count}-day streak | {count}-day streak",
+				"weeks": "{count}-week streak | {count}-week streak | {count}-week streak"
+			},
+			"best": {
+				"days": "best {count} days | best {count} day | best {count} days",
+				"weeks": "best {count} weeks | best {count} week | best {count} weeks"
+			},
+			"recent": {
+				"days": "Done {done} of {due} days lately (30 days)",
+				"weeks": "Done {done} of {due} weeks lately (12 weeks)"
+			},
+			"graceHelp": "A missed day was forgiven. Miss another one this week and the streak starts again.",
+			"skipToday": "Skip today",
+			"unskipToday": "Don't skip today",
+			"skipWeek": "Skip this week",
+			"unskipWeek": "Don't skip this week",
+			"pause": "Pause",
+			"resume": "Resume",
+			"archive": "Archive",
+			"unarchive": "Unarchive",
+			"tick": {
+				"do": "Tick off {title}",
+				"undo": "Take a tick off {title}",
+				"happened": "Count {title} once more"
+			},
+			"grid": {
+				"label": "History of {title}",
+				"weekOf": "Week of {date}: {status}",
+				"done": "done",
+				"partial": "{count} done",
+				"missed": "missed",
+				"skipped": "skipped",
+				"paused": "paused",
+				"rest": "not a habit day",
+				"pending": "not yet",
+				"before": "before the habit started",
+				"times": "none | once | {count} times"
+			},
+			"kinds": {
+				"daily": "Every day",
+				"dailyHelp": "Once on each of the days you choose.",
+				"daily_count": "Several times a day",
+				"daily_countHelp": "A number of times on each of the days you choose, like 8 glasses of water.",
+				"weekly": "Times a week",
+				"weeklyHelp": "A number of times each week, on any days.",
+				"bad": "Habit to break",
+				"badHelp": "Counted each time it happens, to see it go down. No streaks."
+			},
+			"edit": {
+				"newTitle": "New habit",
+				"editTitle": "Edit",
+				"title": "Name",
+				"titlePlaceholder": "e.g. Drink a glass of water",
+				"kind": "How often",
+				"days": "On these days",
+				"goalDay": "Times a day",
+				"goalWeek": "Times a week",
+				"routine": "Routine",
+				"noRoutine": "No routine",
+				"color": "Colour",
+				"defaultColor": "Mandarin",
+				"shared": "Share with the household",
+				"sharedHelp": "Everyone sees it and can tick it off. Only you can make it personal again.",
+				"save": "Save",
+				"delete": "Delete",
+				"deleteConfirm": "Delete \"{title}\" and all its history? Archive it instead to keep the history.",
+				"reminders": "Reminders",
+				"addReminder": "Add a time",
+				"removeReminder": "Remove {time}",
+				"remindersHint": "A push at these times while it's still to do today. For household routines, everyone gets it.",
+				"remindersSettings": "Notification settings"
+			},
+			"routines": {
+				"title": "Routines",
+				"help": "Group habits you do together, like a morning or bedtime routine.",
+				"name": "Routine name",
+				"shared": "Shared",
+				"add": "Add",
+				"newPlaceholder": "New routine, e.g. Morning",
+				"delete": "Delete {title}",
+				"deleteConfirm": "Delete the routine \"{title}\"? Its habits stay, outside any routine."
+			},
+			"sync": {
+				"pending": "Everything is saved | 1 tick waiting for signal | {count} ticks waiting for signal",
+				"rejected": "A change couldn't be saved: {names} | A change couldn't be saved: {names} | {count} changes couldn't be saved: {names}"
+			}
 		}
 	},
 	"ready": {

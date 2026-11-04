@@ -40,6 +40,19 @@
 			{{ $t('household.menu.title') }}
 		</RouterLink>
 	</li>
+	<li>
+		<RouterLink :to="{name: 'habits'}">
+			<span class="menu-item-icon icon">
+				<Icon icon="seedling" />
+			</span>
+			{{ $t('household.habits.title') }}
+			<span
+				v-if="habits.pendingCount.value > 0"
+				class="pending"
+				:title="$t('household.habits.sync.pending', {count: habits.pendingCount.value}, habits.pendingCount.value)"
+			>{{ habits.pendingCount.value }}</span>
+		</RouterLink>
+	</li>
 	<!-- Vikunja's task entries (Upcoming, Projects, …) follow in Navigation.vue. -->
 	<li
 		class="menu-divider"
@@ -56,11 +69,14 @@ import {SHORTCUTS} from '@/constants/shortcuts'
 import {useAuthStore} from '@/stores/auth'
 import {keepOfflineApiCacheFor} from './offlineTasks'
 import {refreshSubscription} from './push/device'
+import {useHabitsSync} from './habits/sync/useHabitsSync'
 import {useShoppingSync} from './shopping/sync/useShoppingSync'
 
 // Starting the engine here (the menu is on every page) means changes made
 // offline are sent even if the shopping list isn't open when signal returns.
 const sync = useShoppingSync()
+// The same for ticks made offline.
+const habits = useHabitsSync()
 
 // Tasks kept for offline reading belong to one user (see offlineTasks.ts).
 const auth = useAuthStore()

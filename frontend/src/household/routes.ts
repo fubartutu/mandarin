@@ -43,6 +43,11 @@ export const householdRoutes: RouteRecordRaw[] = [
 		props: route => ({recipeId: Number(route.params.recipeId)}),
 	},
 	{
+		path: '/habits',
+		name: 'habits',
+		component: () => import('./habits/HabitsView.vue'),
+	},
+	{
 		// /menu is the 7 days from today; /menu/2026-11-04 the 7 days from that day.
 		path: '/menu/:start(\\d{4}-\\d{2}-\\d{2})?',
 		name: 'menu',
