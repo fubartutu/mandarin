@@ -61,8 +61,8 @@ another package), so in practice:
   `setup.ts` with `router.addRoute` under the same name `home`, so `router/index.ts` is untouched):
   quick add, the next 7 days' menu (`menu/homeWeek.ts`), shopping lists, recently viewed recipes
   (`recipes/recent.ts`, localStorage) and current tasks. `HouseholdNavItems.vue` sits at the top of
-  the menu (Home, Shopping, Recipes, Menu, then a "Tasks" divider); the Overview entry was removed
-  from `Navigation.vue` (FORK). The start page (Home, Shopping, Recipes or Menu) is `household_start_page` in `frontend_settings`, picked in Settings → General
+  the menu (Home, Shopping, Recipes, Menu, Habits, then a "Tasks" divider); the Overview entry was removed
+  from `Navigation.vue` (FORK). The start page (Home, Shopping, Recipes, Menu or Habits) is `household_start_page` in `frontend_settings`, picked in Settings → General
   (`components/StartPageField.vue`, FORK in `GeneralSettingsForm.vue`) and applied by
   `startPage.ts` only when the app opens or after sign-in.
 - Production runs on **SQLite**, which allows one writer at a time: two requests that each read
@@ -119,8 +119,8 @@ another package), so in practice:
   pauses stay paused. Progress (streak, "done X of last 30") is worked out on every read in
   `progress.go`, a pure function with its own tests; days are in the caller's time zone and weeks
   run Monday to Sunday. Habit reads send no ETag: progress changes without `updated` changing.
-  In the app, habit writes share one mutation `scope` (queued, one at a time) and ticks show at
-  once by patching the cached list; PUT replaces every field, so `habitBody()` sends the rest as is.
+  In the app, habit edits share one mutation `scope` (queued, one at a time); PUT replaces every
+  field, so `habitBody()` sends the rest as is.
 - **Offline tasks (read-only):** `registerOfflineApi()` in `household/sw.ts` keeps every JSON
   GET answer from /api/v1 and /api/v2 (NetworkFirst, 8 s, 500 entries) in the `mandarin-api`
   cache, served without signal. Deleted on logout (FORK in `stores/auth.ts`) and when another user
