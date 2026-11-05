@@ -1,6 +1,6 @@
 // The plugin's text work, kept free of Obsidian so it can be tested.
 
-import type {Recipe} from './api'
+import type {Project, Recipe} from './api'
 
 // ---- Note line → task ----
 
@@ -156,4 +156,88 @@ export function recipeMarkdown(recipe: Recipe, mandarinUrl: string, imageLink: s
 	}
 	if (recipe.notes) body.push('## Notes', '', recipe.notes, '')
 	return [...front, ...body].join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
+// ---- Finished tasks → daily note ----
+
+/** The project ids and every project below them (sub-projects count as part of their parent). */
+export function withSubProjects(projects: Project[], ids: number[]): number[] {
+	const out = new Set(ids)
+	let grew = true
+	while (grew) {
+		grew = false
+		for (const p of projects) {
+			if (p.parent_project_id && out.has(p.parent_project_id) && !out.has(p.id)) {
+				out.add(p.id)
+				grew = true
+			}
+		}
+	}
+	return [...out]
+}
+
+/**
+ * The Vikunja filter for tasks finished on a day. Dates are YYYY-MM-DD, read in the
+ * request's time zone. It filters on done_at only, not done = true: a repeating task
+ * reopens straight away but still gets done_at.
+ */
+export function finishedFilter(day: string, nextDay: string, projectIds: number[]): string {
+	return `done_at >= ${day} && done_at < ${nextDay} && project in ${projectIds.join(', ')}`
+}
+
+export interface FinishedGroup {
+	project: string
+	tasks: {title: string, url: string}[]
+}
+
+const START = '%% mandarin-finished: start %%'
+const END = '%% mandarin-finished: end %%'
+
+/** The list that goes between the markers. Project subheadings only when there's more than one. */
+export function finishedList(groups: FinishedGroup[]): string {
+	const filled = groups.filter(g => g.tasks.length > 0)
+	if (filled.length === 0) return '- Nothing finished.'
+	const lines: string[] = []
+	for (const group of filled) {
+		if (filled.length > 1) {
+			if (lines.length) lines.push('')
+			lines.push(`### ${group.project}`)
+		}
+		// Square brackets would break the link text.
+		for (const task of group.tasks) lines.push(`- [x] [${task.title.replace(/[[\]]/g, '')}](${task.url})`)
+	}
+	return lines.join('\n')
+}
+
+/**
+ * The note with the finished-tasks list put in, between two Obsidian comments
+ * (hidden when reading). Running it again replaces only what's between them, so
+ * nothing else in the note is ever touched. Without markers, the list goes under
+ * the heading if the note has it (e.g. from the daily-note template), else at the end.
+ */
+export function withFinishedTasks(note: string, heading: string, list: string): string {
+	const block = `${START}\n${list}\n${END}`
+	const start = note.indexOf(START)
+	const end = note.indexOf(END, start)
+	if (start >= 0 && end >= 0) return note.slice(0, start) + block + note.slice(end + END.length)
+
+	const lines = note.split('\n')
+	const at = lines.findIndex(line => line.trim() === heading.trim())
+	if (at >= 0) {
+		lines.splice(at + 1, 0, block)
+		return lines.join('\n')
+	}
+	return `${note.replace(/\s+$/, '')}${note.trim() ? '\n\n' : ''}${heading}\n${block}\n`
+}
+
+/**
+ * A daily-note template filled in the way Obsidian's Daily notes plugin does it:
+ * {{title}}, {{date}}, {{time}}, {{date:FORMAT}} and {{time:FORMAT}}. format turns
+ * a moment.js format into text for the note's day.
+ */
+export function fillTemplate(template: string, title: string, format: (pattern: string) => string): string {
+	return template
+		.replace(/{{\s*title\s*}}/gi, title)
+		.replace(/{{\s*(date|time)\s*(?::(.*?))?\s*}}/gi, (_, kind: string, pattern?: string) =>
+			format(pattern?.trim() || (kind.toLowerCase() === 'date' ? 'YYYY-MM-DD' : 'HH:mm')))
 }

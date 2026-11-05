@@ -10,7 +10,7 @@ cd household-obsidian
 npm install          # once
 npm run build        # type-checks and writes main.js
 npm test             # unit tests (add MANDARIN_TEST_URL/MANDARIN_TEST_TOKEN to also test against a server)
-node install.mjs     # copies it into ~/Documents/Obsidian/HOME/.obsidian/plugins/mandarin
+node install.mjs     # copies it into the HOME vault's .obsidian/plugins/mandarin (or: node install.mjs <vault folder>)
 ```
 
 Then in Obsidian: **Settings → Community plugins → Mandarin → enable**. (Restricted mode must be off.)
@@ -22,6 +22,8 @@ After an update, toggle the plugin off and on, or restart Obsidian.
    - projects: *read all*
    - tasks: *read all*, *create*, *update*
    - recipes: *read all*, *read one*, *images*
+
+   (Finished tasks in the daily note need nothing extra: *tasks read all* covers them.)
 2. **Cloudflare service token** (Mandarin is behind Zero Trust, which an app can't log in to):
    1. Go to Zero Trust → **Access → Service credentials → Service Tokens → Create**, named "Obsidian".
       Copy the **Client ID** and **Client Secret**: the secret is only shown once.
@@ -53,3 +55,17 @@ After an update, toggle the plugin off and on, or restart Obsidian.
 - **Recipes as notes:** the command *Mandarin: Save a recipe as a note*. Pick a recipe; it's saved to
   the recipe folder with its picture in `attachments/`, the source and times in the note's
   properties, and `#recipe` plus its tags.
+- **Finished tasks in the daily note:** tick projects under **Settings → Mandarin → Finished tasks in the
+  daily note** (press **Test** first to load them; sub-projects come along). The command *Mandarin: Add
+  finished tasks to the daily note* lists what was finished that day in those projects, grouped by project,
+  each linking to the task. With a daily note open it does that note's day, otherwise today, creating
+  the note from your Daily notes template if needed (folder, date format and template come from
+  Obsidian's **Daily notes** settings; `{{date:…}}`, `{{title}}` and `{{time}}` are filled in).
+  - The list sits between two hidden `%% mandarin-finished %%` comments; running it again replaces only
+    that part, so the rest of the note is safe. Put the heading (default `## ✅ Done in Mandarin`) in
+    your daily-note template to choose where it goes; otherwise it's added at the end of the note.
+  - **Keep it up to date** does the same for today's note when Obsidian starts and every 30 minutes
+    (and yesterday's at start-up, for late finishes). It only makes a new note when something was finished
+    and writes nothing if the list hasn't changed. Turn it on for one device only: LiveSync carries it.
+  - A repeating task shows on the day its latest occurrence was ticked off: Mandarin keeps one finish
+    time per task, so an earlier day's occurrence drops off when the next one is done.

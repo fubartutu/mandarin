@@ -1,7 +1,22 @@
 import {describe, expect, it} from 'vitest'
 
 import type {Recipe} from './api'
-import {blockFilter, dueTimestamp, lineToTask, linkedTask, noteLink, parseBlock, recipeMarkdown, safeFileName, withTaskLink} from './markdown'
+import {
+	blockFilter,
+	dueTimestamp,
+	fillTemplate,
+	finishedFilter,
+	finishedList,
+	lineToTask,
+	linkedTask,
+	noteLink,
+	parseBlock,
+	recipeMarkdown,
+	safeFileName,
+	withFinishedTasks,
+	withSubProjects,
+	withTaskLink,
+} from './markdown'
 
 describe('note line → task', () => {
 	it('drops list markers and checkboxes', () => {
@@ -94,5 +109,60 @@ Double the sauce.
 
 	it('makes file names safe', () => {
 		expect(safeFileName('Chop Suey: Chicken / Stir Fry?')).toBe('Chop Suey Chicken Stir Fry')
+	})
+})
+
+describe('finished tasks → daily note', () => {
+	it('counts sub-projects, however deep', () => {
+		const projects = [
+			{id: 1, title: 'Home'},
+			{id: 2, title: 'Garden', parent_project_id: 1},
+			{id: 3, title: 'Veggies', parent_project_id: 2},
+			{id: 4, title: 'Work'},
+		]
+		expect(withSubProjects(projects, [1]).sort()).toEqual([1, 2, 3])
+		expect(withSubProjects(projects, [4])).toEqual([4])
+	})
+
+	it('filters on the day finished and the projects', () => {
+		expect(finishedFilter('2026-11-05', '2026-11-06', [1, 2]))
+			.toBe('done_at >= 2026-11-05 && done_at < 2026-11-06 && project in 1, 2')
+	})
+
+	it('lists tasks, with project headings only when there are several', () => {
+		const url = 'https://m.example/tasks/1'
+		expect(finishedList([{project: 'Home', tasks: [{title: 'Fix [the] tap', url}]}, {project: 'Work', tasks: []}]))
+			.toBe(`- [x] [Fix the tap](${url})`)
+		expect(finishedList([{project: 'Home', tasks: [{title: 'A', url}]}, {project: 'Work', tasks: [{title: 'B', url}]}]))
+			.toBe(`### Home\n- [x] [A](${url})\n\n### Work\n- [x] [B](${url})`)
+		expect(finishedList([{project: 'Home', tasks: []}])).toBe('- Nothing finished.')
+	})
+
+	const heading = '## ✅ Done in Mandarin'
+	const start = '%% mandarin-finished: start %%'
+	const end = '%% mandarin-finished: end %%'
+
+	it('adds the list at the end of a note without the heading', () => {
+		expect(withFinishedTasks('# Today\n\nNotes\n\n', heading, '- [x] A'))
+			.toBe(`# Today\n\nNotes\n\n${heading}\n${start}\n- [x] A\n${end}\n`)
+		expect(withFinishedTasks('', heading, '- [x] A')).toBe(`${heading}\n${start}\n- [x] A\n${end}\n`)
+	})
+
+	it('puts the list under the heading when the note has it, keeping what follows', () => {
+		const note = `# Today\n${heading}\n\n___\nMore`
+		expect(withFinishedTasks(note, heading, '- [x] A')).toBe(`# Today\n${heading}\n${start}\n- [x] A\n${end}\n\n___\nMore`)
+	})
+
+	it('replaces only what is between the markers the next time', () => {
+		const once = withFinishedTasks(`# Today\n${heading}\nafter`, heading, '- [x] A')
+		const twice = withFinishedTasks(once, heading, '- [x] A\n- [x] B')
+		expect(twice).toBe(`# Today\n${heading}\n${start}\n- [x] A\n- [x] B\n${end}\nafter`)
+		expect(withFinishedTasks(twice, heading, '- [x] A\n- [x] B')).toBe(twice)
+	})
+
+	it('fills a daily-note template like Obsidian', () => {
+		const format = (pattern: string) => `<${pattern}>`
+		expect(fillTemplate('# {{date:dddd, D MMMM YYYY}} {{title}} {{date}} {{ time }} {{time:H}}', '2026-11-05', format))
+			.toBe('# <dddd, D MMMM YYYY> 2026-11-05 <YYYY-MM-DD> <HH:mm> <H>')
 	})
 })
