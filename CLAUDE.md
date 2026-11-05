@@ -202,7 +202,7 @@ another package), so in practice:
 - **Obsidian plugin:** `household-obsidian/` (own npm project, Node 24: `npm run build`, `npm test`,
   `node install.mjs` copies it into the HOME vault). Talks to /api/v2 with a Mandarin API token
   plus Cloudflare Access service-token headers, through Obsidian's `requestUrl`. Pure text logic is in
-  `markdown.ts` (tested); `api.integration.test.ts` runs against a server when MANDARIN_TEST_URL is set.
+  `markdown.ts` (tested); `api.integration.test.ts` runs against a server when MANDARIN_TEST_URL is set. Finished tasks go into daily notes (core Daily notes settings) between `%% mandarin-finished %%` markers, so reruns only replace that part.
 - **Top bar project title:** Vikunja clears the current project only for its own pages (a route-name
   list in `ContentAuth.vue`). `household/projectHeader.ts` clears it on every route in `household/routes.ts`,
   so a new household route is covered without a FORK edit.

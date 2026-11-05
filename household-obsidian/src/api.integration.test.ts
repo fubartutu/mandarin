@@ -7,8 +7,10 @@ import {describe, expect, it} from 'vitest'
 import {DEFAULT_SETTINGS, MandarinApi, type Transport} from './api'
 import {dueTimestamp} from './markdown'
 
-const url = process.env.MANDARIN_TEST_URL ?? ''
-const token = process.env.MANDARIN_TEST_TOKEN ?? ''
+// No Node types in this project (the plugin runs in Obsidian), so reach process.env by hand.
+const env = (globalThis as {process?: {env: Record<string, string | undefined>}}).process?.env ?? {}
+const url = env.MANDARIN_TEST_URL ?? ''
+const token = env.MANDARIN_TEST_TOKEN ?? ''
 
 // fetch, shaped like Obsidian's requestUrl.
 const transport: Transport = async request => {

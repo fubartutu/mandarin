@@ -18,6 +18,12 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
 	{
+		date: '2026-11-05',
+		changes: [
+			{kind: 'new', text: 'Obsidian plugin: list the tasks you finished in chosen projects in that day\'s daily note, by command or by itself through the day.'},
+		],
+	},
+	{
 		date: '2026-11-03',
 		changes: [
 			{kind: 'improved', text: 'Habits work without signal: tick them off anyway, and the ticks are sent when the phone is back online. The menu shows how many are waiting.'},

@@ -9,6 +9,9 @@ export interface Settings {
 	recipeFolder: string
 	defaultProjectId: number
 	defaultDueTime: string // HH:MM for due dates written without a time
+	finishedProjectIds: number[] // projects whose finished tasks go in the daily note (with their sub-projects)
+	finishedHeading: string // the daily note's heading for them
+	finishedAuto: boolean // keep today's (and yesterday's) note up to date by itself
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -19,6 +22,9 @@ export const DEFAULT_SETTINGS: Settings = {
 	recipeFolder: 'Recipes',
 	defaultProjectId: 0,
 	defaultDueTime: '17:00',
+	finishedProjectIds: [],
+	finishedHeading: '## ✅ Done in Mandarin',
+	finishedAuto: false,
 }
 
 export interface Request {
@@ -41,6 +47,7 @@ export interface Task {
 	title: string
 	done: boolean
 	due_date: string | null // ISO; Vikunja's "no date" is 0001-01-01
+	done_at?: string | null
 	project_id: number
 	description?: string
 }
@@ -49,6 +56,7 @@ export interface Project {
 	id: number
 	title: string
 	is_archived?: boolean
+	parent_project_id?: number
 }
 
 export interface Ingredient {
@@ -140,10 +148,10 @@ export class MandarinApi {
 	}
 
 	/** Tasks matching a Vikunja filter (https://vikunja.io/docs/filters), by due date. */
-	tasks(filter: string, timezone = Intl.DateTimeFormat().resolvedOptions().timeZone): Promise<Task[]> {
+	tasks(filter: string, sortBy = 'due_date', timezone = Intl.DateTimeFormat().resolvedOptions().timeZone): Promise<Task[]> {
 		const query = new URLSearchParams({filter_timezone: timezone})
 		if (filter) query.set('filter', filter)
-		query.append('sort_by', 'due_date')
+		query.append('sort_by', sortBy)
 		query.append('order_by', 'asc')
 		return this.all<Task>(`/tasks?${query}`)
 	}
