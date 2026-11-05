@@ -134,13 +134,15 @@ another package), so in practice:
   `VACUUM INTO` copy of the SQLite database plus the files folder, as `mandarin-YYYY-MM-DD.tar.gz`
   in `MANDARIN_BACKUP_DIR`, pruned after `MANDARIN_BACKUP_KEEP_DAYS` (14). Times follow
   `service.timezone`. Don't VACUUM through `db.NewSession()`: it opens a transaction.
-- **Branding:** the mandarin mark and illustrations are SVGs in `frontend/src/household/assets`;
+- **Branding:** the illustrations are SVGs in `frontend/src/household/assets`;
   Vikunja's llama pictures are swapped out by FORK lines (Ready, NoAuthWrapper, ShowTasks,
-  MigrationHandler). Home-screen and tab icons live in `public/images/household`, rendered by
-  `node scripts/household-icons.mjs`; index.html, vite.config.ts and useTimeTrackingFavicon.ts
-  point there. The logo and mark drawn in the page are Vue components
-  (`household/components/MandarinLogo.vue`, `MandarinMark.vue`) using `useId()` for gradient ids:
-  the logo is drawn twice, and shared ids made it vanish when the first copy was hidden.
+  MigrationHandler). The mandarin itself is a picture: `node scripts/household-icons.mjs` cuts the
+  fruit out of `assets/source/fruit-checkerboard.webp` (its checkerboard is painted in, not
+  transparent) into `assets/mark.webp`, and renders the home-screen icons (from
+  `assets/source/app-icon.webp`), maskable icon and favicons into `public/images/household`
+  (Playwright's Chromium, or the system Edge); index.html, vite.config.ts and
+  useTimeTrackingFavicon.ts point there. The logo drawn in the page is
+  `household/components/MandarinLogo.vue`, with the fruit from `MandarinMark.vue` (mark.webp in an `<svg>`).
   English text that says "Vikunja" is overridden in `household/i18n/en.json` ("Powered by
   Vikunja" stays as credit). `household/branding.test.ts` fails when an upstream merge adds or
   changes such a string: add the override it names.

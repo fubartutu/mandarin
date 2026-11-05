@@ -21,6 +21,7 @@ export const changelog: ChangelogEntry[] = [
 		date: '2026-11-05',
 		changes: [
 			{kind: 'new', text: 'Obsidian plugin: list the tasks you finished in chosen projects in that day\'s daily note, by command or by itself through the day.'},
+			{kind: 'improved', text: 'A new mandarin logo and app icon: a mandarin with a peeled half and two leaves. Phones may keep the old home-screen icon until the app is added again.'},
 		],
 	},
 	{
