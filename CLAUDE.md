@@ -130,6 +130,11 @@ another package), so in practice:
   `client/queryClient.ts` and `sw.ts` delegate to `household/offline.ts` and `household/sw.ts`.
   Upstream's `sw.ts` precached twice, and the empty second copy wiped the cache on activate. That
   line is disabled (FORK); keep it disabled after merges, or the app won't open offline.
+- **Expired Cloudflare Access login:** looks like no signal (its redirect fails the app's fetches),
+  and an iPhone home-screen app is resumed rather than reloaded. `household/accessLogin.ts` (from
+  `setup.ts`) fetches the base URL with `redirect: 'manual'` on start, on becoming visible and on
+  `online`; an `opaqueredirect` means expired, so it reloads with `?mandarin-relogin=1`, which
+  `household/sw.ts` sends straight to the network (no cached page) so Cloudflare's login shows.
 - **Backups:** `pkg/household/backup` (FORK line in `pkg/initialize/init.go`): nightly
   `VACUUM INTO` copy of the SQLite database plus the files folder, as `mandarin-YYYY-MM-DD.tar.gz`
   in `MANDARIN_BACKUP_DIR`, pruned after `MANDARIN_BACKUP_KEEP_DAYS` (14). Times follow

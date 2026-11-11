@@ -18,6 +18,12 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
 	{
+		date: '2026-11-11',
+		changes: [
+			{kind: 'fixed', text: 'When the Cloudflare login runs out, the app now brings up the login page when you open it again, instead of looking offline until it was closed (most noticeable on iPhone).'},
+		],
+	},
+	{
 		date: '2026-11-05',
 		changes: [
 			{kind: 'new', text: 'Obsidian plugin: list the tasks you finished in chosen projects in that day\'s daily note, by command or by itself through the day.'},

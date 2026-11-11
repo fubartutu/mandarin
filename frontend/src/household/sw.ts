@@ -16,6 +16,7 @@ import {
 	runNotificationAction,
 	type NotificationButton,
 } from './push/notificationActions'
+import {RELOGIN_PARAM} from './accessLogin'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -30,6 +31,10 @@ export function registerOfflinePages() {
 
 	registerRoute(new NavigationRoute(async options => {
 		try {
+			// The app reloads itself for an expired Cloudflare login
+			// (accessLogin.ts): wait for the network, whose redirect to the
+			// login page is the point, instead of the cached copy after 4 s.
+			if (options.url.searchParams.has(RELOGIN_PARAM)) return await fetch(options.request)
 			return await pages.handle(options)
 		} catch {
 			// A page never opened before: every page of the app is the same
