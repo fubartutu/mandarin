@@ -16,6 +16,16 @@ node install.mjs     # copies it into the HOME vault's .obsidian/plugins/mandari
 Then in Obsidian: **Settings → Community plugins → Mandarin → enable**. (Restricted mode must be off.)
 After an update, toggle the plugin off and on, or restart Obsidian.
 
+### On another computer (no Node needed)
+
+`release/mandarin-obsidian.zip` is the built plugin, committed so it can be downloaded from GitHub
+(open the file there → **Download raw file**). Unzip it into the vault's `.obsidian/plugins/` folder
+(hidden: Windows Explorer → View → Show → Hidden items; Mac Finder → Cmd+Shift+.), so you get
+`.obsidian/plugins/mandarin/`, then enable it as above. Its settings are per vault, so fill them in
+again there (a separate API token per computer is easier to revoke).
+
+After changing the plugin, run `npm run package` (build + zip) and commit the new zip with it.
+
 ## Setting it up
 
 1. **API token.** In Mandarin, go to **Settings → API tokens → Create**, name it "Obsidian", and tick:
