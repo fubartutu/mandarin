@@ -16,6 +16,8 @@ import {error, success} from '@/message'
 import {useAuthStore} from '@/stores/auth'
 import {useBaseStore} from '@/stores/base'
 import {useConfigStore} from '@/stores/config'
+import {loadUserInfo} from '@/router/loadUserInfo'
+import {canLinkAccounts} from '@/helpers/canLinkAccounts'
 
 import Login from '@/views/user/Login.vue'
 import Register from '@/views/user/Register.vue'
@@ -159,8 +161,20 @@ const router = createRouter({
 					name: 'user.settings.totp',
 					component: () => import('@/views/user/settings/TOTP.vue'),
 					beforeEnter: async () => {
+						const info = await loadUserInfo()
 						const {useConfigStore} = await import('@/stores/config')
-						if (!useConfigStore().totp_enabled || !useAuthStore().info?.is_local_user) {
+						if (!useConfigStore().totp_enabled || !info?.is_local_user) {
+							return {name: 'user.settings.general'}
+						}
+					},
+				},
+				{
+					path: '/user/settings/linked-accounts',
+					name: 'user.settings.linked-accounts',
+					component: () => import('@/views/user/settings/LinkedAccounts.vue'),
+					beforeEnter: async () => {
+						const info = await loadUserInfo()
+						if (!canLinkAccounts(useConfigStore().auth.openid_connect, info)) {
 							return {name: 'user.settings.general'}
 						}
 					},
@@ -457,6 +471,30 @@ const router = createRouter({
 			},
 		},
 		{
+			path: '/trash',
+			component: () => import('@/views/trash/TrashView.vue'),
+			meta: {
+				title: 'trash.title',
+			},
+			children: [
+				{
+					path: '',
+					name: 'trash',
+					redirect: {name: 'trash.tasks'},
+				},
+				{
+					path: 'tasks',
+					name: 'trash.tasks',
+					component: () => import('@/views/trash/TrashTasks.vue'),
+				},
+				{
+					path: 'projects',
+					name: 'trash.projects',
+					component: () => import('@/views/trash/TrashProjects.vue'),
+				},
+			],
+		},
+		{
 			path: '/admin',
 			component: () => import('@/views/admin/AdminShell.vue'),
 			meta: {
@@ -473,6 +511,12 @@ const router = createRouter({
 					path: 'users',
 					name: 'admin.users',
 					component: () => import('@/views/admin/UsersView.vue'),
+				},
+				{
+					path: 'users/:id(\\d+)/settings',
+					name: 'admin.userSettings',
+					component: () => import('@/views/admin/UserSettingsView.vue'),
+					props: route => ({userId: Number(route.params.id as string)}),
 				},
 				{
 					path: 'projects',
@@ -599,19 +643,10 @@ router.beforeEach(async (to, from) => {
 	await authStore.checkAuth()
 
 	if (to.meta?.requiresAdminPanel) {
-		// Await config/auth hydration so the license check doesn't race the empty default
-		// on direct /admin navigation. appReady resolves without waiting on router.isReady(),
-		// so awaiting it here doesn't deadlock the initial navigation.
-		const baseStore = useBaseStore()
-		await baseStore.appReady
-		const configStore = useConfigStore()
-		const featureOn = configStore.isProFeatureEnabled(PRO_FEATURE.ADMIN_PANEL)
-		// isAdmin comes from /user, not the JWT; force-fetch in case checkAuth() was debounced.
-		if (authStore.info?.is_admin === undefined) {
-			await authStore.refreshUserInfo()
-		}
-		const isAdmin = authStore.info?.is_admin === true
-		if (!featureOn || !isAdmin) {
+		// Also awaits config hydration, so the license check doesn't race the empty default.
+		const info = await loadUserInfo()
+		const featureOn = useConfigStore().isProFeatureEnabled(PRO_FEATURE.ADMIN_PANEL)
+		if (!featureOn || !info?.is_admin) {
 			return {name: 'not-found'}
 		}
 	}

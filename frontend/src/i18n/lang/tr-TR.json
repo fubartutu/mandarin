@@ -451,13 +451,7 @@
 		},
 		"delete": {
 			"title": "\"{project}\" projesini sil",
-			"header": "Bu projeyi sil",
-			"text1": "Bu projeyi ve içindeki her şeyi silmek istediğinden emin misin?",
-			"text2": "Bütün görevler silinecektir ve BU İŞLEM GERİ ALINAMAZ!",
-			"success": "Proje başarıyla silindi.",
-			"tasksToDelete": "Yaklaşık {count} görev kalıcı olarak silinecek.",
-			"tasksAndChildProjectsToDelete": "Yaklaşık {tasks} görev ve {projects} alt proje kalıcı olarak silinecek.",
-			"noTasksToDelete": "Bu projede hiç görev yok, gönül rahatlığıyla silebilirsin."
+			"header": "Bu projeyi sil"
 		},
 		"duplicate": {
 			"title": "Bu projeyi kopyala",
@@ -1125,7 +1119,6 @@
 			"doneAt": "{0} tamamlandı",
 			"titleRequired": "Görev başlığı boş bırakılamaz.",
 			"updateSuccess": "Görev kaydedildi.",
-			"deleteSuccess": "Görev başarıyla silindi.",
 			"duplicateSuccess": "Görev kopyalandı.",
 			"noBucket": "Sütunsuz",
 			"bucketSelectLabel": "Kanban sütunu: {bucket}",
@@ -1137,33 +1130,11 @@
 			"title": "Görev detayı",
 			"markAsDone": "'{task}' görevini tamamlandı işaretle",
 			"scrollToBottom": "En aşağı kaydır",
-			"organization": "Organizasyon",
-			"management": "Yönetim",
-			"dateAndTime": "Tarih ve saat",
-			"delete": {
-				"header": "Bu görevi sil",
-				"text1": "Bu görevi silmek istediğinden emin misin?",
-				"text2": "Bu göreve ait tüm ekler, hatırlatıcılar ve ilişkiler de silinecektir. Bu işlem geri alınamaz!"
-			},
 			"actions": {
-				"assign": "Kullanıcıya Ata",
-				"label": "Etiket Ekle",
-				"priority": "Öncelik Belirle",
-				"dueDate": "Bitiş Tarihi Belirle",
-				"startDate": "Başlangıç Tarihi Belirle",
-				"endDate": "Sonlanma Tarihi Belirle",
-				"reminders": "Hatırlatıcı Kur",
-				"repeatAfter": "Tekrarlama Aralığı Ayarla",
-				"percentDone": "İlerleme Durumu",
-				"attachments": "Dosya Ekle",
 				"timeTracking": "Zaman Tut",
-				"relatedTasks": "İlişki Ekle",
 				"moveProject": "Taşı",
 				"duplicate": "Kopyala",
-				"color": "Renk Belirle",
-				"delete": "Sil",
-				"favorite": "Favorilere Ekle",
-				"unfavorite": "Favorilerden Çıkar"
+				"delete": "Sil"
 			}
 		},
 		"attributes": {
@@ -1322,9 +1293,6 @@
 			"dateAndTime": "Tarih ve saat"
 		},
 		"repeat": {
-			"everyDay": "Her Gün",
-			"everyWeek": "Her Hafta",
-			"every30d": "Her 30 Günde Bir",
 			"mode": "Tekrarlama biçimi",
 			"monthly": "Aylık",
 			"fromCurrentDate": "Tamamlanma tarihinden itibaren",

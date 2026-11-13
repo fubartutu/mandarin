@@ -31,8 +31,8 @@
 					for="password"
 				>{{ $t('user.auth.password') }}</label>
 				<Password
+					v-model="credentials.password"
 					@submit="resetPassword"
-					@update:modelValue="v => credentials.password = v"
 				/>
 			</div>
 
@@ -98,9 +98,3 @@ async function resetPassword() {
 	}
 }
 </script>
-
-<style scoped>
-.button {
-	margin: 0 0.4rem 0 0;
-}
-</style>

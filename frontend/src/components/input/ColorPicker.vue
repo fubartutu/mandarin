@@ -55,7 +55,7 @@
 		</div>
 
 		<XButton
-			v-if="!isEmpty"
+			v-if="resettable && !isEmpty"
 			:disabled="isEmpty"
 			class="is-small mis-2"
 			:shadow="false"
@@ -72,15 +72,22 @@ import {computed, ref, watch} from 'vue'
 import {createRandomID} from '@/helpers/randomId'
 import XButton from '@/components/input/Button.vue'
 
+const {resettable = true} = defineProps<{
+	resettable?: boolean,
+}>()
+
 const model = defineModel<string>({ required: true })
 
+// Okabe-Ito based (plus brand blue/purple): survives red-green colorblindness.
 const DEFAULT_COLORS = [
 	'#1973ff',
 	'#7F23FF',
-	'#ff4136',
-	'#ff851b',
-	'#ffeb10',
-	'#00db60',
+	'#D55E00',
+	'#E69F00',
+	'#F0E442',
+	'#009E73',
+	'#56B4E9',
+	'#CC79A7',
 ]
 
 const color = ref('')
