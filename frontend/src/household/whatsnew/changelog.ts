@@ -24,6 +24,7 @@ export const changelog: ChangelogEntry[] = [
 			{kind: 'improved', text: 'The task page shows all its details at once in a panel beside the task, with Mark done, favourite and more actions at the top. Skip and the snooze notice sit just under them, and repeat rules are under Repeat.'},
 			{kind: 'improved', text: 'Task lists can include tasks from subprojects, and filters have a simpler editor.'},
 			{kind: 'new', text: 'Shift+T on a task marks it done and goes back.'},
+			{kind: 'improved', text: 'A task\'s Repeat row says the real rule, like "Every Mon, Thu" or "Every 2nd Tuesday", and when it stops ("until 1 Mar", "3 times left"), instead of "Every 7 days".'},
 		],
 	},
 	{

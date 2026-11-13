@@ -186,6 +186,8 @@ another package), so in practice:
   Removing the repeat removes the row. Other FORK lines: `hardDeleteTask`, `models.GetTables()`.
   Frontend `household/tasks/`: `RepeatSettingsField.vue` (FORK in `TaskDetailView.vue`, gets its
   `saveTask`), `repeatRule.ts` (rules, first date, quick add phrases) and `repeatEnd.ts`.
+  The task page's collapsed Repeat row shows the rule and end in words (`useRepeatSummary.ts`
+  wraps upstream's `repeatSummary`, FORK lines in `TaskDetailView.vue`; text in `repeatLabel.ts`).
 - **Reschedule and skip:** task rows' due-date popup is `household/tasks/RescheduleMenu.vue` (a FORK
   import swap for Vikunja's `DeferTask` in `SingleTaskInProject.vue`, same props and emit): Today,
   Tomorrow, Weekend, Next week (absolute days at the task's time, `reschedule.ts`), the calendar, and

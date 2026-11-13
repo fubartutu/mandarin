@@ -466,7 +466,8 @@
 								:aria-expanded="canWrite ? repeatEditorOpen : undefined"
 								@click="repeatEditorOpen = !repeatEditorOpen"
 							>
-								{{ repeatSummary }}
+								<!-- FORK: Mandarin repeat rule in plain words (useRepeatSummary) -->
+								{{ repeatLabel }}
 								<Icon
 									v-if="canWrite"
 									icon="chevron-down"
@@ -574,6 +575,7 @@ import RelatedTasks from '@/components/tasks/partials/RelatedTasks.vue'
 import Reminders from '@/components/tasks/partials/Reminders.vue'
 import RepeatAfter from '@/components/tasks/partials/RepeatAfter.vue'
 import RepeatSettingsField from '@/household/tasks/RepeatSettingsField.vue' // FORK: Mandarin repeat rules and ends
+import {useRepeatSummary} from '@/household/tasks/useRepeatSummary' // FORK: Mandarin repeat rule in the Repeat row
 import SkipOccurrenceButton from '@/household/tasks/SkipOccurrenceButton.vue' // FORK: Mandarin skip an occurrence
 import SnoozeNotice from '@/household/push/SnoozeNotice.vue' // FORK: Mandarin snoozed reminder
 import TaskPropertyRow from '@/components/tasks/partials/TaskPropertyRow.vue'
@@ -955,6 +957,7 @@ const repeatSummary = computed(() => {
 		? t('task.repeat.summary.fromCurrentDate', {interval})
 		: interval
 })
+const repeatLabel = useRepeatSummary(task, repeatSummary) // FORK: Mandarin "Every Mon, Thu" instead of the stand-in "Every 7 days"
 
 watch(taskQuery.task, async (loaded, previous) => {
 	if (!loaded) return

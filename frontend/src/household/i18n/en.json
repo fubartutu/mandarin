@@ -333,6 +333,12 @@
 				"summaryUntil": "Stops after {date}",
 				"summaryCount": "Stops after this time | {count} times left, this one included",
 				"or": ", or ",
+				"short": {
+					"until": "until {date}",
+					"count": "last time | {count} times left",
+					"or": " or ",
+					"withEnd": "{repeat}, {end}"
+				},
 				"saveFailed": "The task was added, but its repeat end couldn't be saved. Set it on the task."
 			},
 			"repeat": {
@@ -368,7 +374,7 @@
 					"weekly": "Every {days} | Every {n} weeks on {days}",
 					"monthDay": "Monthly on day {day} | Every {n} months on day {day}",
 					"lastDay": "Monthly on the last day | Every {n} months on the last day",
-					"monthWeekday": "Monthly on the {nth} {weekday} | Every {n} months on the {nth} {weekday}",
+					"monthWeekday": "Every {nth} {weekday} | Every {n} months on the {nth} {weekday}",
 					"months": "Every month on the due date's day | Every {n} months on the due date's day",
 					"years": "Every year on the due date | Every {n} years on the due date"
 				},
