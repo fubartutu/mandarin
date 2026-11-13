@@ -104,6 +104,21 @@ export type AdminSetPasswordBody = {
     new_password?: string;
 };
 
+export type AdminSettingsUser = {
+    /**
+     * Resolved auth provider name (e.g. 'LDAP' or an OIDC provider), empty for local accounts.
+     */
+    readonly auth_provider?: string;
+    /**
+     * The numeric ID of the user.
+     */
+    readonly id?: number;
+    /**
+     * The user's username.
+     */
+    readonly username?: string;
+};
+
 export type AdminStatusPatchBody = {
     /**
      * A URL to the JSON Schema for this object.
@@ -124,6 +139,10 @@ export type AdminUser = {
      * Resolved auth provider name (e.g. 'LDAP' or an OIDC provider), empty for local accounts.
      */
     readonly auth_provider?: string;
+    /**
+     * The user who created this bot. Only set for bot users.
+     */
+    readonly bot_owner?: User;
     /**
      * The id of the owning (human) user. Set by the server on creation; a non-zero value means this user is a bot.
      */
@@ -168,6 +187,67 @@ export type AdminUser = {
      * The username of the user. Is always unique. For bot users it must start with the 'bot-' prefix.
      */
     username?: string;
+};
+
+export type AdminUserSettingsBody = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Project a task is filed under when created without an explicit project.
+     */
+    default_project_id?: number;
+    /**
+     * If true, the user can be found when searching for their exact email.
+     */
+    discoverable_by_email?: boolean;
+    /**
+     * If true, this user can be found by their name or parts of it when searching.
+     */
+    discoverable_by_name?: boolean;
+    /**
+     * If enabled, sends email reminders of tasks to the user.
+     */
+    email_reminders_enabled?: boolean;
+    /**
+     * Additional settings links provided by the OpenID provider. Server-controlled.
+     */
+    readonly extra_settings_links?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Arbitrary settings used only by the frontend. Any JSON value; stored and returned verbatim.
+     */
+    frontend_settings?: unknown;
+    /**
+     * The user's language.
+     */
+    language?: string;
+    /**
+     * The full name of the user.
+     */
+    name?: string;
+    /**
+     * If enabled, the user gets an email for their overdue tasks each morning.
+     */
+    overdue_tasks_reminders_enabled?: boolean;
+    /**
+     * The time the daily overdue-tasks summary is sent, as HH:MM.
+     */
+    overdue_tasks_reminders_time?: string;
+    /**
+     * The user's time zone, used to send task reminders in their local time.
+     */
+    timezone?: string;
+    /**
+     * The user these settings belong to.
+     */
+    readonly user?: AdminSettingsUser;
+    /**
+     * The day the week starts on: 0=sunday, 1=monday, … 6=saturday.
+     */
+    week_start?: number;
 };
 
 export type AttachmentUploadError = {
@@ -264,6 +344,10 @@ export type BotUser = {
      */
     readonly $schema?: string;
     /**
+     * The user who created this bot. Only set for bot users.
+     */
+    readonly bot_owner?: User;
+    /**
      * The id of the owning (human) user. Set by the server on creation; a non-zero value means this user is a bot.
      */
     readonly bot_owner_id?: number;
@@ -302,6 +386,10 @@ export type BotUserReadBody = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
+    /**
+     * The user who created this bot. Only set for bot users.
+     */
+    readonly bot_owner?: User;
     /**
      * The id of the owning (human) user. Set by the server on creation; a non-zero value means this user is a bot.
      */
@@ -345,6 +433,10 @@ export type BotUserUpdateBody = {
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
+    /**
+     * The user who created this bot. Only set for bot users.
+     */
+    readonly bot_owner?: User;
     /**
      * The id of the owning (human) user. Set by the server on creation; a non-zero value means this user is a bot.
      */
@@ -1041,6 +1133,17 @@ export type History = {
     to?: string;
 };
 
+export type IdentityPreview = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The provider account being linked, from the verified ID token.
+     */
+    account?: string;
+};
+
 export type Image = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1255,8 +1358,54 @@ export type LdapAuthInfo = {
 };
 
 export type LegalInfo = {
+    /**
+     * Deprecated: use links, which also contains this url.
+     *
+     * @deprecated
+     */
     imprint_url?: string;
+    /**
+     * All legal links, including the deprecated imprint and privacy policy urls.
+     */
+    links?: Array<LegalLink> | null;
+    /**
+     * Deprecated: use links, which also contains this url.
+     *
+     * @deprecated
+     */
     privacy_policy_url?: string;
+};
+
+export type LegalLink = {
+    text?: string;
+    url?: string;
+};
+
+export type LinkIdentityRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The authorization code the provider redirected back with.
+     */
+    code?: string;
+    /**
+     * The current user's password.
+     */
+    password?: string;
+    /**
+     * The provider key as returned by /info.
+     */
+    provider?: string;
+    /**
+     * The redirect URL the authorization request was started with.
+     */
+    redirect_url?: string;
+    /**
+     * A current totp passcode. Required when the user has totp enabled.
+     */
+    totp_passcode?: string;
 };
 
 export type LinkShareReadBody = {
@@ -1383,6 +1532,33 @@ export type LinkSharing = {
      * A timestamp when this share was last updated. You cannot change this value.
      */
     readonly updated?: string;
+};
+
+export type LinkedIdentity = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * When the identity was linked.
+     */
+    readonly created?: string;
+    /**
+     * The unique, numeric id of this linked identity.
+     */
+    readonly id?: number;
+    /**
+     * The issuer URL from the provider's ID token.
+     */
+    readonly issuer?: string;
+    /**
+     * The key of the configured provider this identity belongs to. Empty when no configured provider matches the issuer anymore.
+     */
+    readonly provider_key?: string;
+    /**
+     * The display name of the configured provider. Empty when no configured provider matches the issuer anymore.
+     */
+    readonly provider_name?: string;
 };
 
 export type LocalAuthInfo = {
@@ -1713,6 +1889,18 @@ export type PaginatedLinkSharing = {
     total_pages?: number;
 };
 
+export type PaginatedLinkedIdentity = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<LinkedIdentity> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedMenuEntry = {
     /**
      * A URL to the JSON Schema for this object.
@@ -1911,6 +2099,30 @@ export type PaginatedToken = {
      */
     readonly $schema?: string;
     items?: Array<Token> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedTrashedProject = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<TrashedProject> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedTrashedTask = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    items?: Array<TrashedTask> | null;
     page?: number;
     per_page?: number;
     total?: number;
@@ -2152,6 +2364,14 @@ export type Project = {
      */
     readonly created?: string;
     /**
+     * When this project was moved to the trash. Trashed projects are removed permanently 30 days later.
+     */
+    readonly deleted_at?: string;
+    /**
+     * The user who moved this project to the trash. Only present on trashed projects.
+     */
+    readonly deleted_by?: User;
+    /**
      * The description of the project.
      */
     description?: string;
@@ -2209,6 +2429,29 @@ export type Project = {
     readonly views?: Array<ProjectView> | null;
 };
 
+export type ProjectCount = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * Live sub-projects at any depth, which move to the trash with the project.
+     */
+    sub_projects?: number;
+    /**
+     * Tasks in the project and its sub-projects, not counting tasks already in the trash.
+     */
+    tasks?: number;
+    /**
+     * Time entries on the project, its sub-projects or their tasks.
+     */
+    time_entries?: number;
+    /**
+     * How many people logged those time entries.
+     */
+    time_entry_authors?: number;
+};
+
 export type ProjectDuplicate = {
     /**
      * A URL to the JSON Schema for this object.
@@ -2245,6 +2488,14 @@ export type ProjectReadBody = {
      * A timestamp when this project was created. You cannot change this value.
      */
     readonly created?: string;
+    /**
+     * When this project was moved to the trash. Trashed projects are removed permanently 30 days later.
+     */
+    readonly deleted_at?: string;
+    /**
+     * The user who moved this project to the trash. Only present on trashed projects.
+     */
+    readonly deleted_by?: User;
     /**
      * The description of the project.
      */
@@ -3792,6 +4043,10 @@ export type Task = {
      * When this task was soft-deleted. Soft-deleted tasks are kept for 30 days before they are removed permanently.
      */
     readonly deleted_at?: string;
+    /**
+     * The user who moved this task to the trash. Only present on soft-deleted tasks, and absent there for tasks deleted before this was recorded.
+     */
+    readonly deleted_by?: User;
     description?: string;
     done?: boolean;
     /**
@@ -3959,6 +4214,7 @@ export type TaskCollection = {
      * If true, the result also includes tasks whose filtered field is null.
      */
     filter_include_nulls?: boolean;
+    include_subprojects?: boolean;
     /**
      * The order for each sort_by field, either asc or desc. Defaults to asc.
      */
@@ -4064,7 +4320,7 @@ export type TaskPosition = {
      */
     position?: number;
     /**
-     * The id of the project view this position applies to. Positions are stored per view, so the same task has an independent position in each of its project's views.
+     * The id of the project view this position applies to. Positions are stored per view, so the same task has an independent position in each of its project's views. A view of an ancestor project (except kanban) is accepted too, for tasks listed there through include_subprojects.
      */
     project_view_id?: number;
     /**
@@ -4129,6 +4385,10 @@ export type TaskReadOneBody = {
      * When this task was soft-deleted. Soft-deleted tasks are kept for 30 days before they are removed permanently.
      */
     readonly deleted_at?: string;
+    /**
+     * The user who moved this task to the trash. Only present on soft-deleted tasks, and absent there for tasks deleted before this was recorded.
+     */
+    readonly deleted_by?: User;
     description?: string;
     done?: boolean;
     /**
@@ -4423,6 +4683,10 @@ export type TeamReadBody = {
 export type TeamUser = {
     admin?: boolean;
     /**
+     * The user who created this bot. Only set for bot users.
+     */
+    readonly bot_owner?: User;
+    /**
      * The id of the owning (human) user. Set by the server on creation; a non-zero value means this user is a bot.
      */
     readonly bot_owner_id?: number;
@@ -4514,7 +4778,11 @@ export type TimeEntry = {
      */
     readonly id?: number;
     /**
-     * The project this entry is attached to directly. Exactly one of task_id / project_id must be set.
+     * Whether the entry's task or project is in the trash. Such entries are read-only; while a project is in the trash, only their author sees them.
+     */
+    readonly in_trash?: boolean;
+    /**
+     * The project this entry is attached to directly; 0 means none. At most one of task_id / project_id may be set. Entries without task and project are only visible to their author.
      */
     project_id?: number;
     /**
@@ -4522,7 +4790,7 @@ export type TimeEntry = {
      */
     start_time?: string;
     /**
-     * The task this entry is attached to. Exactly one of task_id / project_id must be set.
+     * The task this entry is attached to; 0 means none. At most one of task_id / project_id may be set. On update, omitting both keeps the current container; sending either replaces it.
      */
     task_id?: number;
     /**
@@ -4530,9 +4798,9 @@ export type TimeEntry = {
      */
     readonly updated?: string;
     /**
-     * The id of the user who logged this time entry. Set by the server.
+     * The user who logged this time entry. Set by the server.
      */
-    readonly user_id?: number;
+    readonly user?: User;
 };
 
 export type TimeEntryReadBody = {
@@ -4557,11 +4825,15 @@ export type TimeEntryReadBody = {
      */
     readonly id?: number;
     /**
+     * Whether the entry's task or project is in the trash. Such entries are read-only; while a project is in the trash, only their author sees them.
+     */
+    readonly in_trash?: boolean;
+    /**
      * The maximum permission the requesting user has on this time entry (0=read, 1=read/write, 2=admin).
      */
     readonly max_permission?: number;
     /**
-     * The project this entry is attached to directly. Exactly one of task_id / project_id must be set.
+     * The project this entry is attached to directly; 0 means none. At most one of task_id / project_id may be set. Entries without task and project are only visible to their author.
      */
     project_id?: number;
     /**
@@ -4569,7 +4841,7 @@ export type TimeEntryReadBody = {
      */
     start_time?: string;
     /**
-     * The task this entry is attached to. Exactly one of task_id / project_id must be set.
+     * The task this entry is attached to; 0 means none. At most one of task_id / project_id may be set. On update, omitting both keeps the current container; sending either replaces it.
      */
     task_id?: number;
     /**
@@ -4577,9 +4849,9 @@ export type TimeEntryReadBody = {
      */
     readonly updated?: string;
     /**
-     * The id of the user who logged this time entry. Set by the server.
+     * The user who logged this time entry. Set by the server.
      */
-    readonly user_id?: number;
+    readonly user?: User;
 };
 
 export type Token = {
@@ -4698,11 +4970,274 @@ export type TotpEnrollBodyBody = {
     password?: string;
 };
 
+export type TrashCount = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * How many of them someone else moved to the trash, or nobody knows who did.
+     */
+    readonly by_others?: number;
+    /**
+     * How many items emptying the trash deletes.
+     */
+    readonly total?: number;
+};
+
+export type TrashedProject = {
+    /**
+     * A small BlurHash preview of the project background, shown until the real background loads. See https://blurha.sh/.
+     */
+    readonly background_blur_hash?: string;
+    /**
+     * Extra information about the background (e.g. attribution). When not null, the background is available at /projects/{projectID}/background.
+     */
+    readonly background_information?: unknown;
+    /**
+     * A timestamp when this project was created. You cannot change this value.
+     */
+    readonly created?: string;
+    /**
+     * When this project was moved to the trash. Trashed projects are removed permanently 30 days later.
+     */
+    readonly deleted_at?: string;
+    /**
+     * The user who moved this project to the trash. Only present on trashed projects.
+     */
+    readonly deleted_by?: User;
+    /**
+     * The description of the project.
+     */
+    description?: string;
+    /**
+     * The hex color of this project, without the leading #.
+     */
+    hex_color?: string;
+    /**
+     * The unique, numeric id of this project.
+     */
+    readonly id?: number;
+    /**
+     * The unique project short identifier. Used to build task identifiers (e.g. PROJ-123).
+     */
+    identifier?: string;
+    /**
+     * Whether the project is archived. Archived projects are read-only.
+     */
+    is_archived?: boolean;
+    /**
+     * Whether the project is a favorite of the requesting user. This value is per-user and depends on who makes the call.
+     */
+    is_favorite?: boolean;
+    /**
+     * The maximum permission the requesting user has on this project (0 = read, 1 = read/write, 2 = admin), or null when the permission was not computed for this response.
+     */
+    readonly max_permission?: number | null;
+    /**
+     * The user who owns this project. Set by the server; ignored on write.
+     */
+    readonly owner?: User;
+    /**
+     * The id of the parent project, or 0 for a top-level project. Always present in responses. Omit it on a write to leave the parent unchanged; sending an explicit 0 detaches the project to the top level and requires admin permission.
+     */
+    parent_project_id?: number | null;
+    /**
+     * The position of this project when listing all projects. See the tasks.position property for how positions work.
+     */
+    position?: number;
+    /**
+     * The requesting user's subscription status for this project. Read-only here; use the subscription endpoints to change it. Only returned when retrieving a single project.
+     */
+    readonly subscription?: Subscription;
+    /**
+     * The title of the project. You'll see this in the overview.
+     */
+    title?: string;
+    /**
+     * The trashed sub-projects at any depth that restoring this project brings back, shallowest first.
+     */
+    readonly trashed_sub_projects?: Array<TrashedSubProject> | null;
+    /**
+     * A timestamp when this project was last updated. You cannot change this value.
+     */
+    readonly updated?: string;
+    /**
+     * The views configured for this project. Managed through the project view endpoints.
+     */
+    readonly views?: Array<ProjectView> | null;
+};
+
+export type TrashedSubProject = {
+    /**
+     * How many levels below the listed project it sits, starting at 1.
+     */
+    depth?: number;
+    /**
+     * The id of the sub-project.
+     */
+    id?: number;
+    /**
+     * The id of its parent, either the listed project or another of its sub-projects.
+     */
+    parent_project_id?: number;
+    /**
+     * The title of the sub-project.
+     */
+    title?: string;
+};
+
+export type TrashedTask = {
+    /**
+     * The users assigned to this task. Read-only here; use the task-assignee endpoints to change assignments.
+     */
+    readonly assignees?: Array<User> | null;
+    /**
+     * The task's attachments. Read-only here; use the attachment endpoints to add or remove them.
+     */
+    readonly attachments?: Array<TaskAttachment> | null;
+    /**
+     * The bucket the task is in. Only populated when the task is accessed via a view with buckets. To move a task between buckets, the new bucket must be in the same view as the old one.
+     */
+    bucket_id?: number;
+    /**
+     * The task's buckets across all views. Only present when requested via the buckets expand option.
+     */
+    readonly buckets?: Array<Bucket> | null;
+    /**
+     * Whether the requesting user may permanently delete this task, which needs admin access to its project. Write access is enough to see and restore it.
+     */
+    readonly can_delete_permanently?: boolean;
+    /**
+     * The number of comments on this task. Only present when requested via the comment_count expand option.
+     */
+    readonly comment_count?: number;
+    /**
+     * The task's first 50 comments. Only present when requested via the comments expand option.
+     */
+    readonly comments?: Array<TaskComment> | null;
+    /**
+     * The id of the attachment used as this task's cover image, or 0 for none.
+     */
+    cover_image_attachment_id?: number;
+    /**
+     * When this task was created. Set by the server; ignored on write.
+     */
+    readonly created?: string;
+    /**
+     * The user who created this task. Set by the server.
+     */
+    readonly created_by?: User;
+    /**
+     * When this task was soft-deleted. Soft-deleted tasks are kept for 30 days before they are removed permanently.
+     */
+    readonly deleted_at?: string;
+    /**
+     * The user who moved this task to the trash. Only present on soft-deleted tasks, and absent there for tasks deleted before this was recorded.
+     */
+    readonly deleted_by?: User;
+    description?: string;
+    done?: boolean;
+    /**
+     * When the task was marked as done. Set by the server; ignored on write.
+     */
+    readonly done_at?: string;
+    due_date?: string;
+    end_date?: string;
+    /**
+     * The task color as a hex string without the leading '#'.
+     */
+    hex_color?: string;
+    /**
+     * The unique, numeric id of this task.
+     */
+    readonly id?: number;
+    /**
+     * The textual task identifier, derived from the project identifier and the task index (e.g. "PROJ-12").
+     */
+    readonly identifier?: string;
+    /**
+     * The per-project task index, assigned by the server.
+     */
+    readonly index?: number;
+    /**
+     * Whether the requesting user has favorited this task. Per-user, so it differs between callers.
+     */
+    is_favorite?: boolean;
+    /**
+     * Whether the task is unread for the requesting user. Only present when requested via the is_unread expand option.
+     */
+    readonly is_unread?: boolean;
+    /**
+     * The labels on this task. Read-only here; use the label-task endpoints to add or remove labels.
+     */
+    readonly labels?: Array<Label> | null;
+    /**
+     * How far the task is from done, between 0 and 1.
+     */
+    percent_done?: number;
+    /**
+     * The task's position, saved per view. Only non-zero when the task is fetched through a view endpoint; use the task-position endpoint to change it.
+     */
+    readonly position?: number;
+    /**
+     * The task's stored position in each view of its project. Only present in create and duplicate responses.
+     */
+    readonly positions?: Array<TaskPosition> | null;
+    priority?: number;
+    /**
+     * The id of the project this task belongs to. On create it is taken from the URL; on update, setting it to a different project moves the task (requires write access to the target project).
+     */
+    project_id?: number;
+    /**
+     * Reactions on this task. Only present when requested via the reactions expand option.
+     */
+    readonly reactions?: {
+        [key: string]: Array<User> | null;
+    };
+    /**
+     * Related tasks grouped by relation kind. Read-only here; use the task-relation endpoints to change relations.
+     */
+    readonly related_tasks?: {
+        [key: string]: Array<Task> | null;
+    };
+    reminders?: Array<TaskReminder> | null;
+    /**
+     * The interval in seconds this task repeats. When set, marking the task done re-opens it and bumps its reminders and due date by this amount.
+     */
+    repeat_after?: number;
+    /**
+     * How the task repeats when marked done: 0 = after repeat_after seconds, 1 = monthly (ignores repeat_after), 2 = from the current date rather than the last set date.
+     */
+    repeat_mode?: number;
+    start_date?: string;
+    /**
+     * The requesting user's subscription to this task. Read-only here; use the subscription endpoints to change it. Only present when reading a single task.
+     */
+    readonly subscription?: Subscription;
+    /**
+     * The number of time entries on this task. Only present when requested via the time_entries_count expand option.
+     */
+    readonly time_entries_count?: number;
+    /**
+     * The task title. This is what you'll see in the project.
+     */
+    title?: string;
+    /**
+     * When this task was last updated. Set by the server; ignored on write.
+     */
+    readonly updated?: string;
+};
+
 export type User = {
     /**
      * A URL to the JSON Schema for this object.
      */
     readonly $schema?: string;
+    /**
+     * The user who created this bot. Only set for bot users.
+     */
+    readonly bot_owner?: User;
     /**
      * The id of the owning (human) user. Set by the server on creation; a non-zero value means this user is a bot.
      */
@@ -4746,6 +5281,40 @@ export type UserChangePasswordRequest = {
      * The current password, for confirmation.
      */
     old_password?: string;
+};
+
+export type UserIdentitiesPreviewRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The authorization code the provider redirected back with.
+     */
+    code?: string;
+    /**
+     * The provider key as returned by /info.
+     */
+    provider?: string;
+    /**
+     * The redirect URL the authorization request was started with.
+     */
+    redirect_url?: string;
+};
+
+export type UserIdentitiesUnlinkRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The current user's password.
+     */
+    password?: string;
+    /**
+     * A current totp passcode. Required when the user has totp enabled.
+     */
+    totp_passcode?: string;
 };
 
 export type UserUpdateEmailRequest = {
@@ -4908,6 +5477,10 @@ export type UserInfoBody = {
      */
     readonly auth_provider?: string;
     /**
+     * The user who created this bot. Only set for bot users.
+     */
+    readonly bot_owner?: User;
+    /**
      * The id of the owning (human) user. Set by the server on creation; a non-zero value means this user is a bot.
      */
     readonly bot_owner_id?: number;
@@ -5010,6 +5583,10 @@ export type UserInviteLink = {
 
 export type UserWithPermission = {
     /**
+     * The user who created this bot. Only set for bot users.
+     */
+    readonly bot_owner?: User;
+    /**
      * The id of the owning (human) user. Set by the server on creation; a non-zero value means this user is a bot.
      */
     readonly bot_owner_id?: number;
@@ -5056,6 +5633,10 @@ export type VikunjaErrorModel = {
      * A human-readable explanation specific to this occurrence of the problem.
      */
     detail?: string;
+    /**
+     * Error-specific data; its shape depends on code.
+     */
+    readonly details?: unknown;
     /**
      * Optional list of individual error details
      */
@@ -5302,6 +5883,53 @@ export type AdminUserWritable = {
      * The username of the user. Is always unique. For bot users it must start with the 'bot-' prefix.
      */
     username?: string;
+};
+
+export type AdminUserSettingsBodyWritable = {
+    /**
+     * Project a task is filed under when created without an explicit project.
+     */
+    default_project_id?: number;
+    /**
+     * If true, the user can be found when searching for their exact email.
+     */
+    discoverable_by_email?: boolean;
+    /**
+     * If true, this user can be found by their name or parts of it when searching.
+     */
+    discoverable_by_name?: boolean;
+    /**
+     * If enabled, sends email reminders of tasks to the user.
+     */
+    email_reminders_enabled?: boolean;
+    /**
+     * Arbitrary settings used only by the frontend. Any JSON value; stored and returned verbatim.
+     */
+    frontend_settings?: unknown;
+    /**
+     * The user's language.
+     */
+    language?: string;
+    /**
+     * The full name of the user.
+     */
+    name?: string;
+    /**
+     * If enabled, the user gets an email for their overdue tasks each morning.
+     */
+    overdue_tasks_reminders_enabled?: boolean;
+    /**
+     * The time the daily overdue-tasks summary is sent, as HH:MM.
+     */
+    overdue_tasks_reminders_time?: string;
+    /**
+     * The user's time zone, used to send task reminders in their local time.
+     */
+    timezone?: string;
+    /**
+     * The day the week starts on: 0=sunday, 1=monday, … 6=saturday.
+     */
+    week_start?: number;
 };
 
 export type AttachmentUploadResultWritable = {
@@ -5764,6 +6392,13 @@ export type HistoryWritable = {
     to?: string;
 };
 
+export type IdentityPreviewWritable = {
+    /**
+     * The provider account being linked, from the verified ID token.
+     */
+    account?: string;
+};
+
 export type ImageWritable = {
     /**
      * A BlurHash placeholder for the image.
@@ -5851,6 +6486,29 @@ export type LabelWithTaskIdWritable = {
      * The title of the label. You'll see this one on tasks associated with it.
      */
     title?: string;
+};
+
+export type LinkIdentityRequestWritable = {
+    /**
+     * The authorization code the provider redirected back with.
+     */
+    code?: string;
+    /**
+     * The current user's password.
+     */
+    password?: string;
+    /**
+     * The provider key as returned by /info.
+     */
+    provider?: string;
+    /**
+     * The redirect URL the authorization request was started with.
+     */
+    redirect_url?: string;
+    /**
+     * A current totp passcode. Required when the user has totp enabled.
+     */
+    totp_passcode?: string;
 };
 
 export type LinkShareReadBodyWritable = {
@@ -6051,6 +6709,14 @@ export type PaginatedLinkSharingWritable = {
     total_pages?: number;
 };
 
+export type PaginatedLinkedIdentityWritable = {
+    items?: Array<unknown> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedMenuEntryWritable = {
     items?: Array<MenuEntryWritable> | null;
     page?: number;
@@ -6187,6 +6853,22 @@ export type PaginatedTokenWritable = {
     total_pages?: number;
 };
 
+export type PaginatedTrashedProjectWritable = {
+    items?: Array<TrashedProjectWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
+export type PaginatedTrashedTaskWritable = {
+    items?: Array<TrashedTaskWritable> | null;
+    page?: number;
+    per_page?: number;
+    total?: number;
+    total_pages?: number;
+};
+
 export type PaginatedUserWritable = {
     items?: Array<UserWritable> | null;
     page?: number;
@@ -6306,6 +6988,25 @@ export type ProjectWritable = {
      * The title of the project. You'll see this in the overview.
      */
     title?: string;
+};
+
+export type ProjectCountWritable = {
+    /**
+     * Live sub-projects at any depth, which move to the trash with the project.
+     */
+    sub_projects?: number;
+    /**
+     * Tasks in the project and its sub-projects, not counting tasks already in the trash.
+     */
+    tasks?: number;
+    /**
+     * Time entries on the project, its sub-projects or their tasks.
+     */
+    time_entries?: number;
+    /**
+     * How many people logged those time entries.
+     */
+    time_entry_authors?: number;
 };
 
 export type ProjectDuplicateWritable = {
@@ -7042,7 +7743,7 @@ export type TaskPositionWritable = {
      */
     position?: number;
     /**
-     * The id of the project view this position applies to. Positions are stored per view, so the same task has an independent position in each of its project's views.
+     * The id of the project view this position applies to. Positions are stored per view, so the same task has an independent position in each of its project's views. A view of an ancestor project (except kanban) is accepted too, for tasks listed there through include_subprojects.
      */
     project_view_id?: number;
 };
@@ -7203,7 +7904,7 @@ export type TimeEntryWritable = {
      */
     end_time?: string | null;
     /**
-     * The project this entry is attached to directly. Exactly one of task_id / project_id must be set.
+     * The project this entry is attached to directly; 0 means none. At most one of task_id / project_id may be set. Entries without task and project are only visible to their author.
      */
     project_id?: number;
     /**
@@ -7211,7 +7912,7 @@ export type TimeEntryWritable = {
      */
     start_time?: string;
     /**
-     * The task this entry is attached to. Exactly one of task_id / project_id must be set.
+     * The task this entry is attached to; 0 means none. At most one of task_id / project_id may be set. On update, omitting both keeps the current container; sending either replaces it.
      */
     task_id?: number;
 };
@@ -7226,7 +7927,7 @@ export type TimeEntryReadBodyWritable = {
      */
     end_time?: string | null;
     /**
-     * The project this entry is attached to directly. Exactly one of task_id / project_id must be set.
+     * The project this entry is attached to directly; 0 means none. At most one of task_id / project_id may be set. Entries without task and project are only visible to their author.
      */
     project_id?: number;
     /**
@@ -7234,7 +7935,7 @@ export type TimeEntryReadBodyWritable = {
      */
     start_time?: string;
     /**
-     * The task this entry is attached to. Exactly one of task_id / project_id must be set.
+     * The task this entry is attached to; 0 means none. At most one of task_id / project_id may be set. On update, omitting both keeps the current container; sending either replaces it.
      */
     task_id?: number;
 };
@@ -7284,6 +7985,87 @@ export type TotpEnrollBodyBodyWritable = {
     password?: string;
 };
 
+export type TrashedProjectWritable = {
+    /**
+     * The description of the project.
+     */
+    description?: string;
+    /**
+     * The hex color of this project, without the leading #.
+     */
+    hex_color?: string;
+    /**
+     * The unique project short identifier. Used to build task identifiers (e.g. PROJ-123).
+     */
+    identifier?: string;
+    /**
+     * Whether the project is archived. Archived projects are read-only.
+     */
+    is_archived?: boolean;
+    /**
+     * Whether the project is a favorite of the requesting user. This value is per-user and depends on who makes the call.
+     */
+    is_favorite?: boolean;
+    /**
+     * The id of the parent project, or 0 for a top-level project. Always present in responses. Omit it on a write to leave the parent unchanged; sending an explicit 0 detaches the project to the top level and requires admin permission.
+     */
+    parent_project_id?: number | null;
+    /**
+     * The position of this project when listing all projects. See the tasks.position property for how positions work.
+     */
+    position?: number;
+    /**
+     * The title of the project. You'll see this in the overview.
+     */
+    title?: string;
+};
+
+export type TrashedTaskWritable = {
+    /**
+     * The bucket the task is in. Only populated when the task is accessed via a view with buckets. To move a task between buckets, the new bucket must be in the same view as the old one.
+     */
+    bucket_id?: number;
+    /**
+     * The id of the attachment used as this task's cover image, or 0 for none.
+     */
+    cover_image_attachment_id?: number;
+    description?: string;
+    done?: boolean;
+    due_date?: string;
+    end_date?: string;
+    /**
+     * The task color as a hex string without the leading '#'.
+     */
+    hex_color?: string;
+    /**
+     * Whether the requesting user has favorited this task. Per-user, so it differs between callers.
+     */
+    is_favorite?: boolean;
+    /**
+     * How far the task is from done, between 0 and 1.
+     */
+    percent_done?: number;
+    priority?: number;
+    /**
+     * The id of the project this task belongs to. On create it is taken from the URL; on update, setting it to a different project moves the task (requires write access to the target project).
+     */
+    project_id?: number;
+    reminders?: Array<TaskReminder> | null;
+    /**
+     * The interval in seconds this task repeats. When set, marking the task done re-opens it and bumps its reminders and due date by this amount.
+     */
+    repeat_after?: number;
+    /**
+     * How the task repeats when marked done: 0 = after repeat_after seconds, 1 = monthly (ignores repeat_after), 2 = from the current date rather than the last set date.
+     */
+    repeat_mode?: number;
+    start_date?: string;
+    /**
+     * The task title. This is what you'll see in the project.
+     */
+    title?: string;
+};
+
 export type UserWritable = {
     /**
      * The user's email address. Always empty for bot users.
@@ -7308,6 +8090,32 @@ export type UserChangePasswordRequestWritable = {
      * The current password, for confirmation.
      */
     old_password?: string;
+};
+
+export type UserIdentitiesPreviewRequestWritable = {
+    /**
+     * The authorization code the provider redirected back with.
+     */
+    code?: string;
+    /**
+     * The provider key as returned by /info.
+     */
+    provider?: string;
+    /**
+     * The redirect URL the authorization request was started with.
+     */
+    redirect_url?: string;
+};
+
+export type UserIdentitiesUnlinkRequestWritable = {
+    /**
+     * The current user's password.
+     */
+    password?: string;
+    /**
+     * A current totp passcode. Required when the user has totp enabled.
+     */
+    totp_passcode?: string;
 };
 
 export type UserUpdateEmailRequestWritable = {
@@ -8037,6 +8845,96 @@ export type AdminUsersPasswordResetEmailResponses = {
 };
 
 export type AdminUsersPasswordResetEmailResponse = AdminUsersPasswordResetEmailResponses[keyof AdminUsersPasswordResetEmailResponses];
+
+export type AdminUsersSettingsReadData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric ID of the user.
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/admin/users/{id}/settings/general';
+};
+
+export type AdminUsersSettingsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type AdminUsersSettingsReadError = AdminUsersSettingsReadErrors[keyof AdminUsersSettingsReadErrors];
+
+export type AdminUsersSettingsReadResponses = {
+    /**
+     * OK
+     */
+    200: AdminUserSettingsBody;
+};
+
+export type AdminUsersSettingsReadResponse = AdminUsersSettingsReadResponses[keyof AdminUsersSettingsReadResponses];
+
+export type PatchAdminUsersSettingsReadData = {
+    body: Array<JsonPatchOp> | null;
+    path: {
+        /**
+         * The numeric ID of the user.
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/admin/users/{id}/settings/general';
+};
+
+export type PatchAdminUsersSettingsReadErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type PatchAdminUsersSettingsReadError = PatchAdminUsersSettingsReadErrors[keyof PatchAdminUsersSettingsReadErrors];
+
+export type PatchAdminUsersSettingsReadResponses = {
+    /**
+     * OK
+     */
+    200: AdminUserSettingsBody;
+};
+
+export type PatchAdminUsersSettingsReadResponse = PatchAdminUsersSettingsReadResponses[keyof PatchAdminUsersSettingsReadResponses];
+
+export type AdminUsersSettingsUpdateData = {
+    body: AdminUserSettingsBodyWritable;
+    path: {
+        /**
+         * The numeric ID of the user.
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/admin/users/{id}/settings/general';
+};
+
+export type AdminUsersSettingsUpdateErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type AdminUsersSettingsUpdateError = AdminUsersSettingsUpdateErrors[keyof AdminUsersSettingsUpdateErrors];
+
+export type AdminUsersSettingsUpdateResponses = {
+    /**
+     * OK
+     */
+    200: AdminUserSettingsBody;
+};
+
+export type AdminUsersSettingsUpdateResponse = AdminUsersSettingsUpdateResponses[keyof AdminUsersSettingsUpdateResponses];
 
 export type AdminUsersPatchStatusData = {
     body: AdminStatusPatchBodyWritable;
@@ -10182,6 +11080,99 @@ export type ProjectsCreateResponses = {
 
 export type ProjectsCreateResponse = ProjectsCreateResponses[keyof ProjectsCreateResponses];
 
+export type ProjectsTrashEmptyData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Also purge projects other users moved to the trash.
+         */
+        include_others?: boolean;
+    };
+    url: '/projects/deleted';
+};
+
+export type ProjectsTrashEmptyErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ProjectsTrashEmptyError = ProjectsTrashEmptyErrors[keyof ProjectsTrashEmptyErrors];
+
+export type ProjectsTrashEmptyResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type ProjectsTrashEmptyResponse = ProjectsTrashEmptyResponses[keyof ProjectsTrashEmptyResponses];
+
+export type ProjectsTrashListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * Search query; filters the list to items matching this string.
+         */
+        q?: string;
+    };
+    url: '/projects/deleted';
+};
+
+export type ProjectsTrashListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ProjectsTrashListError = ProjectsTrashListErrors[keyof ProjectsTrashListErrors];
+
+export type ProjectsTrashListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedTrashedProject;
+};
+
+export type ProjectsTrashListResponse = ProjectsTrashListResponses[keyof ProjectsTrashListResponses];
+
+export type ProjectsTrashCountData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/projects/deleted/count';
+};
+
+export type ProjectsTrashCountErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ProjectsTrashCountError = ProjectsTrashCountErrors[keyof ProjectsTrashCountErrors];
+
+export type ProjectsTrashCountResponses = {
+    /**
+     * OK
+     */
+    200: TrashCount;
+};
+
+export type ProjectsTrashCountResponse = ProjectsTrashCountResponses[keyof ProjectsTrashCountResponses];
+
 export type ProjectsDeleteData = {
     body?: never;
     path: {
@@ -10299,6 +11290,101 @@ export type ProjectsUpdateResponses = {
 };
 
 export type ProjectsUpdateResponse = ProjectsUpdateResponses[keyof ProjectsUpdateResponses];
+
+export type ProjectsCountData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric id of the project.
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/projects/{id}/count';
+};
+
+export type ProjectsCountErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ProjectsCountError = ProjectsCountErrors[keyof ProjectsCountErrors];
+
+export type ProjectsCountResponses = {
+    /**
+     * OK
+     */
+    200: ProjectCount;
+};
+
+export type ProjectsCountResponse = ProjectsCountResponses[keyof ProjectsCountResponses];
+
+export type ProjectsDeletePermanentlyData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric id of the project.
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/projects/{id}/permanent';
+};
+
+export type ProjectsDeletePermanentlyErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ProjectsDeletePermanentlyError = ProjectsDeletePermanentlyErrors[keyof ProjectsDeletePermanentlyErrors];
+
+export type ProjectsDeletePermanentlyResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type ProjectsDeletePermanentlyResponse = ProjectsDeletePermanentlyResponses[keyof ProjectsDeletePermanentlyResponses];
+
+export type ProjectsRestoreData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric id of the project.
+         */
+        id: number;
+    };
+    query?: {
+        /**
+         * How rich-text fields are exchanged. See the API description.
+         */
+        format?: 'html' | 'markdown';
+    };
+    url: '/projects/{id}/restore';
+};
+
+export type ProjectsRestoreErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type ProjectsRestoreError = ProjectsRestoreErrors[keyof ProjectsRestoreErrors];
+
+export type ProjectsRestoreResponses = {
+    /**
+     * OK
+     */
+    200: Project;
+};
+
+export type ProjectsRestoreResponse = ProjectsRestoreResponses[keyof ProjectsRestoreResponses];
 
 export type ProjectTimeEntriesListData = {
     body?: never;
@@ -10457,7 +11543,7 @@ export type ProjectsBackgroundUnsplashSetResponse = ProjectsBackgroundUnsplashSe
 export type ProjectsBackgroundUploadData = {
     body: {
         /**
-         * The background image to upload. Must be a decodable raster image (JPEG, PNG, GIF, BMP, TIFF or WebP); it is resized server-side and re-encoded as JPEG.
+         * The background image to upload. Must be a decodable raster image (JPEG, PNG, GIF, BMP or WebP); it is resized server-side and re-encoded as JPEG.
          */
         background: Blob | File;
     };
@@ -10663,6 +11749,10 @@ export type ProjectTasksListData = {
          * If true, also include tasks whose filtered field is null.
          */
         filter_include_nulls?: boolean;
+        /**
+         * If true, also returns tasks from all descendant subprojects the user can access. Ignored outside a concrete project, in kanban views and for link shares. Their position in this view is stored separately from the one in their own project's views.
+         */
+        include_subprojects?: boolean;
         /**
          * Fields to sort by (e.g. done, priority). Repeatable; pair positionally with order_by. The special value relevance sorts by search relevance (most relevant first, requires s; ignored when the database cannot score the query).
          */
@@ -11414,6 +12504,10 @@ export type ProjectViewBucketsTasksListData = {
          */
         filter_include_nulls?: boolean;
         /**
+         * If true, also returns tasks from all descendant subprojects the user can access. Ignored outside a concrete project, in kanban views and for link shares. Their position in this view is stored separately from the one in their own project's views.
+         */
+        include_subprojects?: boolean;
+        /**
          * Fields to sort by (e.g. done, priority). Repeatable; pair positionally with order_by. The special value relevance sorts by search relevance (most relevant first, requires s; ignored when the database cannot score the query).
          */
         sort_by?: Array<string> | null;
@@ -11575,6 +12669,10 @@ export type ProjectViewTasksListData = {
          * If true, also include tasks whose filtered field is null.
          */
         filter_include_nulls?: boolean;
+        /**
+         * If true, also returns tasks from all descendant subprojects the user can access. Ignored outside a concrete project, in kanban views and for link shares. Their position in this view is stored separately from the one in their own project's views.
+         */
+        include_subprojects?: boolean;
         /**
          * Fields to sort by (e.g. done, priority). Repeatable; pair positionally with order_by. The special value relevance sorts by search relevance (most relevant first, requires s; ignored when the database cannot score the query).
          */
@@ -13707,6 +14805,10 @@ export type TasksListData = {
          */
         filter_include_nulls?: boolean;
         /**
+         * If true, also returns tasks from all descendant subprojects the user can access. Ignored outside a concrete project, in kanban views and for link shares. Their position in this view is stored separately from the one in their own project's views.
+         */
+        include_subprojects?: boolean;
+        /**
          * Fields to sort by (e.g. done, priority). Repeatable; pair positionally with order_by. The special value relevance sorts by search relevance (most relevant first, requires s; ignored when the database cannot score the query).
          */
         sort_by?: Array<string> | null;
@@ -13773,6 +14875,99 @@ export type TasksBulkUpdateResponses = {
 };
 
 export type TasksBulkUpdateResponse = TasksBulkUpdateResponses[keyof TasksBulkUpdateResponses];
+
+export type TasksTrashEmptyData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Also purge tasks other users moved to the trash.
+         */
+        include_others?: boolean;
+    };
+    url: '/tasks/deleted';
+};
+
+export type TasksTrashEmptyErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksTrashEmptyError = TasksTrashEmptyErrors[keyof TasksTrashEmptyErrors];
+
+export type TasksTrashEmptyResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type TasksTrashEmptyResponse = TasksTrashEmptyResponses[keyof TasksTrashEmptyResponses];
+
+export type TasksTrashListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 1-based page number.
+         */
+        page?: number;
+        /**
+         * Items per page. Defaults to the instance's configured maximum (service.maxitemsperpage, reported as max_items_per_page by /info) and is silently capped at it; asking for more is not an error.
+         */
+        per_page?: number;
+        /**
+         * How rich-text fields are exchanged. See the API description.
+         */
+        format?: 'html' | 'markdown';
+    };
+    url: '/tasks/deleted';
+};
+
+export type TasksTrashListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksTrashListError = TasksTrashListErrors[keyof TasksTrashListErrors];
+
+export type TasksTrashListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedTrashedTask;
+};
+
+export type TasksTrashListResponse = TasksTrashListResponses[keyof TasksTrashListResponses];
+
+export type TasksTrashCountData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/tasks/deleted/count';
+};
+
+export type TasksTrashCountErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksTrashCountError = TasksTrashCountErrors[keyof TasksTrashCountErrors];
+
+export type TasksTrashCountResponses = {
+    /**
+     * OK
+     */
+    200: TrashCount;
+};
+
+export type TasksTrashCountResponse = TasksTrashCountResponses[keyof TasksTrashCountResponses];
 
 export type TaskTimeEntriesListData = {
     body?: never;
@@ -14640,6 +15835,36 @@ export type TaskLabelsDeleteResponses = {
 
 export type TaskLabelsDeleteResponse = TaskLabelsDeleteResponses[keyof TaskLabelsDeleteResponses];
 
+export type TasksDeletePermanentlyData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: never;
+    url: '/tasks/{task}/permanent';
+};
+
+export type TasksDeletePermanentlyErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksDeletePermanentlyError = TasksDeletePermanentlyErrors[keyof TasksDeletePermanentlyErrors];
+
+export type TasksDeletePermanentlyResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type TasksDeletePermanentlyResponse = TasksDeletePermanentlyResponses[keyof TasksDeletePermanentlyResponses];
+
 export type TasksPositionUpdateData = {
     body: TaskPositionWritable;
     path: {
@@ -14857,6 +16082,41 @@ export type TasksRepeatUpdateResponses = {
 };
 
 export type TasksRepeatUpdateResponse = TasksRepeatUpdateResponses[keyof TasksRepeatUpdateResponses];
+
+export type TasksRestoreData = {
+    body?: never;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: {
+        /**
+         * How rich-text fields are exchanged. See the API description.
+         */
+        format?: 'html' | 'markdown';
+    };
+    url: '/tasks/{task}/restore';
+};
+
+export type TasksRestoreErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksRestoreError = TasksRestoreErrors[keyof TasksRestoreErrors];
+
+export type TasksRestoreResponses = {
+    /**
+     * OK
+     */
+    200: Task;
+};
+
+export type TasksRestoreResponse = TasksRestoreResponses[keyof TasksRestoreResponses];
 
 export type TasksSkipData = {
     body?: never;
@@ -15266,7 +16526,7 @@ export type TimeEntriesListData = {
          */
         q?: string;
         /**
-         * Filter entries with the task filter syntax over user_id, task_id, project_id, start_time and end_time — e.g. "project_id = 5 && start_time > now-7d". Use end_time = null to match running timers.
+         * Filter entries with the task filter syntax over user_id, task_id, project_id, start_time and end_time — e.g. "project_id = 5 && start_time > now-7d". Use end_time = null to match running timers, project_id = null for entries without task or project, and task_id = null for entries not on a task.
          */
         filter?: string;
         /**
@@ -16150,7 +17410,7 @@ export type SessionsDeleteResponse = SessionsDeleteResponses[keyof SessionsDelet
 export type UserAvatarUploadData = {
     body: {
         /**
-         * The avatar image to upload. Must be a decodable raster image (PNG, JPEG, GIF, TIFF or BMP); it is resized server-side and re-encoded as PNG.
+         * The avatar image to upload. Must be a decodable raster image (PNG, JPEG, GIF or BMP); it is resized server-side and re-encoded as PNG.
          */
         avatar: Blob | File;
     };
@@ -16401,6 +17661,111 @@ export type UserUpdateSettingsResponses = {
 };
 
 export type UserUpdateSettingsResponse = UserUpdateSettingsResponses[keyof UserUpdateSettingsResponses];
+
+export type UserIdentitiesListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/user/settings/identities';
+};
+
+export type UserIdentitiesListErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type UserIdentitiesListError = UserIdentitiesListErrors[keyof UserIdentitiesListErrors];
+
+export type UserIdentitiesListResponses = {
+    /**
+     * OK
+     */
+    200: PaginatedLinkedIdentity;
+};
+
+export type UserIdentitiesListResponse = UserIdentitiesListResponses[keyof UserIdentitiesListResponses];
+
+export type UserIdentitiesLinkData = {
+    body: LinkIdentityRequestWritable;
+    path?: never;
+    query?: never;
+    url: '/user/settings/identities';
+};
+
+export type UserIdentitiesLinkErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type UserIdentitiesLinkError = UserIdentitiesLinkErrors[keyof UserIdentitiesLinkErrors];
+
+export type UserIdentitiesLinkResponses = {
+    /**
+     * Created
+     */
+    201: LinkedIdentity;
+};
+
+export type UserIdentitiesLinkResponse = UserIdentitiesLinkResponses[keyof UserIdentitiesLinkResponses];
+
+export type UserIdentitiesPreviewData = {
+    body: UserIdentitiesPreviewRequestWritable;
+    path?: never;
+    query?: never;
+    url: '/user/settings/identities/preview';
+};
+
+export type UserIdentitiesPreviewErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type UserIdentitiesPreviewError = UserIdentitiesPreviewErrors[keyof UserIdentitiesPreviewErrors];
+
+export type UserIdentitiesPreviewResponses = {
+    /**
+     * OK
+     */
+    200: IdentityPreview;
+};
+
+export type UserIdentitiesPreviewResponse = UserIdentitiesPreviewResponses[keyof UserIdentitiesPreviewResponses];
+
+export type UserIdentitiesUnlinkData = {
+    body: UserIdentitiesUnlinkRequestWritable;
+    path: {
+        /**
+         * The id of the linked identity.
+         */
+        identity: number;
+    };
+    query?: never;
+    url: '/user/settings/identities/{identity}/unlink';
+};
+
+export type UserIdentitiesUnlinkErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type UserIdentitiesUnlinkError = UserIdentitiesUnlinkErrors[keyof UserIdentitiesUnlinkErrors];
+
+export type UserIdentitiesUnlinkResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type UserIdentitiesUnlinkResponse = UserIdentitiesUnlinkResponses[keyof UserIdentitiesUnlinkResponses];
 
 export type CaldavTokensListData = {
     body?: never;

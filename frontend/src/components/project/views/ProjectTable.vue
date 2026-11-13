@@ -81,8 +81,7 @@
 				<FilterPopup
 					v-if="!isSavedFilterProject({id: projectId})"
 					v-model="params"
-					:view-id="viewId"
-					:project-id="projectId"
+					:view
 					@update:modelValue="taskList.loadTasks()"
 				/>
 			</div>
@@ -330,6 +329,12 @@
 						</table>
 					</div>
 
+					<AddTask
+						v-if="canWrite"
+						class="table-view__add-task d-print-none"
+						:autofocus="false"
+					/>
+
 					<Pagination
 						:total-pages="totalPages"
 						:current-page="currentPage"
@@ -358,10 +363,12 @@ import Sort from '@/components/tasks/partials/Sort.vue'
 import FilterPopup from '@/components/project/partials/FilterPopup.vue'
 import Pagination from '@/components/misc/Pagination.vue'
 import Popup from '@/components/misc/Popup.vue'
+import AddTask from '@/components/tasks/AddTask.vue'
 
 import type {SortBy} from '@/composables/useTaskList'
 import {useTaskList} from '@/composables/useTaskList'
 import type {TaskResponse} from '@/client/queries/tasks'
+import type {ProjectView} from '@/client/generated'
 import {useTableSort} from '@/composables/useTableSort'
 import {useDelayedLoading} from '@/composables/useDelayedLoading'
 import AssigneeList from '@/components/tasks/partials/AssigneeList.vue'
@@ -369,14 +376,23 @@ import {getTaskIdentifier} from '@/helpers/task'
 import { camelCase } from 'change-case'
 import {isSavedFilterProject} from '@/client/queries/projects'
 import {useProjects} from '@/composables/useProjects'
+import {useCurrentProject} from '@/composables/useCurrentProject'
+import {PERMISSIONS as Permissions} from '@/constants/permissions'
 
 const props = defineProps<{
 	isLoadingProject: boolean,
 	projectId: number,
 	viewId: number,
+	view: ProjectView,
 }>()
 
 const projectList = useProjects()
+const {currentProject: project} = useCurrentProject()
+
+const canWrite = computed(() => typeof project.value?.max_permission === 'number' &&
+	project.value.max_permission > Permissions.READ &&
+	project.value.id > 0 &&
+	!project.value.is_archived)
 
 const columnsTrigger = ref<ComponentPublicInstance | null>(null)
 const columnsTriggerEl = computed<HTMLElement | null>(() => (columnsTrigger.value?.$el as HTMLElement) ?? null)
@@ -412,6 +428,7 @@ const taskList = useTaskList(
 	() => props.viewId, 
 	sortBy.value,
 	() => ['comment_count', 'is_unread'],
+	() => props.view,
 )
 
 const {
@@ -467,6 +484,10 @@ const taskDetailRoutes = computed(() => Object.fromEntries(
 	.user {
 		margin: 0;
 	}
+}
+
+.table-view__add-task {
+	padding: 1rem;
 }
 
 .columns-filter {

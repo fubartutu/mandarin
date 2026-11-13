@@ -18,6 +18,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
 	{
+		date: '2026-11-13',
+		changes: [
+			{kind: 'new', text: 'A trash for tasks and projects: deleting one moves it to the trash for 30 days, with an Undo straight after. Restore it from the trash page.'},
+			{kind: 'improved', text: 'The task page shows all its details at once in a panel beside the task, with Mark done, favourite and more actions at the top. Skip and the snooze notice sit just under them, and repeat rules are under Repeat.'},
+			{kind: 'improved', text: 'Task lists can include tasks from subprojects, and filters have a simpler editor.'},
+			{kind: 'new', text: 'Shift+T on a task marks it done and goes back.'},
+		],
+	},
+	{
 		date: '2026-11-11',
 		changes: [
 			{kind: 'fixed', text: 'When the Cloudflare login runs out, the app now brings up the login page when you open it again, instead of looking offline until it was closed (most noticeable on iPhone).'},

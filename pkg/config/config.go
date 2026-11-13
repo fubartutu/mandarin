@@ -19,12 +19,14 @@ package config
 import (
 	"crypto/rand"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 	_ "time/tzdata" // Imports time zone data instead of relying on the os
@@ -32,6 +34,7 @@ import (
 	"code.vikunja.io/api/pkg/log"
 
 	"github.com/c2h5oh/datasize"
+	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 )
 
@@ -105,6 +108,7 @@ const (
 
 	LegalImprintURL Key = `legal.imprinturl`
 	LegalPrivacyURL Key = `legal.privacyurl`
+	Legal           Key = `legal`
 
 	DatabaseType                  Key = `database.type`
 	DatabaseHost                  Key = `database.host`
@@ -213,6 +217,9 @@ const (
 	MetricsUsername Key = `metrics.username`
 	MetricsPassword Key = `metrics.password`
 	MetricsPprof    Key = `metrics.pprof`
+
+	HealthUsername Key = `health.username`
+	HealthPassword Key = `health.password`
 
 	DefaultSettingsAvatarProvider              Key = `defaultsettings.avatar_provider`
 	DefaultSettingsAvatarFileID                Key = `defaultsettings.avatar_file_id`
@@ -522,7 +529,7 @@ func initDefaultConfig() {
 	// Settings
 	DefaultSettingsAvatarProvider.setDefault("initials")
 	DefaultSettingsOverdueTaskRemindersEnabled.setDefault(true)
-	DefaultSettingsOverdueTaskRemindersTime.setDefault("9:00")
+	DefaultSettingsOverdueTaskRemindersTime.setDefault("09:00")
 	// Webhook
 	WebhooksEnabled.setDefault(true)
 	WebhooksTimeoutSeconds.setDefault(30)
@@ -557,6 +564,69 @@ func migrateDeprecatedWebhookKeys() {
 	if proxyPassword := WebhooksProxyPassword.GetString(); proxyPassword != "" && OutgoingRequestsProxyPassword.GetString() == "" {
 		log.Warningf("Config key %q is deprecated and will be removed in a future release. Please use %q instead.", WebhooksProxyPassword, OutgoingRequestsProxyPassword)
 		OutgoingRequestsProxyPassword.Set(proxyPassword)
+	}
+}
+
+func warnDeprecatedLegalKeys() {
+	deprecated := []Key{
+		LegalImprintURL,
+		LegalPrivacyURL,
+	}
+	for _, k := range deprecated {
+		if k.GetString() != "" {
+			log.Warningf("Config key %q is deprecated and will be removed in a future release. Please use %q with a text and url instead.", k, Legal+".<link key>")
+		}
+	}
+}
+
+// LegalLink is one legal.<link key> entry.
+type LegalLink struct {
+	Text string
+	URL  string
+}
+
+// GetLegalLinks returns the legal.<link key> entries sorted by key, skipping incomplete ones.
+func GetLegalLinks() []LegalLink {
+	found := make(map[string]LegalLink)
+	collectLegalLinks(viper.GetStringMap(string(Legal)), "", found)
+
+	keys := slices.Sorted(maps.Keys(found))
+	links := make([]LegalLink, 0, len(keys))
+	for _, key := range keys {
+		links = append(links, found[key])
+	}
+	return links
+}
+
+// Env vars split at every underscore, so VIKUNJA_LEGAL_TERMS_OF_SERVICE_URL
+// arrives as legal.terms.of.service.url. Rejoin the path to get the link key back.
+func collectLegalLinks(node map[string]any, prefix string, found map[string]LegalLink) {
+	for key, value := range node {
+		path := key
+		if prefix != "" {
+			path = prefix + "_" + key
+		}
+
+		// Skips the deprecated imprinturl/privacyurl, which are plain strings.
+		child, err := cast.ToStringMapE(value)
+		if err != nil {
+			continue
+		}
+
+		_, hasText := child["text"]
+		_, hasURL := child["url"]
+		if !hasText && !hasURL {
+			collectLegalLinks(child, path, found)
+			continue
+		}
+
+		link := LegalLink{
+			Text: cast.ToString(child["text"]),
+			URL:  cast.ToString(child["url"]),
+		}
+		if link.Text != "" && link.URL != "" {
+			found[path] = link
+		}
 	}
 }
 
@@ -779,6 +849,7 @@ func InitConfig() {
 	}
 
 	migrateDeprecatedWebhookKeys()
+	warnDeprecatedLegalKeys()
 
 	generateServiceSecretIfEmpty()
 
@@ -841,6 +912,11 @@ func InitConfig() {
 	} else if _, err := time.LoadLocation(tz); err != nil {
 		log.Warningf("Configured defaultsettings.timezone %q is invalid (%s), falling back to %s", tz, err, ServiceTimeZone.GetString())
 		DefaultSettingsTimezone.Set(ServiceTimeZone.GetString())
+	}
+
+	// Older sample configs shipped "9:00"; the frontend's time input needs HH:MM.
+	if t, err := time.Parse("15:04", DefaultSettingsOverdueTaskRemindersTime.GetString()); err == nil {
+		DefaultSettingsOverdueTaskRemindersTime.Set(t.Format("15:04"))
 	}
 
 	publicURL := strings.TrimSuffix(ServicePublicURL.GetString(), "/")

@@ -552,6 +552,9 @@
 						"unavailable": "ChatGPT requires OAuth to connect to Mandarin. MCP OAuth is not supported yet, so this token cannot be used in ChatGPT."
 					}
 				}
+			},
+			"linkedAccounts": {
+				"confirmText": "Enter your password to link this {provider} account to your Mandarin account. You can then log in with either."
 			}
 		},
 		"deletion": {
@@ -615,6 +618,8 @@
 	"error": {
 		"14009": "The provided zip file does not contain a Mandarin data file. Make sure you upload a Mandarin or Vikunja export.",
 		"14013": "The export was created with a version that is too old to import. Please create a new export with a more recent version.",
-		"14204": "Could not reach a Planka API at the given URL. Check the URL and that Mandarin can reach the instance."
+		"14204": "Could not reach a Planka API at the given URL. Check the URL and that Mandarin can reach the instance.",
+		"14205": "The Planka URL points to a private or local network address, which Mandarin blocks by default. An administrator can allow it by setting outgoingrequests.allownonroutableips to true.",
+		"15002": "This account at the identity provider is already linked to another Mandarin account."
 	}
 }
