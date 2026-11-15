@@ -37,6 +37,7 @@ import {registerStartPage} from './startPage'
 import {registerProjectViewMemory} from './projectViews'
 import {registerIosFixes} from './ios'
 import {registerProjectHeaderReset} from './projectHeader'
+import {registerAccessLoginCheck} from './accessLogin'
 
 library.add(
 	faArrowsRotate, faBasketShopping, faBookOpen, faCamera, faChevronDown, faChevronRight, faCircleCheck, faCloud,
@@ -64,6 +65,9 @@ registerStartPage(router)
 registerProjectViewMemory(router)
 registerProjectHeaderReset(router)
 registerIosFixes()
+
+// An expired Cloudflare Zero Trust login looks like no signal: reload for it.
+registerAccessLoginCheck()
 
 // "Offline: showing what you last opened" on task pages without signal.
 mountOfflineBanner(router)
