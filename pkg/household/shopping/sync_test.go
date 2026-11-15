@@ -251,6 +251,55 @@ func TestSyncNotStocked(t *testing.T) {
 	assert.Equal(t, []int64{aldi.ID}, entry.NotStockedShopIDs, "unknown shop dropped")
 }
 
+func usualOp(name string, usual bool) ShoppingSyncOp {
+	return ShoppingSyncOp{ID: uuid.NewString(), Type: OpCatalogUsual, At: ms(1), ItemName: name, Usual: ptr(usual)}
+}
+
+func TestSyncUsual(t *testing.T) {
+	t.Run("marks a known entry and unmarks it again", func(t *testing.T) {
+		s := setup(t)
+		list := groceries(t, s)
+		apply(t, s, createOp(list.ID, uuid.NewString(), "Bananas", 0), usualOp(" bananas ", true))
+		assert.True(t, catalogEntry(t, s, "Bananas").Usual)
+
+		apply(t, s, usualOp("Bananas", false))
+		assert.False(t, catalogEntry(t, s, "Bananas").Usual)
+	})
+
+	t.Run("a new name gets an entry, and phones hear about it", func(t *testing.T) {
+		s := setup(t)
+		first, err := PullChanges(s, user1, 0)
+		require.NoError(t, err)
+
+		apply(t, s, usualOp("Sourdough", true))
+		entry := catalogEntry(t, s, "Sourdough")
+		assert.True(t, entry.Usual)
+
+		result, err := PullChanges(s, user1, first.Cursor)
+		require.NoError(t, err)
+		require.Len(t, result.Catalog, 1)
+		assert.Equal(t, entry.ID, result.Catalog[0].ID)
+		assert.True(t, result.Catalog[0].Usual)
+	})
+
+	t.Run("unmarking an unknown name does nothing", func(t *testing.T) {
+		s := setup(t)
+		apply(t, s, usualOp("Dragon fruit", false))
+		_, exists, err := findCatalogItemByName(s, "Dragon fruit")
+		require.NoError(t, err)
+		assert.False(t, exists)
+	})
+
+	t.Run("rejects an op with no name or no value", func(t *testing.T) {
+		s := setup(t)
+		noName := usualOp("  ", true)
+		noValue := ShoppingSyncOp{ID: "v", Type: OpCatalogUsual, ItemName: "Milk"}
+		rejected, err := ApplySyncOps(s, user1, []ShoppingSyncOp{noName, noValue})
+		require.NoError(t, err)
+		require.Len(t, rejected, 2)
+	})
+}
+
 func TestPullChanges(t *testing.T) {
 	t.Run("cursor 0 gets everything", func(t *testing.T) {
 		s := setup(t)

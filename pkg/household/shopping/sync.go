@@ -46,6 +46,10 @@ const (
 	OpItemUpdate     = "item.update"
 	OpItemDelete     = "item.delete"
 	OpItemNotStocked = "item.not_stocked"
+	// OpCatalogUsual puts a name in the usual shop or takes it out. It acts
+	// on the catalogue entry named item_name (made if it's new), not on an
+	// item, so it works for names that aren't on any list.
+	OpCatalogUsual = "catalog.usual"
 )
 
 // ShoppingItemFields is part of an item. A nil field is "not included".
@@ -65,14 +69,15 @@ type ShoppingItemFields struct { //nolint:revive // stutters, but the type name 
 // ShoppingSyncOp is one change made on a phone.
 type ShoppingSyncOp struct { //nolint:revive // stutters, but the type name is the OpenAPI schema name.
 	ID       string              `json:"id" doc:"The app's id for this change; echoed back if it's rejected."`
-	Type     string              `json:"type" doc:"item.create, item.update, item.delete or item.not_stocked."`
+	Type     string              `json:"type" doc:"item.create, item.update, item.delete, item.not_stocked or catalog.usual."`
 	At       int64               `json:"at" doc:"When the change was made, in Unix milliseconds. Per field, the latest change wins. Times in the future count as now."`
-	ItemUID  string              `json:"item_uid" doc:"The item's uid; for item.create a new UUID made by the app."`
-	ItemName string              `json:"item_name,omitempty" doc:"The item's name as the app knew it, for the conflict log."`
+	ItemUID  string              `json:"item_uid" doc:"The item's uid; for item.create a new UUID made by the app. Not used by catalog.usual."`
+	ItemName string              `json:"item_name,omitempty" doc:"The item's name as the app knew it, for the conflict log. catalog.usual: the catalogue entry's name."`
 	ListID   int64               `json:"list_id,omitempty" doc:"item.create: the list to add to."`
 	Set      *ShoppingItemFields `json:"set,omitempty" doc:"item.create: the new item. item.update: only the changed fields."`
 	Before   *ShoppingItemFields `json:"before,omitempty" doc:"item.update: the changed fields as the app had them before; used to spot conflicts."`
 	ShopIDs  []int64             `json:"shop_ids,omitempty" doc:"item.not_stocked: every shop that doesn't stock the item (replaces the marks)."`
+	Usual    *bool               `json:"usual,omitempty" doc:"catalog.usual: whether the entry is in the usual shop."`
 }
 
 // ShoppingSyncRejection says an op was dropped and why. The app discards it;
@@ -120,7 +125,7 @@ func ApplySyncOps(s *xorm.Session, a web.Auth, ops []ShoppingSyncOp) ([]*Shoppin
 		// A phone with its clock ahead mustn't win every future conflict.
 		at := time.UnixMilli(min(op.At, now.UnixMilli()))
 		var err error
-		if op.Type != OpItemCreate {
+		if op.Type != OpItemCreate && op.Type != OpCatalogUsual {
 			// An edit to an add that was merged acts on the merged item.
 			if op.ItemUID, err = resolveUID(s, op.ItemUID); err != nil {
 				return nil, err
@@ -135,6 +140,8 @@ func ApplySyncOps(s *xorm.Session, a web.Auth, ops []ShoppingSyncOp) ([]*Shoppin
 			err = syncDelete(s, op)
 		case OpItemNotStocked:
 			err = syncNotStocked(s, op)
+		case OpCatalogUsual:
+			err = syncUsual(s, op)
 		default:
 			err = errRejected{"unknown change type " + op.Type}
 		}
@@ -402,6 +409,41 @@ func syncNotStocked(s *xorm.Session, op *ShoppingSyncOp) error {
 		return nil // nothing to write
 	}
 	return setNotStocked(s, stored.CatalogItemID, shopIDs)
+}
+
+// syncUsual sets the usual-shop mark on the catalogue entry with the op's
+// name. A name the catalogue doesn't know yet gets a new entry, so an item
+// added offline can be marked before the server has seen it.
+func syncUsual(s *xorm.Session, op *ShoppingSyncOp) error {
+	name := strings.TrimSpace(op.ItemName)
+	if n := utf8.RuneCountInString(name); n < 1 || n > 250 {
+		return errRejected{"item_name must be 1–250 characters"}
+	}
+	if op.Usual == nil {
+		return errRejected{"catalog.usual needs usual"}
+	}
+	entry, exists, err := findCatalogItemByName(s, name)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		if !*op.Usual {
+			return nil // not in the catalogue, so not in the usual shop either
+		}
+		entry = &ShoppingCatalogItem{Name: name, NameKey: nameKey(name), Usual: true}
+		if _, err := s.Insert(entry); err != nil {
+			return err
+		}
+		return recordChange(s, entityCatalog, entry.ID, "", false)
+	}
+	if entry.Usual == *op.Usual {
+		return nil // nothing to write
+	}
+	// Cols("usual") is needed: xorm skips false (zero) values otherwise.
+	if _, err := s.ID(entry.ID).Cols("usual").Update(&ShoppingCatalogItem{Usual: *op.Usual}); err != nil {
+		return err
+	}
+	return recordChange(s, entityCatalog, entry.ID, "", false)
 }
 
 // sameIDs reports whether two id lists hold the same ids, in any order.

@@ -1,6 +1,6 @@
 <template>
 	<li class="item-editor">
-		<form @submit.prevent="emit('save', draft, notStocked)">
+		<form @submit.prevent="emit('save', draft, notStocked, usual)">
 			<h3 class="is-sr-only">
 				{{ $t('household.shopping.edit.title', {name: item.name}) }}
 			</h3>
@@ -104,6 +104,13 @@
 						{{ shop.title }}
 					</label>
 				</fieldset>
+				<label class="field usual checkbox">
+					<input
+						v-model="usual"
+						type="checkbox"
+					>
+					{{ $t('household.shopping.edit.usual') }}
+				</label>
 				<div
 					v-if="item.catalog_item_id"
 					class="field photo"
@@ -189,10 +196,11 @@ const props = defineProps<{
 	item: ShoppingItemResponse
 	categories: ShoppingCategoryResponse[]
 	shops: ShoppingShopResponse[]
+	usual: boolean // whether the item's name is in the usual shop
 }>()
 
 const emit = defineEmits<{
-	save: [item: ShoppingItemResponse, notStockedShopIds: number[]]
+	save: [item: ShoppingItemResponse, notStockedShopIds: number[], usual: boolean]
 	delete: []
 	cancel: []
 }>()
@@ -225,6 +233,8 @@ const quantity = computed({
 })
 // eslint-disable-next-line vue/no-setup-props-reactivity-loss -- same: a draft of the marks
 const notStocked = ref<number[]>([...props.item.not_stocked_shop_ids])
+// eslint-disable-next-line vue/no-setup-props-reactivity-loss -- same: a draft of the usual-shop mark
+const usual = ref(props.usual)
 </script>
 
 <style lang="scss" scoped>
@@ -239,7 +249,7 @@ const notStocked = ref<number[]>([...props.item.not_stocked_shop_ids])
 	grid-template-columns: 1fr 1fr;
 	gap: .5rem .75rem;
 
-	.name, .note, .category, .shop, .not-stocked, .photo {
+	.name, .note, .category, .shop, .not-stocked, .usual, .photo {
 		grid-column: 1 / -1;
 	}
 

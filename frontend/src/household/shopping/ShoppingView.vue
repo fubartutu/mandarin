@@ -29,6 +29,15 @@
 				</div>
 				<div class="list-actions">
 					<BaseButton
+						class="list-action usual-button"
+						:class="{'is-active': showUsual}"
+						:aria-expanded="showUsual"
+						@click="showUsual = !showUsual"
+					>
+						<Icon icon="basket-shopping" />
+						<span>{{ $t('household.shopping.usual.button') }}</span>
+					</BaseButton>
+					<BaseButton
 						class="list-action"
 						:aria-label="$t('household.shopping.renameList')"
 						:title="online ? undefined : $t('household.shopping.sync.needsSignal')"
@@ -48,6 +57,15 @@
 					</BaseButton>
 				</div>
 			</header>
+
+			<UsualShop
+				v-if="showUsual"
+				:entries="usualEntries"
+				:catalog="catalog"
+				@add="addUsual"
+				@setUsual="setUsual"
+				@close="showUsual = false"
+			/>
 
 			<ShopTabs
 				v-model="activeShopId"
@@ -94,6 +112,7 @@
 							:item="item"
 							:categories="categories"
 							:shops="activeList.shops"
+							:usual="isUsual(item.name)"
 							@save="saveItem"
 							@delete="deleteItem(item)"
 							@cancel="editingUid = null"
@@ -153,15 +172,16 @@ import ItemRow from './components/ItemRow.vue'
 import ListSwitcher from './components/ListSwitcher.vue'
 import ShopTabs from './components/ShopTabs.vue'
 import SyncBadge from './components/SyncBadge.vue'
+import UsualShop from './components/UsualShop.vue'
 import {
 	useCreateShoppingListMutation,
 	useDeleteShoppingListMutation,
 	useRenameShoppingListMutation,
 	type ShoppingItemResponse,
 } from './queries'
-import {findDuplicate, prepareNewItem} from './adding'
+import {findDuplicate, prepareNewItem, usualShop} from './adding'
 import type {ParsedItem} from './quantity'
-import {createOp, deleteOp, notStockedOp, updateOp} from './sync/model'
+import {createOp, deleteOp, notStockedOp, updateOp, usualOp} from './sync/model'
 import {useShoppingOnline, useShoppingSync} from './sync/useShoppingSync'
 import {
 	groupItems,
@@ -260,7 +280,7 @@ function toggleItem(item: ShoppingItemResponse) {
 	if (op) sync.change(op)
 }
 
-function saveItem(draft: ShoppingItemResponse, notStockedShopIds: number[]) {
+function saveItem(draft: ShoppingItemResponse, notStockedShopIds: number[], usual: boolean) {
 	editingUid.value = null
 	const item = items.value.find(i => i.uid === draft.uid)
 	if (!item) return // removed by someone else meanwhile
@@ -268,6 +288,35 @@ function saveItem(draft: ShoppingItemResponse, notStockedShopIds: number[]) {
 	if (op) sync.change(op)
 	const marksChanged = [...notStockedShopIds].sort().join() !== [...item.not_stocked_shop_ids].sort().join()
 	if (marksChanged) sync.change(notStockedOp(item, notStockedShopIds))
+	// After a rename the mark belongs to the new name.
+	if (usual !== isUsual(draft.name)) setUsual(draft.name, usual)
+}
+
+// ---- The usual shop: the household's regular buys, added in one go ----
+
+const showUsual = ref(false)
+const usualEntries = computed(() => usualShop(catalog.value, items.value, activeListId.value, categories.value))
+
+function isUsual(name: string): boolean {
+	const key = name.trim().toLowerCase()
+	return catalog.value.some(e => e.usual && e.name.toLowerCase() === key)
+}
+
+function setUsual(name: string, usual: boolean) {
+	sync.change(usualOp(name, usual))
+}
+
+function addUsual(names: string[]) {
+	let added = 0
+	for (const name of names) {
+		// No amount given: prepareNewItem uses last time's, and the catalogue's category.
+		const newItem = prepareNewItem({name, quantity: 0, unit: ''}, activeListId.value, catalog.value, categories.value)
+		if (findDuplicate(items.value, newItem)) continue
+		sync.change(createOp(newItem))
+		added++
+	}
+	success({message: t('household.shopping.usual.added', {count: added, list: activeList.value?.title ?? ''}, added)})
+	showUsual.value = false
 }
 
 function deleteItem(item: ShoppingItemResponse) {
@@ -354,6 +403,24 @@ function deleteList() {
 .list-action {
 	padding: .5rem;
 	color: var(--grey-500);
+}
+
+.usual-button {
+	display: flex;
+	align-items: center;
+	gap: .4rem;
+	padding-inline: .75rem;
+	border: 1px solid var(--grey-300);
+	border-radius: 999px;
+	color: var(--primary);
+	font-size: .9rem;
+	white-space: nowrap;
+
+	&.is-active {
+		border-color: var(--primary);
+		background: var(--primary);
+		color: var(--white);
+	}
 }
 
 .hidden-note {

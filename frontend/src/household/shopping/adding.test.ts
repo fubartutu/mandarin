@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {planAdds, prepareNewItem} from './adding'
+import {planAdds, prepareNewItem, usualShop} from './adding'
 import {normalizeCatalogEntry, normalizeItem} from './queries'
 
 const catalog = [normalizeCatalogEntry({id: 1, name: 'Plain flour', category_id: 4, quantity: 1, unit: 'kg'})]
@@ -41,5 +41,30 @@ describe('planAdds', () => {
 		const plan = planAdds([add('Milk', 100, 'mL'), add('milk', 200, 'mL'), add('butter', 50, 'g'), add('Butter', 50, 'g')], items)
 		expect(plan.creates).toEqual([add('Milk', 300, 'mL')])
 		expect(plan.topUps).toEqual([{item: items[0], quantity: 350}])
+	})
+})
+
+describe('usualShop', () => {
+	const entries = [
+		normalizeCatalogEntry({id: 1, name: 'Milk', category_id: 2, usual: true}),
+		normalizeCatalogEntry({id: 2, name: 'Bananas', category_id: 1, usual: true}),
+		normalizeCatalogEntry({id: 3, name: 'Apples', category_id: 1, usual: true}),
+		normalizeCatalogEntry({id: 4, name: 'Batteries', usual: true}),
+		normalizeCatalogEntry({id: 5, name: 'Saffron', category_id: 1}),
+	]
+	const cats = [{id: 1, title: 'Fruit & veg', position: 1}, {id: 2, title: 'Dairy', position: 2}]
+
+	it('lists only usual entries, by category then name, uncategorised last', () => {
+		expect(usualShop(entries, [], 1, cats).map(u => u.entry.name)).toEqual(['Apples', 'Bananas', 'Milk', 'Batteries'])
+	})
+
+	it('says which are already on this list, unticked', () => {
+		const items = [
+			normalizeItem({id: 1, uid: 'a', list_id: 1, name: 'milk'}),
+			normalizeItem({id: 2, uid: 'b', list_id: 1, name: 'Bananas', done: true}),
+			normalizeItem({id: 3, uid: 'c', list_id: 2, name: 'Apples'}),
+		]
+		const onList = usualShop(entries, items, 1, cats).filter(u => u.onList).map(u => u.entry.name)
+		expect(onList).toEqual(['Milk'])
 	})
 })

@@ -31,7 +31,7 @@ import {
 
 export type ItemFields = ShoppingItemFields
 
-export type OpType = 'item.create' | 'item.update' | 'item.delete' | 'item.not_stocked'
+export type OpType = 'item.create' | 'item.update' | 'item.delete' | 'item.not_stocked' | 'catalog.usual'
 
 /** One change made on this device, waiting to be sent. */
 export interface SyncOp {
@@ -44,6 +44,7 @@ export interface SyncOp {
 	set?: ItemFields
 	before?: ItemFields
 	shop_ids?: number[]
+	usual?: boolean // catalog.usual
 }
 
 export interface ConflictEntry {
@@ -167,7 +168,9 @@ function withFields(item: ShoppingItemResponse, set: ItemFields, at: number, dat
 	if (set.name !== undefined) {
 		next.name = set.name.trim()
 		// The server relinks a renamed item to the catalogue by name.
-		const entry = findEntryByName(data, next.name)
+		// A stand-in entry (negative id, see catalog.usual) isn't a real link yet.
+		const found = findEntryByName(data, next.name)
+		const entry = found && found.id > 0 ? found : undefined
 		next.catalog_item_id = entry?.id ?? 0
 		next.has_photo = entry?.has_photo ?? false
 		next.not_stocked_shop_ids = entry?.not_stocked_shop_ids ?? []
@@ -187,6 +190,7 @@ function withFields(item: ShoppingItemResponse, set: ItemFields, at: number, dat
 
 /** Applies one local change, the way the server will. */
 export function applyOp(data: ShoppingData, op: SyncOp): ShoppingData {
+	if (op.type === 'catalog.usual') return applyUsual(data, op)
 	const items = new Map(data.items)
 	const current = items.get(op.item_uid)
 
@@ -217,6 +221,31 @@ export function applyOp(data: ShoppingData, op: SyncOp): ShoppingData {
 		}
 	}
 	return data
+}
+
+/**
+ * Marks a name as part of the usual shop, or unmarks it. A name the phone's
+ * catalogue doesn't know yet gets a stand-in entry with a negative id; the
+ * server makes the real one, and the next sync's rebase drops the stand-in.
+ */
+function applyUsual(data: ShoppingData, op: SyncOp): ShoppingData {
+	const name = op.item_name?.trim() ?? ''
+	if (name === '' || op.usual === undefined) return data
+	const catalog = new Map(data.catalog)
+	const entry = findEntryByName(data, name)
+	if (entry) {
+		if (entry.usual === op.usual) return data
+		catalog.set(entry.id, {...entry, usual: op.usual})
+	} else if (op.usual) {
+		const id = Math.min(0, ...catalog.keys()) - 1
+		catalog.set(id, {
+			id, name, category_id: 0, quantity: 0, unit: '', times_added: 0,
+			has_photo: false, photo_id: 0, not_stocked_shop_ids: [], usual: true,
+		})
+	} else {
+		return data
+	}
+	return {...data, catalog}
 }
 
 /** confirmed + the waiting changes: what the screen shows. */
@@ -290,4 +319,9 @@ export function deleteOp(item: ShoppingItemResponse, at = Date.now()): SyncOp {
 
 export function notStockedOp(item: ShoppingItemResponse, shopIds: number[], at = Date.now()): SyncOp {
 	return {id: newId(), type: 'item.not_stocked', at, item_uid: item.uid, item_name: item.name, shop_ids: shopIds}
+}
+
+/** Puts name in the household's usual shop (or takes it out). */
+export function usualOp(name: string, usual: boolean, at = Date.now()): SyncOp {
+	return {id: newId(), type: 'catalog.usual', at, item_uid: '', item_name: name.trim(), usual}
 }

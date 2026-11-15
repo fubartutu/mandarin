@@ -79,6 +79,11 @@ another package), so in practice:
   call `events.DispatchPending(ctx, s)` after commit, so open apps get the websocket "changed" push.
   An add identical to an unticked item is merged into it (`merge.go`); its uid becomes an alias
   that `ApplySyncOps` resolves, so look items up by resolved uid in new op types.
+- **Usual shop:** catalogue entries with `usual` set are the household's regular buys; the
+  "Usual shop" button on a list (`components/UsualShop.vue`, `usualShop()` in `adding.ts`) adds
+  the picked ones not already on it. Marks change through the `catalog.usual` sync op, keyed by
+  name, not item uid (so it works for names on no list; a new name gets a catalogue entry, and the
+  phone shows a negative-id stand-in until the server's arrives).
 - **Shops:** a shop is a tab (view) on its list, not a list of its own. An item's `shop_id` (0 = any)
   is a synced field like `category_id` (unknown shops become 0; deleting a shop frees its items).
   A shop's `category_order` (aisle order, JSON on `shopping_shops`) arrives with its list; the

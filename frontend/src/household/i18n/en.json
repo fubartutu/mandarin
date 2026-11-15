@@ -33,7 +33,8 @@
 				"delete": "Delete",
 				"cancel": "Cancel",
 				"notStockedAt": "Not stocked at",
-				"shop": "Buy at"
+				"shop": "Buy at",
+				"usual": "In the usual shop"
 			},
 			"autoCategory": "Auto category",
 			"shops": {
@@ -108,6 +109,19 @@
 					"notTicked": "not ticked",
 					"empty": "(empty)"
 				}
+			},
+			"usual": {
+				"button": "Usual shop",
+				"title": "Usual shop",
+				"intro": "Your regular buys. Untick anything you don't need this time.",
+				"empty": "Nothing in the usual shop yet. Add things below, or tick “In the usual shop” when editing an item.",
+				"onList": "on the list",
+				"remove": "Take {name} out of the usual shop",
+				"addPlaceholder": "Add to the usual shop, e.g. Bananas",
+				"addToUsual": "Add",
+				"addToList": "Nothing to add | Add 1 item | Add {count} items",
+				"added": "Nothing new for {list}. | Added 1 item to {list}. | Added {count} items to {list}.",
+				"close": "Close"
 			}
 		},
 		"recipes": {
