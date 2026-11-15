@@ -48,6 +48,10 @@ type ShoppingCatalogItem struct { //nolint:revive // stutters, but the type name
 
 	NotStockedShopIDs []int64 `xorm:"-" json:"not_stocked_shop_ids" doc:"Shops that don't stock this item. It is hidden on those shops' tabs. Replaced as a whole on update."`
 
+	// Usual marks the household's regular buys (milk, bread, bananas…), which
+	// the "Usual shop" button puts on a list all at once.
+	Usual bool `xorm:"bool not null default false" json:"usual" doc:"Whether the item is part of the household's usual shop. Change it with the catalog.usual sync op."`
+
 	Created time.Time `xorm:"created not null" json:"created" readOnly:"true" doc:"When this entry was created."`
 	Updated time.Time `xorm:"updated not null" json:"updated" readOnly:"true" doc:"When this entry was last changed."`
 

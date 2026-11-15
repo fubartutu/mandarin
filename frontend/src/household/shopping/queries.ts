@@ -45,7 +45,7 @@ export type ShoppingItemResponse = Required<Pick<ShoppingItem,
 	Pick<ShoppingItem, 'done_at' | 'created_by'> & {not_stocked_shop_ids: number[]}
 export type CatalogEntry = Required<Pick<ShoppingCatalogItem,
 	'id' | 'name' | 'category_id' | 'quantity' | 'unit' | 'times_added' | 'has_photo' | 'photo_id'>> &
-	Pick<ShoppingCatalogItem, 'last_added'> & {not_stocked_shop_ids: number[]}
+	Pick<ShoppingCatalogItem, 'last_added'> & {not_stocked_shop_ids: number[], usual: boolean}
 
 export function normalizeShop(shop: ShoppingShop): ShoppingShopResponse {
 	return {
@@ -78,6 +78,7 @@ export function normalizeCatalogEntry(entry: ShoppingCatalogItem): CatalogEntry 
 		photo_id: entry.photo_id ?? 0,
 		last_added: entry.last_added,
 		not_stocked_shop_ids: entry.not_stocked_shop_ids ?? [],
+		usual: entry.usual ?? false,
 	}
 }
 

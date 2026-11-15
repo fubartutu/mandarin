@@ -18,6 +18,12 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
 	{
+		date: '2026-11-15',
+		changes: [
+			{kind: 'new', text: 'Usual shop: a button at the top of each shopping list adds your regular buys (milk, bread, fruit and veg…) all at once. Untick anything you don\'t need this time. Add or remove things in the panel, or tick "In the usual shop" when editing an item. Shared by the household and works without signal.'},
+		],
+	},
+	{
 		date: '2026-11-11',
 		changes: [
 			{kind: 'fixed', text: 'When the Cloudflare login runs out, the app now brings up the login page when you open it again, instead of looking offline until it was closed (most noticeable on iPhone).'},

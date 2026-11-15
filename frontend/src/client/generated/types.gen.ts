@@ -3012,6 +3012,10 @@ export type ShoppingCatalogItem = {
      * When this entry was last changed.
      */
     readonly updated?: string;
+    /**
+     * Whether the item is part of the household's usual shop. Change it with the catalog.usual sync op.
+     */
+    usual?: boolean;
 };
 
 export type ShoppingCatalogReadBody = {
@@ -3071,6 +3075,10 @@ export type ShoppingCatalogReadBody = {
      * When this entry was last changed.
      */
     readonly updated?: string;
+    /**
+     * Whether the item is part of the household's usual shop. Change it with the catalog.usual sync op.
+     */
+    usual?: boolean;
 };
 
 export type ShoppingCategory = {
@@ -3557,11 +3565,11 @@ export type ShoppingSyncOp = {
      */
     id?: string;
     /**
-     * The item's name as the app knew it, for the conflict log.
+     * The item's name as the app knew it, for the conflict log. catalog.usual: the catalogue entry's name.
      */
     item_name?: string;
     /**
-     * The item's uid; for item.create a new UUID made by the app.
+     * The item's uid; for item.create a new UUID made by the app. Not used by catalog.usual.
      */
     item_uid?: string;
     /**
@@ -3577,9 +3585,13 @@ export type ShoppingSyncOp = {
      */
     shop_ids?: Array<number> | null;
     /**
-     * item.create, item.update, item.delete or item.not_stocked.
+     * item.create, item.update, item.delete, item.not_stocked or catalog.usual.
      */
     type?: string;
+    /**
+     * catalog.usual: whether the entry is in the usual shop.
+     */
+    usual?: boolean;
 };
 
 export type ShoppingSyncRejection = {
@@ -6668,6 +6680,10 @@ export type ShoppingCatalogItemWritable = {
      * The unit used last time.
      */
     unit?: string;
+    /**
+     * Whether the item is part of the household's usual shop. Change it with the catalog.usual sync op.
+     */
+    usual?: boolean;
 };
 
 export type ShoppingCatalogReadBodyWritable = {
@@ -6691,6 +6707,10 @@ export type ShoppingCatalogReadBodyWritable = {
      * The unit used last time.
      */
     unit?: string;
+    /**
+     * Whether the item is part of the household's usual shop. Change it with the catalog.usual sync op.
+     */
+    usual?: boolean;
 };
 
 export type ShoppingCategoryWritable = {

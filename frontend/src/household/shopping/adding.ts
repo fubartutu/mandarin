@@ -88,3 +88,31 @@ export function planAdds(newItems: NewItem[], items: ShoppingItemResponse[]): Ad
 	}
 	return plan
 }
+
+export interface UsualEntry {
+	entry: CatalogEntry
+	/** Already on the list unticked, so the usual shop leaves it alone. */
+	onList: boolean
+}
+
+/**
+ * The household's usual shop for a list: every catalogue entry marked usual,
+ * in category order (then by name), each saying whether it's already on the
+ * list. Ticked items don't count: they were bought last time.
+ */
+export function usualShop(
+	catalog: CatalogEntry[],
+	items: ShoppingItemResponse[],
+	listId: number,
+	categories: ShoppingCategoryResponse[],
+): UsualEntry[] {
+	const rank = new Map(categories.map((c, i) => [c.id, i]))
+	const order = (e: CatalogEntry) => rank.get(e.category_id) ?? categories.length // uncategorised last
+	return catalog
+		.filter(e => e.usual)
+		.sort((a, b) => order(a) - order(b) || a.name.localeCompare(b.name))
+		.map(entry => ({
+			entry,
+			onList: items.some(i => i.list_id === listId && !i.done && same(i.name, entry.name)),
+		}))
+}

@@ -10,6 +10,7 @@ import {
 	notStockedOp,
 	rebase,
 	updateOp,
+	usualOp,
 	type ShoppingData,
 	type SyncResult,
 } from './model'
@@ -97,6 +98,28 @@ describe('applyOp', () => {
 	it('leaves the shop out of an add for any shop', () => {
 		const op = createOp({list_id: 1, name: 'Milk', quantity: 0, unit: '', category_id: 0})
 		expect(op.set).not.toHaveProperty('shop_id')
+	})
+
+	it('marks a known name as usual, ignoring case, and unmarks it', () => {
+		const data = withMilk()
+		const marked = applyOp(data, usualOp(' milk ', true))
+		expect(marked.catalog.get(7)?.usual).toBe(true)
+		expect(applyOp(marked, usualOp('Milk', false)).catalog.get(7)?.usual).toBe(false)
+	})
+
+	it('a new usual name gets a stand-in entry that items don’t link to', () => {
+		const data = applyOp(withMilk(), usualOp('Bananas', true))
+		const standIn = [...data.catalog.values()].find(e => e.name === 'Bananas')
+		expect(standIn?.usual).toBe(true)
+		expect(standIn!.id).toBeLessThan(0)
+
+		const added = applyOp(data, createOp({list_id: 1, name: 'Bananas', quantity: 0, unit: '', category_id: 0}))
+		expect([...added.items.values()].find(i => i.name === 'Bananas')?.catalog_item_id).toBe(0)
+	})
+
+	it('unmarking an unknown name changes nothing', () => {
+		const data = withMilk()
+		expect(applyOp(data, usualOp('Bananas', false))).toBe(data)
 	})
 
 	it("doesn't change the data it was given", () => {
