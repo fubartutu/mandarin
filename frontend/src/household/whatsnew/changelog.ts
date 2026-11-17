@@ -18,6 +18,12 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
 	{
+		date: '2026-11-17',
+		changes: [
+			{kind: 'new', text: 'Break down: a button on a task splits a big job into steps ("Do lawn renovation" into scalp, dethatch, aerate…), each added as a subtask. On a step, the same button splits it into small, easy-to-start chunks of a few minutes, added as a checklist. The AI suggests them and you edit before adding, or type your own.'},
+		],
+	},
+	{
 		date: '2026-11-15',
 		changes: [
 			{kind: 'new', text: 'Usual shop: a button at the top of each shopping list adds your regular buys (milk, bread, fruit and veg…) all at once. Untick anything you don\'t need this time. Add or remove things in the panel, or tick "In the usual shop" when editing an item. Shared by the household and works without signal.'},

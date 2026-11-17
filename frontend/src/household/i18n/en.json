@@ -399,6 +399,46 @@
 			},
 			"kanban": {
 				"recentComments": "1 comment | Latest of {count} comments"
+			},
+			"breakdown": {
+				"button": "Break down",
+				"title": "Break it down",
+				"modeLabel": "Break it into",
+				"modes": {
+					"steps": "Steps (subtasks)",
+					"chunks": "Small chunks (checklist)"
+				},
+				"hints": {
+					"steps": "The main stages of the job. Each becomes a subtask you can break down again.",
+					"chunks": "Small actions of a few minutes each, easy to start. They go in a checklist on this task."
+				},
+				"suggest": "Suggest steps",
+				"suggestAgain": "Suggest again",
+				"thinking": "Thinking… this can take a minute.",
+				"typeInstead": "You can type them yourself below.",
+				"typeLabel": "Or type them, one per line",
+				"placeholders": {
+					"steps": "Scalp the lawn\nDethatch the lawn\nCore aerate the lawn",
+					"chunks": "Put on your gardening shoes\nGet the mower out of the shed\nMow one strip"
+				},
+				"useTyped": "Use these",
+				"itemLabel": "Step {n}",
+				"minutes": "{n} min",
+				"hours": "{n} h",
+				"total": "About {time} in all",
+				"moveUp": "Move up",
+				"moveDown": "Move down",
+				"remove": "Remove “{title}”",
+				"addOne": "Add a step",
+				"cancel": "Cancel",
+				"add": {
+					"steps": "Add {n} subtask | Add {n} subtasks",
+					"chunks": "Add {n} to the checklist | Add {n} to the checklist"
+				},
+				"added": {
+					"steps": "Added {n} subtask. | Added {n} subtasks.",
+					"chunks": "Added {n} item to the checklist. | Added {n} items to the checklist."
+				}
 			}
 		},
 		"whatsNew": {

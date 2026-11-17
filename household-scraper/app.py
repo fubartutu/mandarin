@@ -6,6 +6,7 @@ GET  /paperless/documents?q=  recipe scans in Paperless-ngx
 GET  /paperless/documents/{id}/thumb   Paperless's small preview
 GET  /paperless/documents/{id}/image   the first page as a JPEG
 POST /paperless/documents/{id}/import?ai=  a scan as a recipe
+POST /breakdown {"mode": "steps"|"chunks", "title": ...}  a task broken down by the AI
 GET  /health
 
 Only the Mandarin server talks to it, over the Docker network; it has no
@@ -30,6 +31,7 @@ from pydantic import BaseModel, Field
 from recipe_scrapers import scrape_html
 
 import ai
+import breakdown
 import paperless
 import settings
 import text_recipe
@@ -281,3 +283,21 @@ def paperless_import(doc_id: int, ai_first: bool = False):
 @app.post("/parse")
 def parse(request: ParseRequest):
     return {"ingredients": [parse_line(line) for line in request.lines]}
+
+
+# ---- Task breakdown (not recipes, but it's where the AI lives) ----
+
+
+class BreakdownRequest(BaseModel):
+    mode: str = Field(pattern="^(steps|chunks)$")
+    title: str = Field(max_length=500)
+    description: str = Field(default="", max_length=50_000)
+    project: str = Field(default="", max_length=500)
+    parent: str = Field(default="", max_length=500)
+    siblings: list[str] = Field(default=[], max_length=30)
+
+
+@app.post("/breakdown")
+def task_breakdown(request: BreakdownRequest):
+    return breakdown.suggest(request.mode, request.title, request.description,
+                             request.project, request.parent, request.siblings)
