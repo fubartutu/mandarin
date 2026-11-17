@@ -462,6 +462,12 @@
 							:task="task"
 							@skipped="seedTask(mergeTask(task, $event)); setActiveFields()"
 						/>
+						<!-- FORK: Mandarin break a big task into steps (subtasks) or small chunks (a checklist) -->
+						<BreakdownButton
+							v-if="!task.done"
+							:task="task"
+							@done="seedTask(mergeTask(task, $event)); setActiveFields()"
+						/>
 						<!-- FORK: Mandarin "Reminder snoozed until 10:40 · Cancel" (Snooze 1h on a notification) -->
 						<SnoozeNotice
 							v-if="!task.done"
@@ -706,6 +712,7 @@ import Reminders from '@/components/tasks/partials/Reminders.vue'
 import RepeatAfter from '@/components/tasks/partials/RepeatAfter.vue'
 import RepeatSettingsField from '@/household/tasks/RepeatSettingsField.vue' // FORK: Mandarin repeat rules and ends
 import SkipOccurrenceButton from '@/household/tasks/SkipOccurrenceButton.vue' // FORK: Mandarin skip an occurrence
+import BreakdownButton from '@/household/tasks/breakdown/BreakdownButton.vue' // FORK: Mandarin task breakdown
 import SnoozeNotice from '@/household/push/SnoozeNotice.vue' // FORK: Mandarin snoozed reminder
 import TaskSubscription from '@/components/misc/Subscription.vue'
 import CustomTransition from '@/components/misc/CustomTransition.vue'

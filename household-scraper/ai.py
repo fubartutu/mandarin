@@ -1,5 +1,6 @@
 """Reads a recipe out of text with a language model: Anthropic's API or an
-OpenAI-compatible one when a key is set up, else Ollama on sampc.
+OpenAI-compatible one when a key is set up, else Ollama on sampc. ask() is the
+shared way in; breakdown.py uses it too.
 
 Used when the simple rules (text_recipe.py) can't make sense of a scan, and
 for web pages that publish no recipe data. The model only sorts the text into
@@ -86,15 +87,16 @@ def _api_error(response: httpx.Response) -> None:
         raise HTTPException(502, f"The AI service answered {response.status_code}. Check AI_MODEL.")
 
 
-def _ask_anthropic(prompt: str) -> str:
+def _ask_anthropic(prompt: str, schema: dict, name: str, purpose: str) -> str:
     """The reply's JSON text from Anthropic's Messages API. The model must
-    call a "save_recipe" tool whose input follows the schema, which makes
+    call a "save_<name>" tool whose input follows the schema, which makes
     the reply's shape reliable."""
+    tool = f"save_{name}"
     body = {
         "model": settings.ai_model(),
         "max_tokens": 4096,
-        "tools": [{"name": "save_recipe", "description": "Save the recipe found in the text.", "input_schema": SCHEMA}],
-        "tool_choice": {"type": "tool", "name": "save_recipe"},
+        "tools": [{"name": tool, "description": purpose, "input_schema": schema}],
+        "tool_choice": {"type": "tool", "name": tool},
         "messages": [{"role": "user", "content": prompt}],
     }
     try:
@@ -110,12 +112,12 @@ def _ask_anthropic(prompt: str) -> str:
         raise HTTPException(502, "The AI's answer couldn't be read.") from e
 
 
-def _ask_api(prompt: str) -> str:
+def _ask_api(prompt: str, schema: dict, name: str) -> str:
     """The reply's JSON text from the Chat Completions API, in strict JSON-schema mode."""
     body = {
         "model": settings.ai_model(),
         "messages": [{"role": "user", "content": prompt}],
-        "response_format": {"type": "json_schema", "json_schema": {"name": "recipe", "strict": True, "schema": SCHEMA}},
+        "response_format": {"type": "json_schema", "json_schema": {"name": name, "strict": True, "schema": schema}},
     }
     try:
         with _api_client() as client:
@@ -129,12 +131,12 @@ def _ask_api(prompt: str) -> str:
         raise HTTPException(502, "The AI's answer couldn't be read.") from e
 
 
-def _ask_ollama(prompt: str) -> str:
+def _ask_ollama(prompt: str, schema: dict) -> str:
     """The reply's JSON text from Ollama, with its structured outputs."""
     body = {
         "model": settings.ollama_model(),
         "messages": [{"role": "user", "content": prompt}],
-        "format": SCHEMA,
+        "format": schema,
         "stream": False,
         "options": {"temperature": 0},
     }
@@ -151,19 +153,33 @@ def _ask_ollama(prompt: str) -> str:
         raise HTTPException(502, "The AI's answer couldn't be read.") from e
 
 
-def extract(text: str) -> dict:
-    """A recipe draft in the same shape as text_recipe.parse_text."""
-    prompt = PROMPT + text[:MAX_TEXT]
+def ask(prompt: str, schema: dict, name: str, purpose: str) -> dict:
+    """The model's answer to prompt as a dict following schema (a JSON schema
+    whose fields are all required, for OpenAI's strict mode). name is a short
+    snake_case word for the answer ("recipe"); purpose is one sentence for
+    Anthropic's tool description. Raises HTTPException with a message for the
+    app when the AI isn't set up, can't be reached or answers oddly."""
     if settings.api_enabled():
-        reply = _ask_anthropic(prompt) if settings.ai_is_anthropic() else _ask_api(prompt)
+        if settings.ai_is_anthropic():
+            reply = _ask_anthropic(prompt, schema, name, purpose)
+        else:
+            reply = _ask_api(prompt, schema, name)
     elif settings.ollama_enabled():
-        reply = _ask_ollama(prompt)
+        reply = _ask_ollama(prompt, schema)
     else:
         raise HTTPException(503, "The AI isn't set up. Add AI_API_KEY and AI_MODEL (or OLLAMA_URL and OLLAMA_MODEL) to the scraper.")
     try:
         data = json.loads(reply)
     except (ValueError, TypeError) as e:
         raise HTTPException(502, "The AI's answer couldn't be read.") from e
+    if not isinstance(data, dict):
+        raise HTTPException(502, "The AI's answer couldn't be read.")
+    return data
+
+
+def extract(text: str) -> dict:
+    """A recipe draft in the same shape as text_recipe.parse_text."""
+    data = ask(PROMPT + text[:MAX_TEXT], SCHEMA, "recipe", "Save the recipe found in the text.")
     if not str(data.get("title") or "").strip():
         raise HTTPException(422, "The AI found no recipe in it.")
 

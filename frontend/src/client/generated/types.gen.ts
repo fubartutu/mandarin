@@ -380,6 +380,25 @@ export type BotUserUpdateBody = {
     username?: string;
 };
 
+export type BreakdownStep = {
+    /**
+     * A rough estimate of how long it takes; 0 when unknown.
+     */
+    minutes?: number;
+    /**
+     * What to do, verb first.
+     */
+    title?: string;
+};
+
+export type BreakdownSuggestion = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    steps?: Array<BreakdownStep> | null;
+};
+
 export type Bucket = {
     /**
      * A URL to the JSON Schema for this object.
@@ -4298,6 +4317,32 @@ export type TaskRepeat = {
     until?: string | null;
 };
 
+export type TasksBreakdownSuggestRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * steps: the main stages of a big job; chunks: small, easy-to-start actions for one stage.
+     */
+    mode?: 'steps' | 'chunks';
+};
+
+export type TasksBreakdownRequest = {
+    /**
+     * A URL to the JSON Schema for this object.
+     */
+    readonly $schema?: string;
+    /**
+     * The steps or chunks, in order.
+     */
+    items?: Array<string> | null;
+    /**
+     * steps: each item becomes a subtask; chunks: the items become a checklist in the description.
+     */
+    mode?: 'steps' | 'chunks';
+};
+
 export type Team = {
     /**
      * A URL to the JSON Schema for this object.
@@ -5404,6 +5449,10 @@ export type BotUserUpdateBodyWritable = {
      * The username of the user. Is always unique. For bot users it must start with the 'bot-' prefix.
      */
     username?: string;
+};
+
+export type BreakdownSuggestionWritable = {
+    steps?: Array<BreakdownStep> | null;
 };
 
 export type BucketWritable = {
@@ -7137,6 +7186,24 @@ export type TaskRepeatWritable = {
      * The latest an occurrence may be due. Completing the task when its next due date would be later ends the series. Null means no end date.
      */
     until?: string | null;
+};
+
+export type TasksBreakdownSuggestRequestWritable = {
+    /**
+     * steps: the main stages of a big job; chunks: small, easy-to-start actions for one stage.
+     */
+    mode?: 'steps' | 'chunks';
+};
+
+export type TasksBreakdownRequestWritable = {
+    /**
+     * The steps or chunks, in order.
+     */
+    items?: Array<string> | null;
+    /**
+     * steps: each item becomes a subtask; chunks: the items become a checklist in the description.
+     */
+    mode?: 'steps' | 'chunks';
 };
 
 export type TeamWritable = {
@@ -14284,6 +14351,66 @@ export type TaskAttachmentsPreviewResponses = {
 };
 
 export type TaskAttachmentsPreviewResponse = TaskAttachmentsPreviewResponses[keyof TaskAttachmentsPreviewResponses];
+
+export type TasksBreakdownData = {
+    body: TasksBreakdownRequestWritable;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: never;
+    url: '/tasks/{task}/breakdown';
+};
+
+export type TasksBreakdownErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksBreakdownError = TasksBreakdownErrors[keyof TasksBreakdownErrors];
+
+export type TasksBreakdownResponses = {
+    /**
+     * OK
+     */
+    200: Task;
+};
+
+export type TasksBreakdownResponse = TasksBreakdownResponses[keyof TasksBreakdownResponses];
+
+export type TasksBreakdownSuggestData = {
+    body: TasksBreakdownSuggestRequestWritable;
+    path: {
+        /**
+         * The numeric id of the task.
+         */
+        task: number;
+    };
+    query?: never;
+    url: '/tasks/{task}/breakdown/suggest';
+};
+
+export type TasksBreakdownSuggestErrors = {
+    /**
+     * Error
+     */
+    default: VikunjaErrorModel;
+};
+
+export type TasksBreakdownSuggestError = TasksBreakdownSuggestErrors[keyof TasksBreakdownSuggestErrors];
+
+export type TasksBreakdownSuggestResponses = {
+    /**
+     * OK
+     */
+    200: BreakdownSuggestion;
+};
+
+export type TasksBreakdownSuggestResponse = TasksBreakdownSuggestResponses[keyof TasksBreakdownSuggestResponses];
 
 export type TaskCommentsListData = {
     body?: never;

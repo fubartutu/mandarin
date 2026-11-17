@@ -200,6 +200,13 @@ another package), so in practice:
   next to Mark done (FORK); it hands the skipped task to `seedTask`, because TaskDetailView keeps its
   own copy of the dates and would save the old ones back. `task_repeats` isn't in Vikunja's fixture
   list (`setup_tests.go`), so household tests empty it themselves.
+- **Task breakdown:** "Break down" on the task page (`household/tasks/breakdown/BreakdownButton.vue`, FORK
+  under Skip in `TaskDetailView.vue`, `@done` → `seedTask` like Skip). Mode `steps` saves each item as a
+  subtask in the task's project; `chunks` appends a TipTap checklist to the description (default for a task
+  that has a parent). Suggestions: `POST /api/v2/tasks/{task}/breakdown/suggest` → `pkg/household/breakdown`
+  → scraper `POST /breakdown` (`breakdown.py`, ADHD-friendly prompts, via `ai.ask()`), with no DB session
+  open; nothing is saved until `POST /api/v2/tasks/{task}/breakdown` (`models.BreakdownTask`, new file
+  `pkg/models/household_task_breakdown.go`, max 15 items). Typing your own steps needs no AI. Codes 905xx.
 - **Household quick add magic:** `household/tasks/quickAdd.ts` reads Todoist phrases off the title
   before Vikunja's magic (FORK lines in `useQuickAddTask.ts`), then applies them to the built task:
   calendar rules ("every mon, thu", "every weekday", "every 2nd tuesday", "every 15th", "every 3 months",
