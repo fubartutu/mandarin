@@ -6,6 +6,11 @@
 // cut off. Adding maximum-scale=1 to the viewport stops that zoom; on iOS it
 // doesn't stop pinch-zooming (Safari ignores that part for accessibility).
 // Android Chrome would block pinch-zoom, so it's only added on Apple devices.
+//
+// viewport-fit=cover (every device) makes Safari report the safe-area insets
+// for the notch, rounded corners and home indicator; without it they are 0
+// and env(safe-area-inset-*) does nothing. safeArea.scss uses them to keep
+// buttons such as Save clear of the home indicator.
 
 /** True on iPhone, iPod and iPad (iPadOS reports itself as a Mac with touch). */
 export function isAppleTouch(nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'> = navigator): boolean {
@@ -18,8 +23,16 @@ export function withMaximumScale(content: string): string {
 	return content ? `${content},maximum-scale=1` : 'width=device-width,initial-scale=1,maximum-scale=1'
 }
 
+/** The viewport content with viewport-fit=cover, kept as is when a viewport-fit is set. */
+export function withViewportFitCover(content: string): string {
+	if (/viewport-fit/.test(content)) return content
+	return content ? `${content},viewport-fit=cover` : 'width=device-width,initial-scale=1,viewport-fit=cover'
+}
+
 export function registerIosFixes() {
-	if (!isAppleTouch()) return
 	const viewport = document.querySelector<HTMLMetaElement>('meta[name="viewport"]')
-	if (viewport) viewport.content = withMaximumScale(viewport.content)
+	if (!viewport) return
+	let content = withViewportFitCover(viewport.content)
+	if (isAppleTouch()) content = withMaximumScale(content)
+	viewport.content = content
 }

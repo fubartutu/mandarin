@@ -79,7 +79,8 @@ import {createOp, updateOp} from '../../shopping/sync/model'
 import {useShoppingData} from '../../shopping/useShopping'
 import {useShoppingSync} from '../../shopping/sync/useShoppingSync'
 import type {IngredientLine} from '../queries'
-import {ingredientLabel, scaledQuantity} from '../scaling'
+import {ingredientLabel} from '../scaling'
+import {ingredientToItem} from '../toShopping'
 
 const props = defineProps<{
 	lines: IngredientLine[]
@@ -125,12 +126,9 @@ watch(lists, all => {
 function addToList() {
 	const items = [...sync.data.value.items.values()]
 	const adds = [...picked.value].sort((a, b) => a - b).map(i => {
-		const line = props.lines[i]
-		return prepareNewItem({
-			name: line.name || line.text,
-			quantity: scaledQuantity(line, props.factor),
-			unit: line.quantity > 0 ? line.unit : '',
-		}, listId.value, catalog.value, categories.value)
+		// "400 g can chickpeas, drained" → Chickpeas, 400 g can, in Pantry.
+		const item = ingredientToItem(props.lines[i], props.factor, catalog.value, categories.value)
+		return prepareNewItem(item, listId.value, catalog.value, categories.value)
 	})
 	const plan = planAdds(adds, items)
 	for (const item of plan.creates) sync.change(createOp(item))

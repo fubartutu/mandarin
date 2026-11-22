@@ -31,6 +31,7 @@ import router from '@/router'
 import householdEn from './i18n/en.json'
 import './theme.scss' // mandarin-orange colours
 import './kanban.scss' // Kanban layout fixes
+import './safeArea.scss' // iPhone notch and home indicator margins
 import {registerOfflineStart} from './offline'
 import {mountOfflineBanner} from './offlineTasks'
 import {registerStartPage} from './startPage'

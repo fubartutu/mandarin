@@ -94,7 +94,10 @@ another package), so in practice:
   FastAPI, recipe-scrapers, ingredient-parser-nlp; tests: `pytest` there), reached at
   `MANDARIN_SCRAPER_URL` (default `http://mandarin-scraper:8000`). Saving never depends on it: the
   Go simple parser fills in when it's down. Calls to it (and image downloads) happen before the DB
-  session opens. "Add to list" goes through the shopping sync engine (`shopping/adding.ts`).
+  session opens. "Add to list" goes through the shopping sync engine (`shopping/adding.ts`), after
+  `recipes/toShopping.ts` turns each line into a list item ("400 g can chickpeas, drained" → Chickpeas,
+  400 "g can"): catalogue names keep their category; new names get one guessed from similar catalogue
+  entries or keywords (sent as the item's category, so the server's catalogue learns it).
   Paperless-ngx scans and the AI (Anthropic or an OpenAI-compatible API via AI_API_KEY/AI_MODEL, else Ollama on sampc) are scraper-side only (`paperless.py`,
   `text_recipe.py` rules, `ai.py`; settings in `settings.py`); Mandarin proxies them under
   `/recipes/paperless`, and a scan's page picture is `paperless:documents/<id>/image`.
@@ -227,7 +230,10 @@ another package), so in practice:
   so a new household route is covered without a FORK edit.
 - **iPhone/iPad:** `household/ios.ts` (from `setup.ts`) adds `maximum-scale=1` to the viewport on
   Apple touch devices only, so Safari doesn't zoom into fields with text under 16px (and stay zoomed).
-  iOS still allows pinch-zoom; Android would not, so it's never added there.
+  iOS still allows pinch-zoom; Android would not, so it's never added there. It also adds
+  `viewport-fit=cover` (every device), without which iOS reports all `env(safe-area-inset-*)` as 0;
+  `household/safeArea.scss` then keeps the top bar, side menu, page content, sticky Save bars and
+  toasts clear of the notch and home indicator (Vikunja's modals already use the insets).
 - **Colours:** `household/theme.scss` (imported by `setup.ts`) overrides Vikunja's `--primary-*`
   tokens with mandarin orange, checked for WCAG contrast in light and dark mode; `index.html` and
   `vite.config.ts` carry the matching `theme-color` (FORK).

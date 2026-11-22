@@ -1,0 +1,79 @@
+// Mandarin: room for the iPhone's rounded corners, notch and home indicator
+// on every page. ios.ts adds viewport-fit=cover, which is what makes Safari
+// report the safe-area insets at all (they are 0 without it, so Vikunja's own
+// env(safe-area-inset-*) rules in Modal.vue did nothing). The page then draws
+// edge to edge, and these rules keep content and buttons inside the safe area.
+// Everywhere else the insets are 0 and nothing changes.
+//
+// No FORK edits: imported by setup.ts. `#app` (an id) outranks the scoped
+// component selectors these override; teleported parts use `body`.
+
+$safe-top: env(safe-area-inset-top, 0px);
+$safe-right: env(safe-area-inset-right, 0px);
+$safe-bottom: env(safe-area-inset-bottom, 0px);
+$safe-left: env(safe-area-inset-left, 0px);
+
+// The top bar: away from the notch in landscape (and the status bar if the
+// home-screen app ever draws under it).
+#app .navbar {
+	padding-block-start: $safe-top;
+	padding-inline-end: $safe-right;
+	padding-inline-start: $safe-left;
+
+	@media screen and (min-width: $tablet) {
+		padding-inline-start: max(2rem, $safe-left);
+	}
+}
+
+// What sits under the fixed top bar moves down with it.
+@media screen and (max-width: $tablet) {
+	#app .app-container {
+		padding-block-start: calc(#{$navbar-height} + #{$safe-top});
+	}
+}
+
+// Page content: clear of the notch at the sides and of the home indicator at
+// the bottom, so the last button on a page (Save) can be tapped.
+#app .app-content {
+	padding-inline: max(.5rem, $safe-left) max(.5rem, $safe-right);
+	padding-block-end: $safe-bottom;
+
+	@media screen and (min-width: $tablet) {
+		padding-block-start: calc(#{$navbar-height} + 1.5rem + #{$safe-top});
+		padding-inline: max(1.5rem, $safe-left) max(1.5rem, $safe-right);
+	}
+}
+
+// The side menu runs to the bottom of the screen (on phones it covers the
+// top bar too, so it starts below the status bar there).
+#app .menu-container {
+	padding-block-start: calc(1rem + #{$safe-top});
+	padding-block-end: calc(1rem + #{$safe-bottom});
+	padding-inline-start: $safe-left;
+
+	@media screen and (min-width: $tablet) {
+		inset-block-start: calc(#{$navbar-height} + #{$safe-top});
+		padding-block-start: 1rem;
+	}
+}
+
+// Save bars and buttons pinned to the bottom of the screen.
+#app .sticky-save {
+	padding-block-end: calc(1rem + #{$safe-bottom});
+}
+
+#app .scroll-to-comments-button {
+	inset-block-end: calc(2.5rem + #{$safe-bottom});
+	inset-inline-end: max(.75rem, $safe-right);
+}
+
+#app .update-notification,
+#app .add-to-home-screen {
+	inset-block-end: calc(1rem + #{$safe-bottom});
+}
+
+// "Saved" toasts (bottom left, teleported to body).
+body .global-notification {
+	margin-block-end: $safe-bottom;
+	margin-inline-start: $safe-left;
+}

@@ -18,6 +18,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
 	{
+		date: '2026-11-22',
+		changes: [
+			{kind: 'improved', text: 'Adding a recipe\'s ingredients to a shopping list now writes them the way you would: "400 g can chickpeas, drained" becomes Chickpeas, 400 g can, in Pantry. Things you\'ve bought before still go where you put them; new ones get a best guess for their aisle.'},
+			{kind: 'fixed', text: 'On iPhones, buttons at the bottom of the screen (Save and the like) no longer sit under the home bar, and pages keep clear of the notch when the phone is turned sideways.'},
+		],
+	},
+	{
 		date: '2026-11-17',
 		changes: [
 			{kind: 'new', text: 'Break down: a button on a task splits a big job into steps ("Do lawn renovation" into scalp, dethatch, aerate…), each added as a subtask. On a step, the same button splits it into small, easy-to-start chunks of a few minutes, added as a checklist. The AI suggests them and you edit before adding, or type your own.'},

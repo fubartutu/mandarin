@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 
-import {isAppleTouch, withMaximumScale} from './ios'
+import {isAppleTouch, withMaximumScale, withViewportFitCover} from './ios'
 
 describe('isAppleTouch', () => {
 	const nav = (userAgent: string, maxTouchPoints = 0) => ({userAgent, maxTouchPoints})
@@ -22,5 +22,13 @@ describe('withMaximumScale', () => {
 		expect(withMaximumScale('width=device-width,initial-scale=1.0')).toBe('width=device-width,initial-scale=1.0,maximum-scale=1')
 		expect(withMaximumScale('width=device-width,maximum-scale=2')).toBe('width=device-width,maximum-scale=2')
 		expect(withMaximumScale('')).toBe('width=device-width,initial-scale=1,maximum-scale=1')
+	})
+})
+
+describe('withViewportFitCover', () => {
+	it('adds viewport-fit=cover once', () => {
+		expect(withViewportFitCover('width=device-width,initial-scale=1.0')).toBe('width=device-width,initial-scale=1.0,viewport-fit=cover')
+		expect(withViewportFitCover('width=device-width,viewport-fit=contain')).toBe('width=device-width,viewport-fit=contain')
+		expect(withViewportFitCover('')).toBe('width=device-width,initial-scale=1,viewport-fit=cover')
 	})
 })
