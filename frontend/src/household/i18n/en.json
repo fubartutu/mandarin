@@ -496,6 +496,10 @@
 			"resume": "Resume",
 			"archive": "Archive",
 			"unarchive": "Unarchive",
+			"moveUp": "Move up",
+			"moveDown": "Move down",
+			"moveUpTitle": "Move {title} up",
+			"moveDownTitle": "Move {title} down",
 			"tick": {
 				"do": "Tick off {title}",
 				"undo": "Take a tick off {title}",

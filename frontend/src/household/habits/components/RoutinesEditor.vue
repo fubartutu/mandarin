@@ -15,10 +15,32 @@
 			</p>
 			<ul class="routines">
 				<li
-					v-for="group in sorted"
+					v-for="(group, index) in sorted"
 					:key="group.id"
 					class="routine"
 				>
+					<div class="move">
+						<button
+							type="button"
+							class="button is-small is-text"
+							:disabled="index === 0"
+							:title="$t('household.habits.moveUpTitle', {title: group.title})"
+							:aria-label="$t('household.habits.moveUpTitle', {title: group.title})"
+							@click="move(index, -1)"
+						>
+							<Icon icon="chevron-up" />
+						</button>
+						<button
+							type="button"
+							class="button is-small is-text"
+							:disabled="index === sorted.length - 1"
+							:title="$t('household.habits.moveDownTitle', {title: group.title})"
+							:aria-label="$t('household.habits.moveDownTitle', {title: group.title})"
+							@click="move(index, 1)"
+						>
+							<Icon icon="chevron-down" />
+						</button>
+					</div>
 					<input
 						class="input"
 						type="text"
@@ -79,6 +101,7 @@ import {useI18n} from 'vue-i18n'
 import {useAuthStore} from '@/stores/auth'
 
 import {type HabitGroupResponse, useDeleteGroupMutation, useSaveGroupMutation} from '../queries'
+import {moveItem, usePendingPositions} from '../reorder'
 
 // Routines are groups of habits done together, e.g. "Morning". Personal ones
 // are only seen by whoever made them; shared ones by the whole household.
@@ -96,7 +119,8 @@ const authStore = useAuthStore()
 const saving = useSaveGroupMutation()
 const deleting = useDeleteGroupMutation()
 
-const sorted = computed(() => [...props.groups].sort((a, b) => a.position - b.position || a.id - b.id))
+const moved = usePendingPositions(() => props.groups)
+const sorted = computed(() => moved.apply(props.groups).sort((a, b) => a.position - b.position || a.id - b.id))
 const newTitle = ref('')
 
 function save(group: HabitGroupResponse, changes: Partial<Pick<HabitGroupResponse, 'title' | 'shared'>>) {
@@ -106,6 +130,16 @@ function save(group: HabitGroupResponse, changes: Partial<Pick<HabitGroupRespons
 function rename(group: HabitGroupResponse, title: string) {
 	// Nothing to write when the name is unchanged or emptied.
 	if (title.trim() !== '' && title.trim() !== group.title) save(group, {title: title.trim()})
+}
+
+// The order here is the order of the sections on the Habits page (and on
+// Home). Moving one renumbers the list; the writes queue one at a time.
+function move(index: number, by: -1 | 1) {
+	for (const {item, position} of moveItem(sorted.value, index, by)) {
+		moved.set(item.id, position)
+		// mutateAsync: mutate's own callbacks only run for the latest call.
+		saving.mutateAsync({...item, position}).catch(() => moved.drop(item.id))
+	}
 }
 
 function add() {
@@ -145,5 +179,16 @@ function remove(group: HabitGroupResponse) {
 
 .checkbox {
 	white-space: nowrap;
+}
+
+// Up and down stacked, so the row stays one line on a phone.
+.move {
+	display: flex;
+	flex-direction: column;
+
+	.button {
+		block-size: 1.25rem;
+		padding-block: 0;
+	}
 }
 </style>

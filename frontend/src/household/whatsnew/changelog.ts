@@ -18,6 +18,12 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
 	{
+		date: '2026-11-22',
+		changes: [
+			{kind: 'improved', text: 'Habits: put your routines in the order you do them (Morning first, Evening last) with the arrows in Routines, and move a habit up or down within its routine from its details.'},
+		],
+	},
+	{
 		date: '2026-11-17',
 		changes: [
 			{kind: 'new', text: 'Break down: a button on a task splits a big job into steps ("Do lawn renovation" into scalp, dethatch, aerate…), each added as a subtask. On a step, the same button splits it into small, easy-to-start chunks of a few minutes, added as a checklist. The AI suggests them and you edit before adding, or type your own.'},

@@ -73,6 +73,28 @@
 				{{ $t('household.habits.lastWeek', {count: habit.progress.last_week}, habit.progress.last_week) }}
 			</p>
 			<div class="actions">
+				<template v-if="canMoveUp || canMoveDown">
+					<XButton
+						variant="secondary"
+						:shadow="false"
+						icon="chevron-up"
+						:disabled="!canMoveUp"
+						:title="$t('household.habits.moveUpTitle', {title: habit.title})"
+						@click="$emit('move', -1)"
+					>
+						{{ $t('household.habits.moveUp') }}
+					</XButton>
+					<XButton
+						variant="secondary"
+						:shadow="false"
+						icon="chevron-down"
+						:disabled="!canMoveDown"
+						:title="$t('household.habits.moveDownTitle', {title: habit.title})"
+						@click="$emit('move', 1)"
+					>
+						{{ $t('household.habits.moveDown') }}
+					</XButton>
+				</template>
 				<XButton
 					v-if="habit.kind !== 'bad' && !habit.paused && !habit.progress.done_today"
 					variant="secondary"
@@ -123,10 +145,14 @@ import HabitTick from './HabitTick.vue'
 
 const props = defineProps<{
 	habit: HabitResponse
+	/** Whether it can move up or down within its section. */
+	canMoveUp?: boolean
+	canMoveDown?: boolean
 }>()
 
 defineEmits<{
 	edit: [habit: HabitResponse]
+	move: [by: -1 | 1]
 }>()
 
 const {t} = useI18n({useScope: 'global'})
