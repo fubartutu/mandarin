@@ -565,6 +565,27 @@
 			"sync": {
 				"pending": "Everything is saved | 1 tick waiting for signal | {count} ticks waiting for signal",
 				"rejected": "A change couldn't be saved: {names} | A change couldn't be saved: {names} | {count} changes couldn't be saved: {names}"
+			},
+			"streaks": {
+				"title": "Streaks",
+				"back": "Back to habits",
+				"none": "No habits with streaks yet. Add one on the Habits page.",
+				"nowTitle": "Right now",
+				"nowHelp": "Each bar is a habit's current streak, measured against its best. A full bar is a record; a striped one is only alive because a missed day was forgiven.",
+				"best": "Record",
+				"unit": {
+					"days": "days | day | days",
+					"weeks": "weeks | week | weeks"
+				},
+				"gaugeLabel": "{title}: {count} of best {best} {unit}",
+				"timelineTitle": "Last 26 weeks",
+				"timelineHelp": "Each bar is one streak, from its first day to its last. Gaps are where a streak ended.",
+				"offline": "The timeline needs a connection.",
+				"now": "now",
+				"laneEmpty": "{title}: no streaks in the last 26 weeks",
+				"legendRun": "A past streak",
+				"legendOngoing": "Still going",
+				"legendForgiven": "Forgiven miss"
 			}
 		}
 	},

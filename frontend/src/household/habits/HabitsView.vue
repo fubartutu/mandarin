@@ -5,6 +5,16 @@
 				{{ $t('household.habits.title') }}
 			</h1>
 			<div class="header-actions">
+				<RouterLink
+					:to="{name: 'habits.streaks'}"
+					class="button is-secondary"
+				>
+					<Icon
+						icon="fire"
+						class="streaks-icon"
+					/>
+					{{ $t('household.habits.streaks.title') }}
+				</RouterLink>
 				<XButton
 					variant="secondary"
 					:shadow="false"
@@ -218,7 +228,13 @@ const routinesOpen = ref(false)
 
 .header-actions {
 	display: flex;
+	flex-wrap: wrap;
 	gap: .5rem;
+}
+
+.streaks-icon {
+	margin-inline-end: .35rem;
+	color: var(--primary);
 }
 
 .today-summary {

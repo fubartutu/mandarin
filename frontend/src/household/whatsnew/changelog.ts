@@ -20,6 +20,7 @@ export const changelog: ChangelogEntry[] = [
 	{
 		date: '2026-11-22',
 		changes: [
+			{kind: 'new', text: 'Streaks: a new page (the Streaks button on Habits) draws your streaks. Each habit gets a bar showing its current streak against its best, and a timeline of the last 26 weeks shows every streak as a bar, with gaps where one ended and notches where a missed day was forgiven.'},
 			{kind: 'improved', text: 'Habits: put your routines in the order you do them (Morning first, Evening last) with the arrows in Routines, and move a habit up or down within its routine from its details.'},
 		],
 	},
