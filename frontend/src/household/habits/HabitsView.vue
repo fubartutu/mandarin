@@ -5,6 +5,16 @@
 				{{ $t('household.habits.title') }}
 			</h1>
 			<div class="header-actions">
+				<RouterLink
+					:to="{name: 'habits.streaks'}"
+					class="button is-secondary"
+				>
+					<Icon
+						icon="fire"
+						class="streaks-icon"
+					/>
+					{{ $t('household.habits.streaks.title') }}
+				</RouterLink>
 				<XButton
 					variant="secondary"
 					:shadow="false"
@@ -76,10 +86,13 @@
 				</h2>
 				<ul class="habit-list">
 					<HabitRow
-						v-for="habit in section.habits"
+						v-for="(habit, index) in section.habits"
 						:key="habit.id"
 						:habit="habit"
+						:can-move-up="!showArchived && index > 0"
+						:can-move-down="!showArchived && index < section.habits.length - 1"
 						@edit="editing = {habit: $event}"
+						@move="moveHabit(section.habits, index, $event)"
 					/>
 				</ul>
 			</section>
@@ -96,10 +109,13 @@
 				</p>
 				<ul class="habit-list">
 					<HabitRow
-						v-for="habit in bad"
+						v-for="(habit, index) in bad"
 						:key="habit.id"
 						:habit="habit"
+						:can-move-up="!showArchived && index > 0"
+						:can-move-down="!showArchived && index < bad.length - 1"
 						@edit="editing = {habit: $event}"
+						@move="moveHabit(bad, index, $event)"
 					/>
 				</ul>
 			</section>
@@ -139,7 +155,8 @@ import {useTitle} from '@/composables/useTitle'
 import HabitEditor from './components/HabitEditor.vue'
 import HabitRow from './components/HabitRow.vue'
 import RoutinesEditor from './components/RoutinesEditor.vue'
-import {habitsQuery, type HabitResponse} from './queries'
+import {habitsQuery, type HabitResponse, useChangeHabitMutation} from './queries'
+import {moveItem, usePendingPositions} from './reorder'
 import {useHabitsSync} from './sync/useHabitsSync'
 import {badHabits, habitSections, habitState} from './today'
 
@@ -162,8 +179,22 @@ const loading = computed(() => showArchived.value
 const notLoaded = computed(() => showArchived.value
 	? archived.isError.value && !archived.data.value
 	: !sync.hasData.value && !sync.online.value)
-const sections = computed(() => habitSections(list.value, sync.groups.value))
-const bad = computed(() => badHabits(list.value))
+// Moves show at once; the server's copy catches up a moment later.
+const moved = usePendingPositions(() => list.value)
+const shown = computed(() => moved.apply(list.value))
+const sections = computed(() => habitSections(shown.value, sync.groups.value))
+const bad = computed(() => badHabits(shown.value))
+
+// Habits move within their section (routine); routines are moved in the
+// Routines editor. Positions count per routine on the server too.
+const change = useChangeHabitMutation()
+function moveHabit(habits: HabitResponse[], index: number, by: -1 | 1) {
+	for (const {item, position} of moveItem(habits, index, by)) {
+		moved.set(item.id, position)
+		// mutateAsync: mutate's own callbacks only run for the latest call.
+		change.mutateAsync({habit: item, changes: {position}}).catch(() => moved.drop(item.id))
+	}
+}
 
 // "3 of 5 done today": the habits that count today.
 const summary = computed(() => {
@@ -197,7 +228,13 @@ const routinesOpen = ref(false)
 
 .header-actions {
 	display: flex;
+	flex-wrap: wrap;
 	gap: .5rem;
+}
+
+.streaks-icon {
+	margin-inline-end: .35rem;
+	color: var(--primary);
 }
 
 .today-summary {

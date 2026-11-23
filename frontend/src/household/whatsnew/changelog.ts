@@ -22,6 +22,8 @@ export const changelog: ChangelogEntry[] = [
 		changes: [
 			{kind: 'improved', text: 'Adding a recipe\'s ingredients to a shopping list now writes them the way you would: "400 g can chickpeas, drained" becomes Chickpeas, 400 g can, in Pantry. Things you\'ve bought before still go where you put them; new ones get a best guess for their aisle.'},
 			{kind: 'fixed', text: 'On iPhones, buttons at the bottom of the screen (Save and the like) no longer sit under the home bar, and pages keep clear of the notch when the phone is turned sideways.'},
+			{kind: 'new', text: 'Streaks: a new page (the Streaks button on Habits) draws your streaks. Each habit gets a bar showing its current streak against its best, and a timeline of the last 26 weeks shows every streak as a bar, with gaps where one ended and notches where a missed day was forgiven.'},
+			{kind: 'improved', text: 'Habits: put your routines in the order you do them (Morning first, Evening last) with the arrows in Routines, and move a habit up or down within its routine from its details.'},
 		],
 	},
 	{

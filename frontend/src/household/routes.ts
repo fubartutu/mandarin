@@ -48,6 +48,11 @@ export const householdRoutes: RouteRecordRaw[] = [
 		component: () => import('./habits/HabitsView.vue'),
 	},
 	{
+		path: '/habits/streaks',
+		name: 'habits.streaks',
+		component: () => import('./habits/StreaksView.vue'),
+	},
+	{
 		// /menu is the 7 days from today; /menu/2026-11-04 the 7 days from that day.
 		path: '/menu/:start(\\d{4}-\\d{2}-\\d{2})?',
 		name: 'menu',
