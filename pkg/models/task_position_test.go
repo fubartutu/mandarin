@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"code.vikunja.io/api/pkg/db"
+	"code.vikunja.io/api/pkg/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -277,6 +278,40 @@ func TestResolveTaskPositionConflicts(t *testing.T) {
 			assert.Greater(t, p.Position, 0.0)
 			assert.Less(t, p.Position, 1000.0)
 		}
+	})
+}
+
+func TestTaskPosition_Update(t *testing.T) {
+	t.Run("task moved to a forbidden project after the permission check", func(t *testing.T) {
+		db.LoadAndAssertFixtures(t)
+		s := db.NewSession()
+		defer s.Close()
+
+		u := &user.User{ID: 1}
+		tp := &TaskPosition{
+			TaskID:        1,
+			ProjectViewID: 1,
+			Position:      12345,
+		}
+		can, err := tp.CanUpdate(s, u)
+		require.NoError(t, err)
+		require.True(t, can)
+
+		// Project 2 belongs to user 3 and is not shared with user 1.
+		_, err = s.ID(1).Cols("project_id", "index").Update(&Task{
+			ProjectID: 2,
+			Index:     9999,
+		})
+		require.NoError(t, err)
+
+		err = tp.Update(s, u)
+		require.ErrorIs(t, err, ErrGenericForbidden{})
+		require.NoError(t, s.Commit())
+
+		db.AssertMissing(t, "task_positions", map[string]interface{}{
+			"task_id":  1,
+			"position": 12345,
+		})
 	})
 }
 
@@ -764,4 +799,119 @@ func TestBulkInsertTaskPositions(t *testing.T) {
 func TestViewLockOrder(t *testing.T) {
 	ids := viewLockOrder([]*ProjectView{{ID: 4}, {ID: 1}, {ID: 4}, {ID: 2}})
 	assert.Equal(t, []int64{1, 2, 4}, ids)
+}
+
+func TestAddPositionsToTasks(t *testing.T) {
+	t.Run("only includes positions of views in the task's project", func(t *testing.T) {
+		db.LoadAndAssertFixtures(t)
+		s := db.NewSession()
+		defer s.Close()
+
+		// View 5 belongs to project 2, task 1 to project 1.
+		_, err := s.Insert(&TaskPosition{TaskID: 1, ProjectViewID: 5, Position: 10})
+		require.NoError(t, err)
+
+		task := &Task{ID: 1}
+		require.NoError(t, AddPositionsToTasks(s, []*Task{task}))
+
+		viewIDs := make([]int64, 0, len(task.Positions))
+		for _, p := range task.Positions {
+			viewIDs = append(viewIDs, p.ProjectViewID)
+		}
+		assert.Contains(t, viewIDs, int64(1))
+		assert.NotContains(t, viewIDs, int64(5))
+	})
+}
+
+// Project 32 (task 21, views list 125 / kanban 128) is the parent of 15 (task 24, list view 57).
+func TestTaskPosition_CanUpdate_Subprojects(t *testing.T) {
+	canUpdate := func(t *testing.T, u *user.User, taskID, viewID int64) bool {
+		db.LoadAndAssertFixtures(t)
+		s := db.NewSession()
+		defer s.Close()
+
+		can, err := (&TaskPosition{TaskID: taskID, ProjectViewID: viewID, Position: 10}).CanUpdate(s, u)
+		require.NoError(t, err)
+		return can
+	}
+
+	t.Run("subproject task in the parent's list view", func(t *testing.T) {
+		assert.True(t, canUpdate(t, &user.User{ID: 6}, 24, 125))
+	})
+	t.Run("without update permission on the task", func(t *testing.T) {
+		assert.False(t, canUpdate(t, &user.User{ID: 1}, 24, 125))
+	})
+	t.Run("parent task in the child's view", func(t *testing.T) {
+		assert.False(t, canUpdate(t, &user.User{ID: 6}, 21, 57))
+	})
+	t.Run("subproject task in the parent's kanban view", func(t *testing.T) {
+		assert.False(t, canUpdate(t, &user.User{ID: 6}, 24, 128))
+	})
+}
+
+func TestTaskPosition_Update_SubprojectTaskInParentView(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	_, err := s.Insert(&TaskPosition{TaskID: 24, ProjectViewID: 57, Position: 777})
+	require.NoError(t, err)
+
+	tp := &TaskPosition{TaskID: 24, ProjectViewID: 125, Position: 250}
+	require.NoError(t, tp.Update(s, &user.User{ID: 6}))
+	require.NoError(t, s.Commit())
+
+	db.AssertExists(t, "task_positions", map[string]interface{}{"task_id": 24, "project_view_id": 125, "position": 250}, false)
+	db.AssertExists(t, "task_positions", map[string]interface{}{"task_id": 24, "project_view_id": 57, "position": 777}, false)
+}
+
+func TestRecalculateTaskPositions_KeepsSubprojectTasks(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	_, err := s.Insert([]*TaskPosition{
+		{TaskID: 21, ProjectViewID: 125, Position: 300},
+		{TaskID: 24, ProjectViewID: 125, Position: 100},
+		{TaskID: 24, ProjectViewID: 57, Position: 777},
+		// Task 1 is neither in project 32 nor below it.
+		{TaskID: 1, ProjectViewID: 125, Position: 200},
+	})
+	require.NoError(t, err)
+
+	view, err := GetProjectViewByID(s, 125)
+	require.NoError(t, err)
+	require.NoError(t, RecalculateTaskPositions(s, view, &LinkSharing{ID: 100, ProjectID: 32, Permission: PermissionWrite}))
+	require.NoError(t, s.Commit())
+
+	readSession := db.NewSession()
+	defer readSession.Close()
+	positions := []*TaskPosition{}
+	require.NoError(t, readSession.Where("project_view_id = ?", 125).OrderBy("position asc").Find(&positions))
+	taskIDs := make([]int64, 0, len(positions))
+	for _, p := range positions {
+		taskIDs = append(taskIDs, p.TaskID)
+	}
+	assert.Equal(t, []int64{24, 21}, taskIDs, "the subproject task keeps its row and its place before task 21")
+
+	db.AssertExists(t, "task_positions", map[string]interface{}{"task_id": 24, "project_view_id": 57, "position": 777}, false)
+}
+
+func TestTaskPosition_CanUpdate_SubprojectTaskWithoutParentAccess(t *testing.T) {
+	db.LoadAndAssertFixtures(t)
+	s := db.NewSession()
+	defer s.Close()
+
+	// User 3 gets write on child project 15 but has no access to its parent 32.
+	_, err := s.Insert(&ProjectUser{UserID: 3, ProjectID: 15, Permission: PermissionWrite})
+	require.NoError(t, err)
+	u := &user.User{ID: 3}
+
+	canUpdateTask, err := (&Task{ID: 24}).CanUpdate(s, u)
+	require.NoError(t, err)
+	assert.True(t, canUpdateTask)
+
+	canUpdatePosition, err := (&TaskPosition{TaskID: 24, ProjectViewID: 125, Position: 10}).CanUpdate(s, u)
+	require.NoError(t, err)
+	assert.False(t, canUpdatePosition)
 }

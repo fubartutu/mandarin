@@ -23,8 +23,8 @@ import (
 	"code.vikunja.io/api/pkg/web"
 )
 
-// Habit error codes are 904xx (shopping has 900xx, recipes 901xx, push
-// 902xx, menu 903xx).
+// Habit error codes are 906xx (shopping has 900xx, recipes 901xx, push
+// 902xx, menu 903xx, task repeats 904xx, task breakdown 905xx).
 
 // ErrHabitDoesNotExist is returned when a habit id is unknown, or the habit
 // is someone else's personal habit (which callers mustn't learn exists).
@@ -37,7 +37,7 @@ func (err ErrHabitDoesNotExist) Error() string {
 }
 
 // ErrCodeHabitDoesNotExist holds the unique world-error code of this error
-const ErrCodeHabitDoesNotExist = 90401
+const ErrCodeHabitDoesNotExist = 90601
 
 // HTTPError holds the http error description
 func (err ErrHabitDoesNotExist) HTTPError() web.HTTPError {
@@ -58,7 +58,7 @@ func (err ErrInvalidHabit) Error() string {
 }
 
 // ErrCodeInvalidHabit holds the unique world-error code of this error
-const ErrCodeInvalidHabit = 90402
+const ErrCodeInvalidHabit = 90602
 
 // HTTPError holds the http error description
 func (err ErrInvalidHabit) HTTPError() web.HTTPError {
@@ -80,7 +80,7 @@ func (err ErrHabitGroupDoesNotExist) Error() string {
 }
 
 // ErrCodeHabitGroupDoesNotExist holds the unique world-error code of this error
-const ErrCodeHabitGroupDoesNotExist = 90403
+const ErrCodeHabitGroupDoesNotExist = 90603
 
 // HTTPError holds the http error description
 func (err ErrHabitGroupDoesNotExist) HTTPError() web.HTTPError {
@@ -100,7 +100,7 @@ func (err ErrOnlyOwnerCanUnshare) Error() string {
 }
 
 // ErrCodeOnlyOwnerCanUnshare holds the unique world-error code of this error
-const ErrCodeOnlyOwnerCanUnshare = 90404
+const ErrCodeOnlyOwnerCanUnshare = 90604
 
 // HTTPError holds the http error description
 func (err ErrOnlyOwnerCanUnshare) HTTPError() web.HTTPError {

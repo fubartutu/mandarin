@@ -17,7 +17,10 @@
 package models
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"slices"
 
 	"code.vikunja.io/api/pkg/modules/avatar"
 	"code.vikunja.io/api/pkg/user"
@@ -73,20 +76,25 @@ func ChangeUserPassword(ctx context.Context, s *xorm.Session, u *user.User, oldP
 		return user.ErrEmptyOldPassword{}
 	}
 
-	err := user.ThrottleReauth(u.ID, func() error {
-		_, err := user.CheckUserCredentials(ctx, s, &user.Login{Username: u.Username, Password: oldPassword})
-		return err
-	})
+	target, err := user.GetUserByID(s, u.ID)
 	if err != nil {
 		return err
 	}
+	if !target.IsLocalUser() {
+		return &user.ErrAccountIsNotLocal{UserID: target.ID}
+	}
 
-	return setUserPasswordAndInvalidateSessions(s, u, newPassword)
+	if err := user.CheckReauthPassword(ctx, s, target, oldPassword); err != nil {
+		return err
+	}
+
+	return SetUserPasswordAndInvalidateSessions(s, target, newPassword)
 }
 
-// setUserPasswordAndInvalidateSessions is shared by the self-service and admin
-// password flows: a changed password must always kill existing sessions.
-func setUserPasswordAndInvalidateSessions(s *xorm.Session, u *user.User, newPassword string) error {
+// SetUserPasswordAndInvalidateSessions is shared by every password-change
+// flow: a changed password must always kill existing sessions. Callers must
+// dispatch pending events after committing.
+func SetUserPasswordAndInvalidateSessions(s *xorm.Session, u *user.User, newPassword string) error {
 	if err := user.UpdateUserPassword(s, u, newPassword); err != nil {
 		return err
 	}
@@ -128,6 +136,41 @@ func UpdateUserGeneralSettings(s *xorm.Session, u *user.User, settings *UserGene
 		avatar.FlushAllCaches(u)
 	}
 	return nil
+}
+
+// changedGeneralSettings returns the sorted json names of the fields that
+// differ. frontend_settings counts as one field.
+func changedGeneralSettings(before, after *UserGeneralSettings) ([]string, error) {
+	b, err := settingsFieldsJSON(before)
+	if err != nil {
+		return nil, err
+	}
+	a, err := settingsFieldsJSON(after)
+	if err != nil {
+		return nil, err
+	}
+
+	changed := []string{}
+	for name, value := range a {
+		if !bytes.Equal(value, b[name]) {
+			changed = append(changed, name)
+		}
+	}
+	slices.Sort(changed)
+	return changed, nil
+}
+
+func settingsFieldsJSON(settings *UserGeneralSettings) (map[string]json.RawMessage, error) {
+	raw, err := json.Marshal(settings)
+	if err != nil {
+		return nil, err
+	}
+	fields := map[string]json.RawMessage{}
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return nil, err
+	}
+	delete(fields, "extra_settings_links")
+	return fields, nil
 }
 
 func checkDefaultProject(s *xorm.Session, u *user.User, projectID int64) error {

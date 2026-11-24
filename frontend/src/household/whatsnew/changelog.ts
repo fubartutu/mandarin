@@ -18,6 +18,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
 	{
+		date: '2026-11-24',
+		changes: [
+			{kind: 'new', text: 'A trash for tasks and projects: deleting one moves it to the trash for 30 days, with an Undo straight after. Restore it from the trash page.'},
+			{kind: 'improved', text: 'The task page shows all its details at once in a panel beside the task, with Mark done, favourite and more actions at the top. Skip, Break down and the snooze notice sit just under them, and repeat rules are under Repeat.'},
+			{kind: 'improved', text: 'Task lists can include tasks from subprojects, and filters have a simpler editor.'},
+			{kind: 'new', text: 'Shift+T on a task marks it done and goes back.'},
+			{kind: 'improved', text: 'A task\'s Repeat row says the real rule, like "Every Mon, Thu" or "Every 2nd Tuesday", and when it stops ("until 1 Mar", "3 times left"), instead of "Every 7 days".'},
+		],
+	},
+	{
 		date: '2026-11-22',
 		changes: [
 			{kind: 'improved', text: 'Adding a recipe\'s ingredients to a shopping list now writes them the way you would: "400 g can chickpeas, drained" becomes Chickpeas, 400 g can, in Pantry. Things you\'ve bought before still go where you put them; new ones get a best guess for their aisle.'},

@@ -2,6 +2,7 @@
 	<!-- Mandarin: "Skip to Thu 30 Oct" next to Mark done on the task page (FORK in TaskDetailView.vue). -->
 	<XButton
 		v-if="repeats && next"
+		class="household-skip"
 		variant="secondary"
 		icon="forward"
 		:loading="skipMutation.isPending.value"
@@ -53,3 +54,10 @@ async function skip() {
 	success({message: t('household.tasks.reschedule.skipped')})
 }
 </script>
+
+<style lang="scss" scoped>
+// Sits on its own line under the task page's toolbar (Mark done, favourite, more).
+.household-skip {
+	margin-block-end: .75rem;
+}
+</style>

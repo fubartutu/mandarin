@@ -347,6 +347,12 @@
 				"summaryUntil": "Stops after {date}",
 				"summaryCount": "Stops after this time | {count} times left, this one included",
 				"or": ", or ",
+				"short": {
+					"until": "until {date}",
+					"count": "last time | {count} times left",
+					"or": " or ",
+					"withEnd": "{repeat}, {end}"
+				},
 				"saveFailed": "The task was added, but its repeat end couldn't be saved. Set it on the task."
 			},
 			"repeat": {
@@ -382,7 +388,7 @@
 					"weekly": "Every {days} | Every {n} weeks on {days}",
 					"monthDay": "Monthly on day {day} | Every {n} months on day {day}",
 					"lastDay": "Monthly on the last day | Every {n} months on the last day",
-					"monthWeekday": "Monthly on the {nth} {weekday} | Every {n} months on the {nth} {weekday}",
+					"monthWeekday": "Every {nth} {weekday} | Every {n} months on the {nth} {weekday}",
 					"months": "Every month on the due date's day | Every {n} months on the due date's day",
 					"years": "Every year on the due date | Every {n} years on the due date"
 				},
@@ -631,6 +637,9 @@
 						"unavailable": "ChatGPT requires OAuth to connect to Mandarin. MCP OAuth is not supported yet, so this token cannot be used in ChatGPT."
 					}
 				}
+			},
+			"linkedAccounts": {
+				"confirmText": "Enter your password to link this {provider} account to your Mandarin account. You can then log in with either."
 			}
 		},
 		"deletion": {
@@ -694,6 +703,8 @@
 	"error": {
 		"14009": "The provided zip file does not contain a Mandarin data file. Make sure you upload a Mandarin or Vikunja export.",
 		"14013": "The export was created with a version that is too old to import. Please create a new export with a more recent version.",
-		"14204": "Could not reach a Planka API at the given URL. Check the URL and that Mandarin can reach the instance."
+		"14204": "Could not reach a Planka API at the given URL. Check the URL and that Mandarin can reach the instance.",
+		"14205": "The Planka URL points to a private or local network address, which Mandarin blocks by default. An administrator can allow it by setting outgoingrequests.allownonroutableips to true.",
+		"15002": "This account at the identity provider is already linked to another Mandarin account."
 	}
 }

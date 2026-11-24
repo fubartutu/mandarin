@@ -45,7 +45,8 @@ Go forces a few compromises (one folder = one package, and unexported helpers ca
 another package), so in practice:
 
 - **Models and logic:** `pkg/household/<module>/` (e.g. `pkg/household/shopping`). Permission is
-  `household.IsMember` (any user; never link shares). Error codes start at 90001.
+  `household.IsMember` (any user; never link shares). Error codes start at 90001, one hundred per module (shopping 900xx, recipes 901xx, push 902xx,
+  menu 903xx, task repeats 904xx, breakdown 905xx, habits 906xx); `TestErrorCodesAreUnique` checks.
 - **New files inside Vikunja packages** (no edits, so no merge conflicts) where Go requires it:
   v2 routes `pkg/routes/api/v2/household_<module>.go`, migrations `pkg/migration/<timestamp>.go`,
   webtests `pkg/webtests/household_<module>_test.go`. Our package must never import `pkg/migration`
@@ -194,6 +195,8 @@ another package), so in practice:
   Removing the repeat removes the row. Other FORK lines: `hardDeleteTask`, `models.GetTables()`.
   Frontend `household/tasks/`: `RepeatSettingsField.vue` (FORK in `TaskDetailView.vue`, gets its
   `saveTask`), `repeatRule.ts` (rules, first date, quick add phrases) and `repeatEnd.ts`.
+  The task page's collapsed Repeat row shows the rule and end in words (`useRepeatSummary.ts`
+  wraps upstream's `repeatSummary`, FORK lines in `TaskDetailView.vue`; text in `repeatLabel.ts`).
 - **Reschedule and skip:** task rows' due-date popup is `household/tasks/RescheduleMenu.vue` (a FORK
   import swap for Vikunja's `DeferTask` in `SingleTaskInProject.vue`, same props and emit): Today,
   Tomorrow, Weekend, Next week (absolute days at the task's time, `reschedule.ts`), the calendar, and

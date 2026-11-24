@@ -13,8 +13,7 @@
 				<FilterPopup
 					v-if="!isSavedFilterProject(project)"
 					v-model="params"
-					:view-id="viewId"
-					:project-id="projectId"
+					:view
 					@update:modelValue="loadTasks()"
 				/>
 			</div>
@@ -50,7 +49,7 @@
 					<draggable
 						v-if="tasks && tasks.length > 0"
 						v-model="tasks"
-						:group="{name: 'tasks', put: false}"
+						:group="taskDragGroup"
 						:disabled="!canDragTasks || !isPositionSorting"
 						item-key="id"
 						tag="ul"
@@ -118,8 +117,10 @@ import {useTaskDragToProject} from '@/composables/useTaskDragToProject'
 import {useCurrentProject} from '@/composables/useCurrentProject'
 import {shouldShowTaskInListView} from '@/composables/useTaskListFiltering'
 import {PERMISSIONS as Permissions} from '@/constants/permissions'
+import {eventToShortcutString} from '@/helpers/shortcut'
 import {calculateItemPosition} from '@/helpers/calculateItemPosition'
 import type {TaskResponse} from '@/client/queries/tasks'
+import type {ProjectView} from '@/client/generated'
 import {isSavedFilterProject} from '@/client/queries/projects'
 
 import {useBaseStore} from '@/stores/base'
@@ -131,13 +132,22 @@ const props = defineProps<{
 	isLoadingProject: boolean,
 	projectId: number,
 	viewId: number,
+	view: ProjectView,
 }>()
 
 const draggable = draggableFor<TaskResponse>()
 
+// Must keep its identity: a new group object mid-drag makes Sortable reject the reorder.
+const taskDragGroup = {name: 'tasks', put: false}
+
 const projectId = toRef(props, 'projectId')
 
 defineOptions({name: 'List'})
+
+const baseStore = useBaseStore()
+const {setDraggedTask} = useTaskDragState()
+const {handleTaskDropToProject} = useTaskDragToProject()
+const {currentProject: project} = useCurrentProject()
 
 const ctaVisible = ref(false)
 
@@ -151,6 +161,7 @@ const {
 	loadTasks,
 	params,
 	sortByParam,
+	includeSubprojects,
 } = useTaskList(
 	() => projectId.value,
 	() => props.viewId,
@@ -158,6 +169,7 @@ const {
 	() => projectId.value === -1
 		? ['comment_count', 'is_unread']
 		: ['subtasks', 'comment_count', 'is_unread'],
+	() => props.view,
 )
 const showLoading = useDelayedLoading(loading)
 
@@ -171,11 +183,6 @@ const tasks = computed({
 watch([projectId, () => props.viewId], () => { dragTasks.value = null })
 
 const isPositionSorting = computed(() => 'position' in sortByParam.value)
-
-const baseStore = useBaseStore()
-const {setDraggedTask} = useTaskDragState()
-const {handleTaskDropToProject} = useTaskDragToProject()
-const {currentProject: project} = useCurrentProject()
 
 const canWrite = computed(() => {
 	return typeof project.value?.max_permission === 'number' &&
@@ -229,10 +236,18 @@ async function saveTaskPosition(e: { originalEvent?: MouseEvent, to: HTMLElement
 
 		// Check if dropped on a sidebar project
 		const {moved} = await handleTaskDropToProject(e, (task) => {
+			// The target project may still be in this list, so let the reload decide.
+			if (includeSubprojects.value) {
+				return
+			}
+
 			tasks.value = tasks.value.filter(t => t.id !== task.id)
 		})
 
 		if (moved) {
+			if (includeSubprojects.value) {
+				await loadTasks()
+			}
 			return
 		}
 
@@ -295,13 +310,14 @@ function handleListNavigation(e: KeyboardEvent) {
 		return
 	}
 
-	if (e.code === 'KeyJ') {
+	const shortcut = eventToShortcutString(e)
+	if (shortcut === 'KeyJ') {
 		e.preventDefault()
 		focusTask(Math.min(focusedIndex.value + 1, tasks.value.length - 1))
 		return
 	}
 
-	if (e.code === 'KeyK') {
+	if (shortcut === 'KeyK') {
 		e.preventDefault()
 		if (focusedIndex.value === -1) {
 			focusTask(tasks.value.length - 1)
@@ -318,11 +334,7 @@ function handleListNavigation(e: KeyboardEvent) {
 		return
 	}
 
-	if (e.code === 'Enter') {
-		if (e.isComposing) {
-			return
-		}
-
+	if (shortcut === 'Enter') {
 		// Links and buttons activate natively on Enter; leave them alone
 		if (e.target instanceof HTMLElement && e.target.closest('a, button, [role="button"]')) {
 			return

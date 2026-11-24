@@ -9,6 +9,7 @@
 					@input="onSearch"
 				/>
 				<XButton
+					class="admin-users__add"
 					variant="primary"
 					@click="openCreate"
 				>
@@ -20,42 +21,51 @@
 				{{ $t('misc.loading') }}
 			</p>
 			<template v-else>
-				<table class="table has-actions is-striped is-hoverable is-fullwidth">
-					<thead>
-						<tr>
-							<th>{{ $t('misc.id') }}</th>
-							<th>{{ $t('user.auth.username') }}</th>
-							<th>{{ $t('user.auth.email') }}</th>
-							<th>{{ $t('admin.users.issuer') }}</th>
-							<th>{{ $t('admin.users.status') }}</th>
-							<th>{{ $t('task.attributes.created') }}</th>
-							<th />
-						</tr>
-					</thead>
-					<tbody>
-						<tr
-							v-for="u in users"
-							:key="u.id"
-						>
-							<td>{{ u.id }}</td>
-							<td>{{ u.username }}</td>
-							<td>{{ u.email }}</td>
-							<td>{{ u.auth_provider || $t('admin.users.issuerLocal') }}</td>
-							<td>{{ statusLabel(u.status) }}</td>
-							<td>
-								<TimeDisplay :date="u.created" />
-							</td>
-							<td class="actions">
-								<XButton
-									variant="secondary"
-									@click="openDetails(u)"
-								>
-									{{ $t('admin.users.details') }}
-								</XButton>
-							</td>
-						</tr>
-					</tbody>
-				</table>
+				<div class="admin-users__table">
+					<table class="table has-actions is-striped is-hoverable is-fullwidth">
+						<thead>
+							<tr>
+								<th>{{ $t('misc.id') }}</th>
+								<th>{{ $t('admin.users.nameLabel') }}</th>
+								<th>{{ $t('user.auth.email') }}</th>
+								<th>{{ $t('admin.users.status') }}</th>
+								<th>{{ $t('task.attributes.created') }}</th>
+								<th />
+							</tr>
+						</thead>
+						<tbody>
+							<tr
+								v-for="u in users"
+								:key="u.id"
+							>
+								<td>{{ u.id }}</td>
+								<td class="is-breakable">
+									<User
+										:user="u"
+										:avatar-size="27"
+									/>
+								</td>
+								<td class="is-breakable">
+									<BreakableText :text="u.email ?? ''" />
+								</td>
+								<td>
+									{{ statusLabel(u.status) }}
+								</td>
+								<td class="is-nowrap">
+									<TimeDisplay :date="u.created" />
+								</td>
+								<td class="actions">
+									<XButton
+										variant="secondary"
+										@click="openDetails(u)"
+									>
+										{{ $t('admin.users.details') }}
+									</XButton>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 				<PaginationEmit
 					v-if="totalPages > 1"
 					:total-pages="totalPages"
@@ -73,9 +83,16 @@
 					class="has-no-shadow"
 					:title="$t('admin.users.detailsTitle', {username: detailTarget.username})"
 				>
+					<User
+						class="admin-users__detail-user"
+						:user="detailTarget"
+						:avatar-size="48"
+					/>
 					<dl class="admin-users__meta">
 						<dt>{{ $t('misc.id') }}</dt>
 						<dd>{{ detailTarget.id }}</dd>
+						<dt>{{ $t('user.auth.username') }}</dt>
+						<dd>{{ detailTarget.username }}</dd>
 						<dt>{{ $t('user.auth.email') }}</dt>
 						<dd>{{ detailTarget.email }}</dd>
 						<dt>{{ $t('admin.users.issuer') }}</dt>
@@ -118,6 +135,14 @@
 							/>
 						</template>
 					</FormField>
+
+					<XButton
+						class="admin-users__settings-link"
+						variant="secondary"
+						:to="{name: 'admin.userSettings', params: {id: detailTarget.id}}"
+					>
+						{{ $t('admin.users.editSettings') }}
+					</XButton>
 
 					<template v-if="!detailTarget.auth_provider">
 						<FormField :label="$t('admin.users.newPasswordLabel')">
@@ -333,6 +358,8 @@ import FormInput from '@/components/input/FormInput.vue'
 import FormSelect from '@/components/input/FormSelect.vue'
 import FormCheckbox from '@/components/input/FormCheckbox.vue'
 import TimeDisplay from '@/components/misc/TimeDisplay.vue'
+import BreakableText from '@/components/misc/BreakableText.vue'
+import User from '@/components/misc/User.vue'
 
 type AdminUserRow = AdminUser & {id: number}
 const {t} = useI18n({useScope: 'global'})
@@ -461,6 +488,28 @@ async function doDelete(mode: DeleteUserMode) {
 	margin-block-end: 1rem;
 }
 
+.admin-users__add {
+	flex-shrink: 0;
+}
+
+.admin-users__table {
+	overflow-x: auto;
+
+	th,
+	.is-nowrap {
+		white-space: nowrap;
+	}
+
+	.is-breakable {
+		min-inline-size: 6rem;
+		overflow-wrap: break-word;
+	}
+}
+
+.admin-users__detail-user {
+	margin-block-end: 1rem;
+}
+
 .admin-users__meta {
 	display: grid;
 	grid-template-columns: auto 1fr;
@@ -476,6 +525,10 @@ async function doDelete(mode: DeleteUserMode) {
 	dd {
 		margin: 0;
 	}
+}
+
+.admin-users__settings-link {
+	margin-block-end: 1rem;
 }
 
 .admin-users__password-actions {

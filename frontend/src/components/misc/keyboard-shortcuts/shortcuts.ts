@@ -146,6 +146,10 @@ export const KEYBOARD_SHORTCUTS: ShortcutGroup[] = [
 				...shortcutBindingToDisplay(SHORTCUTS.taskDetail.done),
 			},
 			{
+				title: 'keyboardShortcuts.task.doneAndBack',
+				...shortcutBindingToDisplay(SHORTCUTS.taskDetail.doneAndBack),
+			},
+			{
 				title: 'keyboardShortcuts.task.assign',
 				...shortcutBindingToDisplay(SHORTCUTS.taskDetail.assignees),
 			},

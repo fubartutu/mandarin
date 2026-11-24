@@ -44,6 +44,13 @@ var (
 	errNoCaller     = errors.New("mcp: no caller request in context")
 )
 
+type loopbackKey struct{}
+
+// IsLoopback reports whether ctx belongs to a request dispatched by an MCP tool call.
+func IsLoopback(ctx context.Context) bool {
+	return ctx.Value(loopbackKey{}) != nil
+}
+
 func (m *Module) callTool(ctx context.Context, name string, rawArgs json.RawMessage) (any, error) {
 	t, ok := m.index[name]
 	if !ok {
@@ -62,9 +69,13 @@ func (m *Module) callTool(ctx context.Context, name string, rawArgs json.RawMess
 	if err != nil {
 		return nil, fmt.Errorf("mcp: invalid arguments for %s: %w", name, err)
 	}
-	fields, err := takeFields(args)
-	if err != nil {
-		return nil, fmt.Errorf("mcp: invalid arguments for %s: %w", name, err)
+	var fields fieldTree
+	// Without a projection, fields is a body field of the route (e.g. tasks bulk update).
+	if t.spec.projection != noProjection {
+		fields, err = takeFields(args)
+		if err != nil {
+			return nil, fmt.Errorf("mcp: invalid arguments for %s: %w", name, err)
+		}
 	}
 	req, err := t.newRequest(ctx, ec, args)
 	if err != nil {
@@ -131,7 +142,7 @@ func (t *tool) newRequest(ctx context.Context, ec *echo.Context, args map[string
 	if len(query) > 0 {
 		target += "?" + query.Encode()
 	}
-	req, err := http.NewRequestWithContext(ctx, t.op.Method, target, reader)
+	req, err := http.NewRequestWithContext(context.WithValue(ctx, loopbackKey{}, true), t.op.Method, target, reader)
 	if err != nil {
 		return nil, err
 	}

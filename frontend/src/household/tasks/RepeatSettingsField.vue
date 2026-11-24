@@ -169,7 +169,6 @@ import {
 	WEEKDAYS,
 	firstOccurrence,
 	fromRRule,
-	isWorkdays,
 	standInSeconds,
 	toRRule,
 	type Nth,
@@ -177,6 +176,7 @@ import {
 	type Weekday,
 } from './repeatRule'
 import {taskRepeatQuery, useSaveRepeatMutation, type RepeatSettings} from './queries'
+import {ruleLabel, weekdayName as weekdayNameIn} from './repeatLabel'
 
 const props = withDefaults(defineProps<{
 	task: Task
@@ -327,42 +327,10 @@ async function save() {
 }
 
 function weekdayName(day: Weekday, style: 'long' | 'short' | 'narrow') {
-	// 5 January 2026 is a Monday.
-	return new Date(2026, 0, 5 + WEEKDAYS.indexOf(day)).toLocaleDateString(locale.value, {weekday: style})
+	return weekdayNameIn(day, style, locale.value)
 }
 
-function listOf(names: string[]) {
-	return new Intl.ListFormat(locale.value, {type: 'conjunction'}).format(names)
-}
-
-const ruleSummary = computed(() => {
-	const rule = draft.value
-	if (!rule) return ''
-	const n = rule.interval
-	switch (rule.kind) {
-		case 'weekly': {
-			const names = isWorkdays(rule.days)
-				? t('household.tasks.repeat.weekdays')
-				: listOf(rule.days.map(day => weekdayName(day, 'short')))
-			return t('household.tasks.repeat.summary.weekly', {days: names, n}, n)
-		}
-		case 'monthDay':
-			return rule.day === -1
-				? t('household.tasks.repeat.summary.lastDay', {n}, n)
-				: t('household.tasks.repeat.summary.monthDay', {day: rule.day, n}, n)
-		case 'monthWeekday':
-			return t('household.tasks.repeat.summary.monthWeekday', {
-				nth: t(`household.tasks.repeat.nth.${rule.nth}`).toLowerCase(),
-				weekday: weekdayName(rule.weekday, 'long'),
-				n,
-			}, n)
-		case 'months':
-			return t('household.tasks.repeat.summary.months', {n}, n)
-		case 'years':
-			return t('household.tasks.repeat.summary.years', {n}, n)
-	}
-	return ''
-})
+const ruleSummary = computed(() => draft.value ? ruleLabel(draft.value, t, locale.value) : '')
 
 const endSummary = computed(() => {
 	const value = settings.data.value
