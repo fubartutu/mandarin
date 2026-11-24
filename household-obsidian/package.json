@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc --noEmit && node esbuild.config.mjs",
     "test": "vitest run",
-    "install-plugin": "node install.mjs"
+    "install-plugin": "node install.mjs",
+    "package": "npm run build && node package.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.2",
